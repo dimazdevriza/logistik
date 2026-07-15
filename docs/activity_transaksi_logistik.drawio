@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="activity_transaksi_logistik" name="Transaksi Logistik">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Activity Diagram: Pencatatan Transaksi Logistik (Material &amp;amp; Alat)&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fontFamily=Times New Roman;fontColor=#01579b;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="15" width="560" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Swimlanes -->
+        <mxCell id="lane_pengguna" value="Pengguna (Admin / Staf Logistik)" style="swimlane;startSize=30;html=1;fontSize=11;fontFamily=Times New Roman;fontStyle=1;fillColor=#e1f5fe;strokeColor=#b3e5fc;fontColor=#01579b;align=center;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="50" y="60" width="240" height="740" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="lane_sistem" value="Sistem (Laravel / Livewire)" style="swimlane;startSize=30;html=1;fontSize=11;fontFamily=Times New Roman;fontStyle=1;fillColor=#e1f5fe;strokeColor=#b3e5fc;fontColor=#01579b;align=center;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="290" y="60" width="320" height="740" as="geometry"/>
+        </mxCell>
+        
+        <!-- Nodes: Pengguna Lane -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=none;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="160" y="95" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_akses_transaksi" value="Membuka Menu Transaksi" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="110" y="140" width="120" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_input_data" value="Memilih Rumah, Item&lt;br&gt;(Material/Alat), &amp;amp; Jumlah" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="110" y="240" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_click_save" value="Mengklik Simpan Transaksi" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="110" y="320" width="120" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_receive_success" value="Menerima Notifikasi Sukses" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="110" y="675" width="120" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="end" value="" style="ellipse;html=1;shape=endState;fillColor=#ffffff;strokeColor=#000000;strokeWidth=3;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="438" y="735" width="24" height="24" as="geometry"/>
+        </mxCell>
+        
+        <!-- Nodes: Sistem Lane -->
+        <mxCell id="act_show_form" value="Menampilkan Form Transaksi" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="390" y="190" width="120" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_validate" value="Memvalidasi Input Transaksi" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="390" y="320" width="120" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="dec_valid" value="Data Valid?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#fbc02d;strokeWidth=1.5;fontSize=9;fontFamily=Times New Roman;fontColor=#f57f17;align=center;" vertex="1" parent="1">
+          <mxGeometry x="415" y="380" width="70" height="70" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_show_error" value="Menampilkan Eror Validasi" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="505" y="397" width="95" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_begin_trans" value="Memulai DB Transaction &amp;amp;&lt;br&gt;Mengunci Stok DB" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="390" y="475" width="120" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="dec_stock" value="Stok Cukup?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#fbc02d;strokeWidth=1.5;fontSize=9;fontFamily=Times New Roman;fontColor=#f57f17;align=center;" vertex="1" parent="1">
+          <mxGeometry x="415" y="530" width="70" height="70" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_rollback" value="Rollback DB &amp;amp; Tampilkan&lt;br&gt;Pesan Eror Stok" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="505" y="547" width="95" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_save_db" value="Commit DB, Kurangi Stok&lt;br&gt;&amp;amp; Catat Transaksi" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="390" y="625" width="120" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="act_refresh_list" value="Menampilkan Daftar Terupdate" style="rounded=1;whiteSpace=wrap;html=1;arcSize=15;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="390" y="675" width="120" height="35" as="geometry"/>
+        </mxCell>
+        
+        <!-- Edges -->
+        <mxCell id="edge1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="start" target="act_akses_transaksi">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="edge2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="act_akses_transaksi" target="act_show_form">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="edge3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="act_show_form" target="act_input_data">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="edge4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="act_input_data" target="act_click_save">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="edge5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="act_click_save" target="act_validate">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="edge6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="act_validate" target="dec_valid">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Invalid Edge -->
+        <mxCell id="edge_invalid" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="dec_valid" target="act_show_error">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_invalid" value="Tidak" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontFamily=Times New Roman;fontColor=#b71c1c;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_invalid">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Loop Back Edge -->
+        <mxCell id="edge_error_back" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="act_show_error" target="act_input_data">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="552" y="260"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Valid Edge -->
+        <mxCell id="edge_valid" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="dec_valid" target="act_begin_trans">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_valid" value="Ya" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontFamily=Times New Roman;fontColor=#1b5e20;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_valid">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_to_dec_stock" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="act_begin_trans" target="dec_stock">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Stock Insufficient Edge -->
+        <mxCell id="edge_stock_no" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="dec_stock" target="act_rollback">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_stock_no" value="Tidak" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontFamily=Times New Roman;fontColor=#b71c1c;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_stock_no">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Loop Back from Rollback to input_data -->
+        <mxCell id="edge_rollback_back" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="act_rollback" target="act_input_data">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="552" y="260"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Stock Sufficient Edge -->
+        <mxCell id="edge_stock_yes" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="dec_stock" target="act_save_db">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_stock_yes" value="Ya" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontFamily=Times New Roman;fontColor=#1b5e20;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_stock_yes">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="act_save_db" target="act_refresh_list">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="edge9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="act_refresh_list" target="act_receive_success">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="edge10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;strokeColor=#0288d1;strokeWidth=1.5;" edge="1" parent="1" source="act_receive_success" target="end">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

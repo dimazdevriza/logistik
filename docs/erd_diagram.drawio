@@ -1,0 +1,136 @@
+<mxfile host="app.diagrams.net" modified="2026-06-17T00:00:00.000Z" agent="draw.io" type="device">
+  <diagram id="erd-logistik" name="Entity Relationship Diagram">
+    <mxGraphModel dx="794" dy="1123" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="794" pageHeight="1123" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="users" value="&lt;b&gt;users&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;name : string&lt;br&gt;email : string (unique)&lt;br&gt;role : string&lt;br&gt;password : string&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="290" y="20" width="160" height="108" as="geometry" />
+        </mxCell>
+
+        <mxCell id="categories" value="&lt;b&gt;categories&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;name : string&lt;br&gt;type : enum (material, tool)&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="suppliers" value="&lt;b&gt;suppliers&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;name : string&lt;br&gt;contact_person : string&lt;br&gt;phone : string&lt;br&gt;address : text&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="20" width="170" height="108" as="geometry" />
+        </mxCell>
+
+        <mxCell id="materials" value="&lt;b&gt;materials&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;FK supplier_id : bigint&lt;br&gt;FK category_id : bigint&lt;br&gt;name : string&lt;br&gt;unit : string&lt;br&gt;unit_price : decimal(15,2)&lt;br&gt;stock : int&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="20" y="170" width="170" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tools" value="&lt;b&gt;tools&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;FK category_id : bigint&lt;br&gt;name : string&lt;br&gt;code : string (unique)&lt;br&gt;condition : enum&lt;br&gt;purchase_price : decimal(15,2)&lt;br&gt;total_qty : int&lt;br&gt;available_qty : int&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="290" y="170" width="170" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="houses" value="&lt;b&gt;houses&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;house_code : string (unique)&lt;br&gt;name : string&lt;br&gt;type : string&lt;br&gt;status : enum&lt;br&gt;budget : decimal(15,2)&lt;br&gt;start_date : date&lt;br&gt;target_end_date : date&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="170" width="180" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="material_usages" value="&lt;b&gt;material_usages&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;FK house_id : bigint&lt;br&gt;FK material_id : bigint&lt;br&gt;FK user_id : bigint&lt;br&gt;quantity : decimal(15,2)&lt;br&gt;unit_price_at_usage : decimal(15,2)&lt;br&gt;total_cost : decimal(15,2)&lt;br&gt;usage_date : date&lt;br&gt;notes : text&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="10" y="380" width="185" height="158" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_usages" value="&lt;b&gt;tool_usages&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;FK house_id : bigint&lt;br&gt;FK tool_id : bigint&lt;br&gt;FK user_id : bigint&lt;br&gt;quantity : int&lt;br&gt;checkout_date : date&lt;br&gt;return_date : date&lt;br&gt;notes : text&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="210" y="380" width="170" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stock_ins" value="&lt;b&gt;stock_ins&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;FK material_id : bigint&lt;br&gt;FK supplier_id : bigint&lt;br&gt;FK user_id : bigint&lt;br&gt;quantity : int&lt;br&gt;unit_price : decimal(15,2)&lt;br&gt;total_cost : decimal(15,2)&lt;br&gt;date : date&lt;br&gt;notes : text&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="395" y="380" width="175" height="158" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_return_logs" value="&lt;b&gt;tool_return_logs&lt;/b&gt;&lt;hr&gt;PK id : bigint&lt;br&gt;FK tool_id : bigint&lt;br&gt;FK house_id : bigint&lt;br&gt;FK tool_usage_id : bigint&lt;br&gt;FK reported_by : bigint → users&lt;br&gt;quantity : int&lt;br&gt;report_type : enum&lt;br&gt;status : enum&lt;br&gt;replacement_cost : decimal(15,2)&lt;br&gt;notes : text&lt;br&gt;timestamps" style="swimlane;fontStyle=0;align=center;startSize=0;html=1;collapsible=0;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;spacingLeft=4;spacingRight=4;align=left;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="585" y="380" width="195" height="176" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_cat_mat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="categories" target="materials">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_cat_tool" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="categories" target="tools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_sup_mat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="suppliers" target="materials">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_mat_mu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="materials" target="material_usages">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_tool_tu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="tools" target="tool_usages">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_house_mu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="houses" target="material_usages">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_house_tu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="houses" target="tool_usages">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_house_trl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="houses" target="tool_return_logs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_user_mu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="users" target="material_usages">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="340" />
+              <mxPoint x="103" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="rel_user_tu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="users" target="tool_usages">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="340" />
+              <mxPoint x="295" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="rel_user_si" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="users" target="stock_ins">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="340" />
+              <mxPoint x="483" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="rel_user_trl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="users" target="tool_return_logs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="530" y="155" />
+              <mxPoint x="770" y="155" />
+              <mxPoint x="770" y="360" />
+              <mxPoint x="683" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel_user_trl_lbl" value="reported_by" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontStyle=2;" vertex="1" connectable="0" parent="rel_user_trl">
+          <mxGeometry x="0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="rel_sup_si" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="suppliers" target="stock_ins">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_tool_trl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="tools" target="tool_return_logs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_tu_trl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERmany;endFill=0;startArrow=ERzeroToMany;startFill=0;strokeWidth=1.5;" edge="1" parent="1" source="tool_usages" target="tool_return_logs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

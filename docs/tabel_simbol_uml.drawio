@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="usecase" name="Simbol Use Case Diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- Title -->
+        <mxCell id="uc_title" value="&lt;b&gt;Tabel Simbol Use Case Diagram&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="10" width="570" height="30" as="geometry"/>
+        </mxCell>
+        <!-- Header Row -->
+        <mxCell id="uc_h1" value="&lt;b&gt;Nama&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="50" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_h2" value="&lt;b&gt;Simbol&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="150" y="50" width="150" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_h3" value="&lt;b&gt;Deskripsi&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="300" height="35" as="geometry"/>
+        </mxCell>
+        <!-- Row 1: Actor -->
+        <mxCell id="uc_r1c1" value="&lt;i&gt;Actor&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="85" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r1c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="85" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r1c3" value="Representasi pengguna atau entitas eksternal yang berinteraksi langsung dengan sistem." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="85" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_s1" value="" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="212" y="95" width="25" height="50" as="geometry"/>
+        </mxCell>
+        <!-- Row 2: Use Case -->
+        <mxCell id="uc_r2c1" value="&lt;i&gt;Use Case&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="160" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r2c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="160" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r2c3" value="Menggambarkan sebuah fungsi atau layanan spesifik yang disediakan oleh sistem kepada aktor." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="160" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_s2" value="Use Case" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="185" y="178" width="80" height="38" as="geometry"/>
+        </mxCell>
+        <!-- Row 3: Association -->
+        <mxCell id="uc_r3c1" value="&lt;i&gt;Association&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="235" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r3c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="235" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r3c3" value="Garis penghubung yang menunjukkan adanya hubungan interaksi antara aktor dengan use case tertentu." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="235" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_s3" value="" style="endArrow=none;html=1;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="272" as="sourcePoint"/>
+            <mxPoint x="270" y="272" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 4: Include -->
+        <mxCell id="uc_r4c1" value="&lt;i&gt;Include&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="310" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r4c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="310" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r4c3" value="Relasi ketergantungan yang menandakan bahwa suatu use case secara wajib memanggil use case lain sebagai bagian dari prosesnya." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="310" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_s4" value="&amp;laquo;include&amp;raquo;" style="endArrow=open;html=1;strokeWidth=1;dashed=1;fontSize=9;labelBackgroundColor=#FFFFFF;fontFamily=Times New Roman;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="175" y="347" as="sourcePoint"/>
+            <mxPoint x="275" y="347" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 5: Extend -->
+        <mxCell id="uc_r5c1" value="&lt;i&gt;Extend&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="385" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r5c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="385" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r5c3" value="Relasi opsional yang menunjukkan bahwa suatu use case dapat memperluas perilaku use case lain pada kondisi tertentu." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="385" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_s5" value="&amp;laquo;extend&amp;raquo;" style="endArrow=open;html=1;strokeWidth=1;dashed=1;fontSize=9;labelBackgroundColor=#FFFFFF;fontFamily=Times New Roman;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="175" y="422" as="sourcePoint"/>
+            <mxPoint x="275" y="422" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 6: System Boundary -->
+        <mxCell id="uc_r6c1" value="&lt;i&gt;System Boundary&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="460" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r6c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="460" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_r6c3" value="Batas area yang mendefinisikan ruang lingkup fungsionalitas sistem secara keseluruhan." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="460" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_s6" value="Sistem" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="190" y="475" width="70" height="45" as="geometry"/>
+        </mxCell>
+        <!-- Source caption -->
+        <mxCell id="uc_source" value="&lt;i&gt;Sumber: Modifikasi dari Sukamto &amp;amp; Shalahuddin (2018).&lt;/i&gt;" style="text;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="545" width="570" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="activity" name="Simbol Activity Diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- Title -->
+        <mxCell id="ac_title" value="&lt;b&gt;Tabel Simbol Activity Diagram&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="10" width="570" height="30" as="geometry"/>
+        </mxCell>
+        <!-- Header Row -->
+        <mxCell id="ac_h1" value="&lt;b&gt;Nama&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="50" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_h2" value="&lt;b&gt;Simbol&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="150" y="50" width="150" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_h3" value="&lt;b&gt;Deskripsi&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="300" height="35" as="geometry"/>
+        </mxCell>
+        <!-- Row 1: Start Node -->
+        <mxCell id="ac_r1c1" value="&lt;i&gt;Start Node&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="85" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r1c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="85" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r1c3" value="Titik awal yang menandai dimulainya serangkaian alur aktivitas dalam sistem." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="85" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_s1" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="213" y="109" width="24" height="24" as="geometry"/>
+        </mxCell>
+        <!-- Row 2: Activity -->
+        <mxCell id="ac_r2c1" value="&lt;i&gt;Activity&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="160" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r2c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="160" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r2c3" value="Representasi dari satu langkah kerja atau proses spesifik yang dilakukan oleh sistem maupun aktor." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="160" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_s2" value="Activity" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="185" y="180" width="80" height="35" as="geometry"/>
+        </mxCell>
+        <!-- Row 3: Decision Node -->
+        <mxCell id="ac_r3c1" value="&lt;i&gt;Decision Node&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="235" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r3c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="235" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r3c3" value="Titik percabangan yang mengevaluasi suatu kondisi dan menentukan jalur alur yang akan ditempuh selanjutnya." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="235" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_s3" value="" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="205" y="252" width="40" height="40" as="geometry"/>
+        </mxCell>
+        <!-- Row 4: Fork/Join -->
+        <mxCell id="ac_r4c1" value="&lt;i&gt;Fork/Join&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="310" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r4c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="310" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r4c3" value="Mekanisme pemisahan (fork) atau penggabungan (join) alur aktivitas yang berjalan secara paralel." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="310" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_s4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="180" y="344" width="90" height="6" as="geometry"/>
+        </mxCell>
+        <!-- Row 5: End Node -->
+        <mxCell id="ac_r5c1" value="&lt;i&gt;End Node&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="385" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r5c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="385" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r5c3" value="Titik akhir yang menandai selesainya seluruh rangkaian aktivitas dalam diagram." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="385" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_s5a" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="210" y="407" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_s5b" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="218" y="415" width="14" height="14" as="geometry"/>
+        </mxCell>
+        <!-- Row 6: Swimlane -->
+        <mxCell id="ac_r6c1" value="&lt;i&gt;Swimlane&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="460" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r6c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="460" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_r6c3" value="Partisi visual yang memisahkan tanggung jawab aktivitas berdasarkan aktor atau komponen sistem yang menjalankannya." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="460" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac_s6" value="Lane" style="swimlane;startSize=20;html=1;fontSize=9;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="195" y="472" width="60" height="50" as="geometry"/>
+        </mxCell>
+        <!-- Source caption -->
+        <mxCell id="ac_source" value="&lt;i&gt;Sumber: Modifikasi dari Sukamto &amp;amp; Shalahuddin (2018).&lt;/i&gt;" style="text;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="545" width="570" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="sequence" name="Simbol Sequence Diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- Title -->
+        <mxCell id="sq_title" value="&lt;b&gt;Tabel Simbol Sequence Diagram&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="10" width="570" height="30" as="geometry"/>
+        </mxCell>
+        <!-- Header Row -->
+        <mxCell id="sq_h1" value="&lt;b&gt;Nama&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="50" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_h2" value="&lt;b&gt;Simbol&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="150" y="50" width="150" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_h3" value="&lt;b&gt;Deskripsi&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="300" height="35" as="geometry"/>
+        </mxCell>
+        <!-- Row 1: Actor -->
+        <mxCell id="sq_r1c1" value="&lt;i&gt;Actor&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="85" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r1c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="85" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r1c3" value="Pengguna atau entitas eksternal yang menginisiasi interaksi dengan objek-objek di dalam sistem." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="85" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_s1" value="" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="212" y="95" width="25" height="50" as="geometry"/>
+        </mxCell>
+        <!-- Row 2: Lifeline -->
+        <mxCell id="sq_r2c1" value="&lt;i&gt;Lifeline&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="160" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r2c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="160" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r2c3" value="Garis hidup yang merepresentasikan keberadaan suatu objek sepanjang dimensi waktu dalam skenario interaksi." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="160" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <!-- Lifeline: box on top + dashed line below -->
+        <mxCell id="sq_s2a" value=":Object" style="rounded=0;whiteSpace=wrap;html=1;fontSize=8;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="200" y="168" width="50" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_s2b" value="" style="endArrow=none;html=1;dashed=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="225" y="190" as="sourcePoint"/>
+            <mxPoint x="225" y="225" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 3: Activation Bar -->
+        <mxCell id="sq_r3c1" value="&lt;i&gt;Activation Bar&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="235" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r3c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="235" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r3c3" value="Area aktif pada lifeline yang menunjukkan periode di mana objek sedang mengeksekusi suatu operasi." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="235" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <!-- Activation bar: dashed line + thin rectangle -->
+        <mxCell id="sq_s3a" value="" style="endArrow=none;html=1;dashed=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="225" y="245" as="sourcePoint"/>
+            <mxPoint x="225" y="300" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sq_s3b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="219" y="255" width="12" height="35" as="geometry"/>
+        </mxCell>
+        <!-- Row 4: Message -->
+        <mxCell id="sq_r4c1" value="&lt;i&gt;Message&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="310" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r4c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="310" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r4c3" value="Komunikasi sinkron yang dikirimkan dari satu objek ke objek lain untuk memanggil suatu fungsi atau metode." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="310" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_s4" value="message()" style="endArrow=block;html=1;strokeWidth=1;fontSize=8;endFill=1;labelBackgroundColor=#FFFFFF;fontFamily=Times New Roman;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="175" y="347" as="sourcePoint"/>
+            <mxPoint x="275" y="347" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 5: Return Message -->
+        <mxCell id="sq_r5c1" value="&lt;i&gt;Return Message&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="385" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r5c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="385" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r5c3" value="Respons balik yang dikembalikan oleh objek penerima kepada objek pengirim setelah operasi selesai diproses." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="385" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_s5" value="return" style="endArrow=open;html=1;strokeWidth=1;dashed=1;fontSize=8;endFill=0;labelBackgroundColor=#FFFFFF;fontFamily=Times New Roman;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="275" y="422" as="sourcePoint"/>
+            <mxPoint x="175" y="422" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 6: Self-Message -->
+        <mxCell id="sq_r6c1" value="&lt;i&gt;Self-Message&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="460" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r6c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="460" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_r6c3" value="Pemanggilan internal di mana suatu objek mengirimkan pesan kepada dirinya sendiri untuk menjalankan operasi tambahan." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="460" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <!-- Self-message: vertical bar + looping arrow -->
+        <mxCell id="sq_s6a" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="207" y="472" width="12" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_s6a_sub" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="212" y="485" width="12" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="sq_s6b" value="self()" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;strokeWidth=1;fontSize=8;endFill=1;labelBackgroundColor=#FFFFFF;fontFamily=Times New Roman;" edge="1" parent="1" target="sq_s6a_sub">
+          <mxGeometry x="0.5" relative="1" as="geometry">
+            <mxPoint x="219" y="490" as="sourcePoint"/>
+            <mxPoint x="224" y="500" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="245" y="490"/>
+              <mxPoint x="245" y="500"/>
+            </Array>
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Source caption -->
+        <mxCell id="sq_source" value="&lt;i&gt;Sumber: Modifikasi dari Sukamto &amp;amp; Shalahuddin (2018).&lt;/i&gt;" style="text;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="545" width="570" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="classdiag" name="Simbol Class Diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- Title -->
+        <mxCell id="cl_title" value="&lt;b&gt;Tabel Simbol Class Diagram&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="10" width="570" height="30" as="geometry"/>
+        </mxCell>
+        <!-- Header Row -->
+        <mxCell id="cl_h1" value="&lt;b&gt;Nama&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="50" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_h2" value="&lt;b&gt;Simbol&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="150" y="50" width="150" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_h3" value="&lt;b&gt;Deskripsi&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6E6E6;fontSize=12;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="300" height="35" as="geometry"/>
+        </mxCell>
+        <!-- Row 1: Class -->
+        <mxCell id="cl_r1c1" value="&lt;i&gt;Class&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="85" width="120" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r1c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="85" width="150" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r1c3" value="Representasi dari sebuah entitas dalam sistem yang memuat nama kelas, daftar atribut, serta operasi atau metode yang dimiliki." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="85" width="300" height="85" as="geometry"/>
+        </mxCell>
+        <!-- Class symbol: 3-part box -->
+        <mxCell id="cl_s1_box" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="93" width="70" height="66" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_s1_name" value="&lt;b&gt;ClassName&lt;/b&gt;" style="text;html=1;fontSize=7;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="190" y="93" width="70" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_s1_line1" value="" style="endArrow=none;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="190" y="115" as="sourcePoint"/>
+            <mxPoint x="260" y="115" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cl_s1_attr" value="+ attribute" style="text;html=1;fontSize=7;align=left;verticalAlign=middle;spacingLeft=3;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="190" y="115" width="70" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_s1_line2" value="" style="endArrow=none;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="190" y="137" as="sourcePoint"/>
+            <mxPoint x="260" y="137" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cl_s1_method" value="+ method()" style="text;html=1;fontSize=7;align=left;verticalAlign=middle;spacingLeft=3;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="190" y="137" width="70" height="22" as="geometry"/>
+        </mxCell>
+        <!-- Row 2: Association -->
+        <mxCell id="cl_r2c1" value="&lt;i&gt;Association&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="170" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r2c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="170" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r2c3" value="Relasi umum antar kelas yang menunjukkan bahwa satu kelas memiliki hubungan struktural dengan kelas lainnya, disertai keterangan multiplicity." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="170" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_s2" value="" style="endArrow=none;html=1;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="207" as="sourcePoint"/>
+            <mxPoint x="270" y="207" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 3: Directed Association -->
+        <mxCell id="cl_r3c1" value="&lt;i&gt;Directed Association&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="245" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r3c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="245" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r3c3" value="Relasi berarah yang menunjukkan bahwa suatu kelas mengetahui dan bergantung pada kelas tujuan, namun tidak sebaliknya." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="245" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_s3" value="" style="endArrow=open;html=1;strokeWidth=2;endFill=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="282" as="sourcePoint"/>
+            <mxPoint x="270" y="282" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 4: Generalization -->
+        <mxCell id="cl_r4c1" value="&lt;i&gt;Generalization&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="320" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r4c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="320" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r4c3" value="Relasi pewarisan (inheritance) yang menggambarkan hubungan antara kelas induk (superclass) dengan kelas turunan (subclass)." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="320" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_s4" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="357" as="sourcePoint"/>
+            <mxPoint x="270" y="357" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 5: Dependency -->
+        <mxCell id="cl_r5c1" value="&lt;i&gt;Dependency&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="395" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r5c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="395" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r5c3" value="Hubungan ketergantungan sementara di mana perubahan pada satu kelas dapat mempengaruhi kelas yang bergantung padanya." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="395" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_s5" value="" style="endArrow=open;html=1;strokeWidth=1;dashed=1;endFill=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="432" as="sourcePoint"/>
+            <mxPoint x="270" y="432" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 6: Aggregation -->
+        <mxCell id="cl_r6c1" value="&lt;i&gt;Aggregation&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="470" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r6c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="470" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r6c3" value="Relasi keseluruhan-bagian (whole-part) yang bersifat longgar, di mana bagian dapat berdiri sendiri tanpa keseluruhan." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="470" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_s6" value="" style="endArrow=none;startArrow=diamond;html=1;strokeWidth=2;startFill=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="507" as="sourcePoint"/>
+            <mxPoint x="270" y="507" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Row 7: Composition -->
+        <mxCell id="cl_r7c1" value="&lt;i&gt;Composition&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="545" width="120" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r7c2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="545" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_r7c3" value="Relasi keseluruhan-bagian yang bersifat kuat, di mana bagian tidak dapat berdiri sendiri dan ikut hancur jika keseluruhan dihapus." style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=6;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="300" y="545" width="300" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="cl_s7" value="" style="endArrow=none;startArrow=diamond;html=1;strokeWidth=2;startFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="582" as="sourcePoint"/>
+            <mxPoint x="270" y="582" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Source caption -->
+        <mxCell id="cl_source" value="&lt;i&gt;Sumber: Modifikasi dari Sukamto &amp;amp; Shalahuddin (2018).&lt;/i&gt;" style="text;html=1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="630" width="570" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

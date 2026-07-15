@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="login_mockup" name="Login Page Mockup">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- ================= BROWSER FRAME ================= -->
+        <!-- Browser Window -->
+        <mxCell id="browser_frame" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="100" y="50" width="600" height="450" as="geometry"/>
+        </mxCell>
+        
+        <!-- Browser Header/Toolbar Line -->
+        <mxCell id="browser_line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="90" width="600" height="10" as="geometry"/>
+        </mxCell>
+        
+        <!-- Browser Navigation dots -->
+        <mxCell id="dot1" value="" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="115" y="65" width="8" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="dot2" value="" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="130" y="65" width="8" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="dot3" value="" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="145" y="65" width="8" height="8" as="geometry"/>
+        </mxCell>
+        
+        <!-- Address Bar -->
+        <mxCell id="address_bar" value="http://localhost/login" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=9;fontColor=#333333;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="180" y="60" width="440" height="18" as="geometry"/>
+        </mxCell>
+        
+        <!-- ================= LOGIN CARD ================= -->
+        <!-- Center Login Box -->
+        <mxCell id="login_card" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="240" y="130" width="320" height="310" as="geometry"/>
+        </mxCell>
+        
+        <!-- Title -->
+        <mxCell id="title_logo" value="&lt;b&gt;SISTEM LOGISTIK PERUMAHAN&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fontColor=#000000;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="260" y="150" width="280" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Silakan masuk untuk mengakses dasbor logistik" style="text;html=1;fontSize=9;align=center;verticalAlign=middle;fontColor=#555555;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="260" y="175" width="280" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- Separator line inside card -->
+        <mxCell id="card_line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;strokeColor=#dddddd;" vertex="1" parent="1">
+          <mxGeometry x="260" y="195" width="280" height="10" as="geometry"/>
+        </mxCell>
+        
+        <!-- Email Label -->
+        <mxCell id="email_label" value="&lt;b&gt;Email&lt;/b&gt;" style="text;html=1;fontSize=9;align=left;verticalAlign=middle;fontColor=#000000;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="270" y="210" width="100" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- Email Input -->
+        <mxCell id="email_input" value="admin@logistik.com" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;align=left;spacingLeft=8;fontColor=#000000;fontSize=10;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="270" y="230" width="260" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Password Label -->
+        <mxCell id="password_label" value="&lt;b&gt;Password&lt;/b&gt;" style="text;html=1;fontSize=9;align=left;verticalAlign=middle;fontColor=#000000;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="270" y="270" width="100" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- Password Input -->
+        <mxCell id="password_input" value="••••••••" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;align=left;spacingLeft=8;fontColor=#666666;fontSize=10;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="270" y="290" width="260" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Login Button -->
+        <mxCell id="login_btn" value="MASUK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;strokeWidth=1;fontColor=#ffffff;fontSize=11;fontStyle=1;fontFamily=Arial;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="350" width="260" height="35" as="geometry"/>
+        </mxCell>
+        
+        <!-- Footer link / password warning -->
+        <mxCell id="forgot_pwd" value="Lupa password? Hubungi Admin Utama" style="text;html=1;fontSize=8;align=center;verticalAlign=middle;fontColor=#555555;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="270" y="395" width="260" height="20" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="sequence_auth" name="Autentikasi">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Sequence Diagram: Autentikasi dan Pengalihan Hak Akses Berdasarkan Role&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fontFamily=Times New Roman;fontColor=#01579b;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="15" width="650" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Lifeline: User -->
+        <mxCell id="lifeline_user" value="Pengguna&lt;br&gt;(Admin/Logistik)" style="shape=umlLifeline;participant=umlActor;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=60;verticalAlign=bottom;labelBackgroundColor=none;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontColor=#01579b;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="115" y="60" width="30" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="act_user" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1;" vertex="1" parent="lifeline_user">
+          <mxGeometry x="10" y="60" width="10" height="330" as="geometry"/>
+        </mxCell>
+        
+        <!-- Lifeline: View (LoginForm) -->
+        <mxCell id="lifeline_boundary" value="View:&lt;br&gt;LoginForm" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontColor=#01579b;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="60" width="100" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="act_boundary" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1;" vertex="1" parent="lifeline_boundary">
+          <mxGeometry x="45" y="60" width="10" height="330" as="geometry"/>
+        </mxCell>
+        
+        <!-- Lifeline: Component (Auth Livewire) -->
+        <mxCell id="lifeline_control" value="Component:&lt;br&gt;AuthLivewire" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontColor=#01579b;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="100" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="act_control" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1;" vertex="1" parent="lifeline_control">
+          <mxGeometry x="45" y="60" width="10" height="330" as="geometry"/>
+        </mxCell>
+        <mxCell id="act_control_sub" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1;" vertex="1" parent="lifeline_control">
+          <mxGeometry x="50" y="220" width="10" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Lifeline: Database (User Model) -->
+        <mxCell id="lifeline_entity" value="Database:&lt;br&gt;User Model" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontColor=#01579b;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="60" width="100" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="act_entity" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1;" vertex="1" parent="lifeline_entity">
+          <mxGeometry x="45" y="60" width="10" height="330" as="geometry"/>
+        </mxCell>
+        
+        <!-- Messages -->
+        <mxCell id="msg1" value="1. Mengakses Halaman Login" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#0288d1;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;exitX=1;exitY=0.05;entryX=0;entryY=0.05;" edge="1" parent="1" source="act_user" target="act_boundary">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="msg2" value="2. Tampilkan Halaman Login" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;strokeColor=#0288d1;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;exitX=0;exitY=0.12;entryX=1;entryY=0.12;" edge="1" parent="1" source="act_boundary" target="act_user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="msg3" value="3. Masukkan Kredensial &amp;amp; Login" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#0288d1;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;exitX=1;exitY=0.20;entryX=0;entryY=0.20;" edge="1" parent="1" source="act_user" target="act_boundary">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="msg4" value="4. Kirim Kredensial" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#0288d1;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;exitX=1;exitY=0.28;entryX=0;entryY=0.28;" edge="1" parent="1" source="act_boundary" target="act_control">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="msg5" value="5. Query Kredensial" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#0288d1;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;exitX=1;exitY=0.36;entryX=0;entryY=0.36;" edge="1" parent="1" source="act_control" target="act_entity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="msg6" value="6. Return User Data" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;strokeColor=#0288d1;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;exitX=0;exitY=0.44;entryX=1;entryY=0.44;" edge="1" parent="1" source="act_entity" target="act_control">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="msg7" value="7. Validasi Kredensial &amp;amp; Role" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;strokeColor=#0288d1;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;" edge="1" parent="lifeline_control" target="act_control_sub">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="85" y="230"/>
+            </Array>
+            <mxPoint x="55" y="200" as="sourcePoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+
+        
+        <mxCell id="msg8" value="8. Redirect ke Dashboard" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#0288d1;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;exitX=0;exitY=0.68;entryX=1;entryY=0.68;" edge="1" parent="1" source="act_control" target="act_boundary">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="msg9" value="9. Render Dashboard sesuai Role" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;strokeColor=#0288d1;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontColor=#0d47a1;exitX=0;exitY=0.76;entryX=1;entryY=0.76;" edge="1" parent="1" source="act_boundary" target="act_user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

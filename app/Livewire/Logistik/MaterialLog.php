@@ -1,0 +1,150 @@
+<?php
+
+namespace App\Livewire\Logistik;
+
+use App\Exports\MaterialLogExport;
+use App\Models\MaterialUsage;
+use App\Models\StockIn;
+use App\Models\House;
+use App\Models\Supplier;
+use App\Traits\WithFilterModal;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
+
+class MaterialLog extends Component
+{
+    use WithPagination, WithFilterModal;
+
+    public $search = '';
+    public $filterType = ''; // '' = Semua, 'keluar' = Barang Keluar, 'masuk' = Barang Masuk
+    public $filterHouse = '';
+    public $filterSupplier = '';
+    public $sortDirection = 'desc';
+
+    public function toggleSortDirection(): void
+    {
+        $this->sortDirection = $this->sortDirection === 'desc' ? 'asc' : 'desc';
+        $this->resetPage();
+    }
+
+    public function updatingSearch() { $this->resetPage(); }
+    public function updatingFilterType()
+    {
+        $this->filterHouse = '';
+        $this->filterSupplier = '';
+        $this->resetPage();
+    }
+    public function updatingFilterHouse() { $this->resetPage(); }
+    public function updatingFilterSupplier() { $this->resetPage(); }
+
+    public function resetFilters()
+    {
+        $this->reset(['search', 'filterType', 'filterHouse', 'filterSupplier']);
+        $this->showFilterModal = false;
+        $this->resetPage();
+    }
+
+    protected function getKeluarQuery()
+    {
+        return MaterialUsage::with(['house', 'material', 'user'])
+            ->when($this->search, fn ($q) => $q->whereHas('material', fn ($mq) => $mq->where('name', 'like', "%{$this->search}%")))
+            ->when($this->filterHouse, fn ($q) => $q->where('house_id', $this->filterHouse));
+    }
+
+    protected function getMasukQuery()
+    {
+        return StockIn::with(['material', 'supplier', 'user'])
+            ->when($this->search, fn ($q) => $q->whereHas('material', fn ($mq) => $mq->where('name', 'like', "%{$this->search}%")))
+            ->when($this->filterSupplier, fn ($q) => $q->where('supplier_id', $this->filterSupplier));
+    }
+
+    protected function buildCombinedRecords(): LengthAwarePaginator
+    {
+        $perPage = 10;
+
+        $keluarQuery = MaterialUsage::query()
+            ->select(
+                DB::raw("'keluar' as type"),
+                'material_usages.usage_date as date',
+                'materials.name as material_name',
+                'materials.unit as material_unit',
+                'houses.name as reference',
+                'material_usages.quantity',
+                'material_usages.unit_price_at_usage as unit_price',
+                'material_usages.total_cost',
+                'users.name as user_name',
+                'material_usages.created_at as created_at'
+            )
+            ->join('materials', 'material_usages.material_id', '=', 'materials.id')
+            ->join('houses', 'material_usages.house_id', '=', 'houses.id')
+            ->join('users', 'material_usages.user_id', '=', 'users.id')
+            ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
+            ->when($this->filterHouse, fn ($q) => $q->where('material_usages.house_id', $this->filterHouse));
+
+        $masukQuery = StockIn::query()
+            ->select(
+                DB::raw("'masuk' as type"),
+                'stock_ins.date',
+                'materials.name as material_name',
+                'materials.unit as material_unit',
+                'suppliers.name as reference',
+                'stock_ins.quantity',
+                'stock_ins.unit_price',
+                'stock_ins.total_cost',
+                'users.name as user_name',
+                'stock_ins.created_at as created_at'
+            )
+            ->join('materials', 'stock_ins.material_id', '=', 'materials.id')
+            ->join('suppliers', 'stock_ins.supplier_id', '=', 'suppliers.id')
+            ->join('users', 'stock_ins.user_id', '=', 'users.id')
+            ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
+            ->when($this->filterSupplier, fn ($q) => $q->where('stock_ins.supplier_id', $this->filterSupplier));
+
+        $unionQuery = $keluarQuery->unionAll($masukQuery);
+
+        return DB::table(DB::raw("({$unionQuery->toSql()}) as combined"))
+             ->mergeBindings($unionQuery->getQuery())
+             ->orderBy('date', $this->sortDirection)
+             ->orderBy('created_at', $this->sortDirection)
+             ->paginate($perPage);
+    }
+
+    public function exportExcel()
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+
+        $export = new MaterialLogExport(
+            $this->search,
+            $this->filterType,
+            $this->filterHouse,
+            $this->filterSupplier,
+            $this->sortDirection
+        );
+        $filename = 'catatan-material-' . now()->format('Ymd-His') . '.xlsx';
+
+        return response()->streamDownload(function () use ($export) {
+            echo Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX);
+        }, $filename);
+    }
+
+    public function render()
+    {
+        $houses = House::orderBy('name')->get();
+        $suppliers = Supplier::orderBy('name')->get();
+
+        if ($this->filterType === 'masuk') {
+            $records = $this->getMasukQuery()->orderBy('date', $this->sortDirection)->orderBy('id', $this->sortDirection)->paginate(10);
+        } elseif ($this->filterType === 'keluar') {
+            $records = $this->getKeluarQuery()->orderBy('usage_date', $this->sortDirection)->orderBy('id', $this->sortDirection)->paginate(10);
+        } else {
+            $records = $this->buildCombinedRecords();
+        }
+
+        return view('livewire.logistik.material-log', compact('records', 'houses', 'suppliers'))
+            ->layout('layouts.app', ['title' => 'Catatan Material']);
+    }
+}

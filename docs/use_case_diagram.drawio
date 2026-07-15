@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="usecase_diagram" name="Use Case Diagram">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Use Case Diagram: Sistem Informasi Logistik D'Royal Village&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fontFamily=Times New Roman;fontColor=#01579b;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="15" width="500" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- System Boundary Box -->
+        <mxCell id="system_boundary" value="Sistem Informasi Logistik D'Royal Village" style="swimlane;startSize=25;html=1;fontSize=10;fontFamily=Times New Roman;fontStyle=1;fillColor=none;strokeColor=#039be5;strokeWidth=1.5;fontColor=#01579b;align=center;collapsible=0;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="60" width="300" height="400" as="geometry"/>
+        </mxCell>
+        
+        <!-- Actors -->
+        <mxCell id="actor_admin" value="Admin&lt;br&gt;(Kepala Proyek)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#0d47a1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="30" height="60" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="actor_staff" value="Staf Logistik" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#0d47a1;" vertex="1" parent="1">
+          <mxGeometry x="510" y="200" width="30" height="60" as="geometry"/>
+        </mxCell>
+        
+        <!-- Use Cases (Inside Boundary) -->
+        <mxCell id="uc_login" value="Login / Autentikasi" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#01579b;fontStyle=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="80" y="25" width="140" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="uc_manage" value="Mengelola Data Master" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#01579b;fontStyle=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="80" y="70" width="140" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="uc_users" value="Mengelola Data Pengguna" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#01579b;fontStyle=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="80" y="115" width="140" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="uc_material" value="Mencatat Penggunaan Material" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#01579b;fontStyle=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="80" y="160" width="140" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="uc_checkout" value="Melakukan Peminjaman Alat" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#01579b;fontStyle=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="80" y="205" width="140" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="uc_return" value="Melakukan Pengembalian Alat" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#01579b;fontStyle=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="80" y="250" width="140" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="uc_monitor" value="Memantau Biaya Proyek" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#01579b;fontStyle=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="80" y="295" width="140" height="35" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="uc_export" value="Mengekspor Laporan Biaya" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#039be5;strokeWidth=1.5;fontFamily=Times New Roman;fontSize=10;fontColor=#01579b;fontStyle=1;" vertex="1" parent="system_boundary">
+          <mxGeometry x="80" y="340" width="140" height="35" as="geometry"/>
+        </mxCell>
+        
+        <!-- Associations: Admin (left) -->
+        <mxCell id="edge_admin_login" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_admin">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="230" as="sourcePoint"/>
+            <mxPoint x="230" y="102" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_admin_manage" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_admin">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="230" as="sourcePoint"/>
+            <mxPoint x="230" y="147" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_admin_users" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_admin">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="230" as="sourcePoint"/>
+            <mxPoint x="230" y="192" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_admin_material" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_admin">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="230" as="sourcePoint"/>
+            <mxPoint x="230" y="237" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_admin_checkout" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_admin">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="230" as="sourcePoint"/>
+            <mxPoint x="230" y="282" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_admin_return" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_admin">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="230" as="sourcePoint"/>
+            <mxPoint x="230" y="327" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_admin_monitor" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_admin">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="230" as="sourcePoint"/>
+            <mxPoint x="230" y="372" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_admin_export" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_admin">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="230" as="sourcePoint"/>
+            <mxPoint x="230" y="417" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Associations: Staff Logistik (right) -->
+        <mxCell id="edge_staff_login" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_staff">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="510" y="230" as="sourcePoint"/>
+            <mxPoint x="370" y="102" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_staff_manage" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_staff">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="510" y="230" as="sourcePoint"/>
+            <mxPoint x="370" y="147" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_staff_material" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_staff">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="510" y="230" as="sourcePoint"/>
+            <mxPoint x="370" y="237" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_staff_checkout" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_staff">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="510" y="230" as="sourcePoint"/>
+            <mxPoint x="370" y="282" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_staff_return" value="" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#0288d1;" edge="1" parent="1" source="actor_staff">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="510" y="230" as="sourcePoint"/>
+            <mxPoint x="370" y="327" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

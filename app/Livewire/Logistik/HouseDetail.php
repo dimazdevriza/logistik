@@ -1,0 +1,83 @@
+<?php
+
+namespace App\Livewire\Logistik;
+
+use App\Models\House;
+use App\Models\MaterialUsage;
+use App\Models\ToolUsage;
+use App\Exports\MaterialUsageExport;
+use App\Exports\ToolUsageExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Livewire\Component;
+use Livewire\WithPagination;
+
+class HouseDetail extends Component
+{
+    use WithPagination;
+
+    public House $house;
+
+    // View state
+    public $activeTab = 'material'; // material or tool
+
+    public function mount(House $house)
+    {
+        $this->house = $house;
+    }
+
+    public function updatingActiveTab()
+    {
+        $this->resetPage('materialPage');
+        $this->resetPage('toolPage');
+    }
+
+    public function render()
+    {
+        $materialUsages = null;
+        $toolUsages = null;
+
+        $materialCount = $this->house->materialUsages()->count();
+        $toolCount = $this->house->toolUsages()->count();
+
+        if ($this->activeTab === 'material') {
+            $materialUsages = MaterialUsage::with(['material', 'user'])
+                ->where('house_id', $this->house->id)
+                ->orderByDesc('usage_date')
+                ->orderByDesc('id')
+                ->paginate(15, ['*'], 'materialPage');
+        } else {
+            $toolUsages = ToolUsage::with(['tool', 'user'])
+                ->where('house_id', $this->house->id)
+                ->orderByDesc('checkout_date')
+                ->orderByDesc('id')
+                ->paginate(15, ['*'], 'toolPage');
+        }
+
+        return view('livewire.logistik.house-detail', [
+            'materialUsages' => $materialUsages,
+            'toolUsages' => $toolUsages,
+            'materialCount' => $materialCount,
+            'toolCount' => $toolCount,
+        ])->layout('layouts.app', ['title' => 'Detail Rumah: ' . $this->house->name]);
+    }
+
+    public function exportExcel()
+    {
+        // Only admin or logistik can export
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) {
+            return;
+        }
+
+        if ($this->activeTab === 'material') {
+            $export = new MaterialUsageExport($this->house->id);
+            $filename = 'penggunaan-material-' . $this->house->house_code . '-' . now()->format('Ymd-His') . '.xlsx';
+        } else {
+            $export = new ToolUsageExport($this->house->id);
+            $filename = 'peminjaman-alat-' . $this->house->house_code . '-' . now()->format('Ymd-His') . '.xlsx';
+        }
+
+        return response()->streamDownload(function () use ($export) {
+            echo Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX);
+        }, $filename);
+    }
+}

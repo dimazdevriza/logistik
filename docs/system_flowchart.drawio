@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="system_flowchart" name="System Flowchart">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Flowchart Sistem Logistik Perumahan&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fontFamily=Times New Roman;fontColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="133" y="15" width="560" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Start Node -->
+        <mxCell id="start" value="Mulai" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="388" y="60" width="50" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Login Halaman -->
+        <mxCell id="act_login" value="Mengakses Halaman Login &amp;amp;&lt;br&gt;Input Kredensial" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="338" y="110" width="150" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Decision: Validasi Login -->
+        <mxCell id="dec_login" value="Kredensial&lt;br&gt;Valid?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=9;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="378" y="175" width="70" height="70" as="geometry"/>
+        </mxCell>
+        
+        <!-- Error Login -->
+        <mxCell id="act_err_login" value="Menampilkan Eror Kredensial" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="500" y="190" width="130" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Dashboard Utama -->
+        <mxCell id="act_dashboard" value="Dashboard Utama" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="348" y="270" width="130" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Decision: Pilih Fitur -->
+        <mxCell id="dec_fitur" value="Pilih Fitur?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=9;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="368" y="340" width="90" height="80" as="geometry"/>
+        </mxCell>
+        
+        <!-- ================= FEATURES COLUMNS ================= -->
+        
+        <!-- Column 1: Kelola Inventaris -->
+        <mxCell id="act_inventaris" value="Input Data Inventaris&lt;br&gt;(Material / Alat)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="80" y="450" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="save_inventaris" value="Simpan &amp;amp; Update Stok" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="80" y="520" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Column 2: Kelola Proyek Rumah -->
+        <mxCell id="act_proyek" value="Input Data Proyek Rumah" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="230" y="450" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="save_proyek" value="Simpan Kavling/Tipe Baru" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="230" y="520" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Column 3: Transaksi Logistik (Simplified) -->
+        <mxCell id="act_transaksi" value="Input Transaksi Logistik&lt;br&gt;(Penggunaan / Pinjam / Kembali)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="380" y="450" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="save_transaksi" value="Simpan Transaksi &amp;amp;&lt;br&gt;Update Stok Persediaan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="380" y="520" width="130" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Column 4: Lihat Audit Log -->
+        <mxCell id="act_log" value="Tampilkan Histori Log&lt;br&gt;(Material / Alat)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="540" y="450" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Logout Process -->
+        <mxCell id="act_logout" value="Logout Pengguna" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="680" y="360" width="100" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- ================= EDGES ================= -->
+        
+        <!-- Start to Login -->
+        <mxCell id="edge1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="start" target="act_login">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Login to Dec Login -->
+        <mxCell id="edge2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="act_login" target="dec_login">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Dec Login [Tidak] to Error Page -->
+        <mxCell id="edge_login_no" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="dec_login" target="act_err_login">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="lbl_login_no" value="Tidak" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=8;fontFamily=Times New Roman;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_login_no">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Error Page back to Login page -->
+        <mxCell id="edge_err_back" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="act_err_login" target="act_login">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="565" y="130"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Dec Login [Ya] to Dashboard -->
+        <mxCell id="edge_login_yes" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="dec_login" target="act_dashboard">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="lbl_login_yes" value="Ya" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=8;fontFamily=Times New Roman;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_login_yes">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Dashboard to Dec Fitur -->
+        <mxCell id="edge3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="act_dashboard" target="dec_fitur">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Dec Fitur [Inventaris] -->
+        <mxCell id="edge_f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dec_fitur" target="act_inventaris">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="368" y="380"/>
+              <mxPoint x="140" y="380"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lbl_f1" value="Inventaris" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=8;fontFamily=Times New Roman;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_f1">
+          <mxGeometry x="0.2" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_f1_save" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="act_inventaris" target="save_inventaris">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Dec Fitur [Proyek] -->
+        <mxCell id="edge_f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dec_fitur" target="act_proyek">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="368" y="380"/>
+              <mxPoint x="290" y="380"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lbl_f2" value="Proyek" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=8;fontFamily=Times New Roman;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_f2">
+          <mxGeometry x="0.2" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_f2_save" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="act_proyek" target="save_proyek">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Dec Fitur [Transaksi] -->
+        <mxCell id="edge_f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dec_fitur" target="act_transaksi">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="458" y="380"/>
+              <mxPoint x="445" y="380"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lbl_f3" value="Transaksi" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=8;fontFamily=Times New Roman;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_f3">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_f3_save" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="act_transaksi" target="save_transaksi">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Dec Fitur [Log] -->
+        <mxCell id="edge_f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dec_fitur" target="act_log">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="458" y="380"/>
+              <mxPoint x="600" y="380"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lbl_f4" value="Log / Histori" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=8;fontFamily=Times New Roman;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_f4">
+          <mxGeometry x="0.2" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Dec Fitur [Logout] -->
+        <mxCell id="edge_logout" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="dec_fitur" target="act_logout">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="lbl_logout" value="Logout" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=8;fontFamily=Times New Roman;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="edge_logout">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Logout back to login page (forms a clean loop, no Selesai node) -->
+        
+        
+        <!-- ================= REGULAR RETURN PATHS (NO OVERLAP) ================= -->
+        <!-- All flows go down, merge into y=590, go left to x=35, and go up to Dashboard (y=290) -->
+        
+        <mxCell id="edge_save_inv_back" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="save_inventaris" target="act_dashboard">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="590"/>
+              <mxPoint x="35" y="590"/>
+              <mxPoint x="35" y="290"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_save_proy_back" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="save_proyek" target="act_dashboard">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="590"/>
+              <mxPoint x="35" y="590"/>
+              <mxPoint x="35" y="290"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_save_trans_back" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="save_transaksi" target="act_dashboard">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="445" y="590"/>
+              <mxPoint x="35" y="590"/>
+              <mxPoint x="35" y="290"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_log_back" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="act_log" target="act_dashboard">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="590"/>
+              <mxPoint x="35" y="590"/>
+              <mxPoint x="35" y="290"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Selesai Node -->
+        <mxCell id="end" value="Selesai" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontSize=10;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="705" y="450" width="50" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Edge: Logout to Selesai -->
+        <mxCell id="edge_logout_to_end" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#000000;strokeWidth=1.5;" edge="1" parent="1" source="act_logout" target="end">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

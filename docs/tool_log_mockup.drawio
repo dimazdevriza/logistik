@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="tool_log_mockup" name="Tool Log Mockup">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- ================= BROWSER FRAME ================= -->
+        <mxCell id="browser_frame" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="100" y="50" width="600" height="450" as="geometry"/>
+        </mxCell>
+        <mxCell id="browser_line" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="600" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="dot1" value="" style="ellipse;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="111" y="61" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="dot2" value="" style="ellipse;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="122" y="61" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="dot3" value="" style="ellipse;html=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="134" y="61" width="6" height="6" as="geometry"/>
+        </mxCell>
+        <mxCell id="address_bar" value="http://localhost/logistik/tool-log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=7;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="160" y="58" width="480" height="14" as="geometry"/>
+        </mxCell>
+        
+        <!-- ================= SIDEBAR ================= -->
+        <mxCell id="sidebar_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="84" width="135" height="416" as="geometry"/>
+        </mxCell>
+        <mxCell id="app_logo" value="&lt;b&gt;LOGISTIK PERUMAHAN&lt;/b&gt;" style="text;html=1;fontSize=8;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="108" y="95" width="120" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="sidebar_line" value="" style="line;strokeColor=#dddddd;" vertex="1" parent="1">
+          <mxGeometry x="108" y="121" width="120" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="group_platform" value="PLATFORM" style="text;html=1;fontSize=7;fontColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="111" y="132" width="112" height="11" as="geometry"/>
+        </mxCell>
+        <mxCell id="item_dashboard" value="Dashboard Logistik" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;fontSize=7;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="108" y="148" width="120" height="19" as="geometry"/>
+        </mxCell>
+        <mxCell id="group_inventaris" value="INVENTARIS" style="text;html=1;fontSize=7;fontColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="111" y="174" width="112" height="11" as="geometry"/>
+        </mxCell>
+        <mxCell id="item_material" value="Material" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;fontSize=7;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="108" y="189" width="120" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="item_alat" value="Alat" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;fontSize=7;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="108" y="204" width="120" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="item_supplier" value="Supplier" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;fontSize=7;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="108" y="219" width="120" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="item_kategori" value="Kategori" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;fontSize=7;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="108" y="234" width="120" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="group_proyek" value="PROYEK" style="text;html=1;fontSize=7;fontColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="111" y="256" width="112" height="11" as="geometry"/>
+        </mxCell>
+        <mxCell id="item_rumah" value="Rumah" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;fontSize=7;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="108" y="271" width="120" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="group_transaksi" value="TRANSAKSI" style="text;html=1;fontSize=7;fontColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="111" y="294" width="112" height="11" as="geometry"/>
+        </mxCell>
+        <mxCell id="item_transaksi" value="Transaksi Logistik" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;fontSize=7;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="108" y="309" width="120" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="group_log" value="LOG" style="text;html=1;fontSize=7;fontColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="111" y="331" width="112" height="11" as="geometry"/>
+        </mxCell>
+        <mxCell id="item_catatan_material" value="Catatan Material" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;fontSize=7;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="108" y="346" width="120" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="item_catatan_alat" value="&lt;b&gt;Catatan Alat&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=none;align=left;spacingLeft=8;fontSize=7;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="108" y="361" width="120" height="19" as="geometry"/>
+        </mxCell>
+        <mxCell id="profile_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#dddddd;" vertex="1" parent="1">
+          <mxGeometry x="108" y="459" width="120" height="34" as="geometry"/>
+        </mxCell>
+        <mxCell id="profile_text" value="&lt;b&gt;Logistik User&lt;/b&gt;&lt;br/&gt;logistik@example.com" style="text;html=1;fontSize=7;fontColor=#333333;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="108" y="459" width="120" height="34" as="geometry"/>
+        </mxCell>
+        
+        <!-- ================= MAIN CONTENT ================= -->
+        <!-- Title Header -->
+        <mxCell id="page_title" value="Catatan Aktivitas Alat (Audit Trail)" style="text;html=1;fontSize=10;fontColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="95" width="285" height="19" as="geometry"/>
+        </mxCell>
+        <mxCell id="page_subtitle" value="Histori lengkap peminjaman dan pengembalian alat proyek perumahan." style="text;html=1;fontSize=7;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="250" y="110" width="285" height="15" as="geometry"/>
+        </mxCell>
+        
+        <!-- Table container -->
+        <mxCell id="table_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="250" y="140" width="416" height="285" as="geometry"/>
+        </mxCell>
+        
+        <!-- Table Header Divider -->
+        <mxCell id="table_header_line" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="250" y="162" width="416" height="8" as="geometry"/>
+        </mxCell>
+        
+        <!-- Column Headers -->
+        <mxCell id="th_tanggal_pinjam" value="TANGGAL PINJAM" style="text;html=1;fontSize=7;fontColor=#333333;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="254" y="144" width="82" height="19" as="geometry"/>
+        </mxCell>
+        <mxCell id="th_tanggal_kembali" value="TANGGAL KEMBALI" style="text;html=1;fontSize=7;fontColor=#333333;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="340" y="144" width="82" height="19" as="geometry"/>
+        </mxCell>
+        <mxCell id="th_proyek" value="PROYEK RUMAH" style="text;html=1;fontSize=7;fontColor=#333333;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="426" y="144" width="75" height="19" as="geometry"/>
+        </mxCell>
+        <mxCell id="th_alat" value="NAMA ALAT" style="text;html=1;fontSize=7;fontColor=#333333;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="505" y="144" width="90" height="19" as="geometry"/>
+        </mxCell>
+        <mxCell id="th_status" value="STATUS" style="text;html=1;fontSize=7;fontColor=#333333;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="599" y="144" width="64" height="19" as="geometry"/>
+        </mxCell>
+        
+        <!-- Row 1 -->
+        <mxCell id="row1_line" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#dddddd;" vertex="1" parent="1">
+          <mxGeometry x="250" y="192" width="416" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="row1_tgl_pinjam" value="2026-06-15 09:00" style="text;html=1;fontSize=7;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="254" y="170" width="82" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="row1_tgl_kembali" value="2026-06-17 14:00" style="text;html=1;fontSize=7;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="340" y="170" width="82" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="row1_proyek" value="Kavling A1" style="text;html=1;fontSize=7;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="426" y="170" width="75" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="row1_alat" value="Mixer Beton (Molen)" style="text;html=1;fontSize=7;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="505" y="170" width="90" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="row1_status_badge" value="Kembali" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=7;align=center;" vertex="1" parent="1">
+          <mxGeometry x="606" y="174" width="49" height="15" as="geometry"/>
+        </mxCell>
+        
+        <!-- Row 2 -->
+        <mxCell id="row2_line" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#dddddd;" vertex="1" parent="1">
+          <mxGeometry x="250" y="222" width="416" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="row2_tgl_pinjam" value="2026-06-16 11:30" style="text;html=1;fontSize=7;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="254" y="200" width="82" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="row2_tgl_kembali" value="-" style="text;html=1;fontSize=7;fontColor=#555555;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="340" y="200" width="82" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="row2_proyek" value="Kavling B4" style="text;html=1;fontSize=7;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="426" y="200" width="75" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="row2_alat" value="Bor Listrik Dewalt" style="text;html=1;fontSize=7;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="505" y="200" width="90" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="row2_status_badge" value="Dipinjam" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#000000;fontSize=7;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="606" y="204" width="49" height="15" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
