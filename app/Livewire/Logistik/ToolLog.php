@@ -3,9 +3,11 @@
 namespace App\Livewire\Logistik;
 
 use App\Models\ToolUsage;
+use App\Models\Tool;
 use App\Models\House;
 use App\Traits\WithFilterModal;
 use App\Exports\ToolLogExport;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -34,6 +36,41 @@ class ToolLog extends Component
         $this->reset(['search', 'filterStatus', 'filterHouse']);
         $this->showFilterModal = false;
         $this->resetPage();
+    }
+
+    /**
+     * B5 — void an active tool checkout: restore available_qty, flag the row.
+     * Voided rows STAY visible in the log (VOIDED badge) but excluded from
+     * active-loan aggregates via whereNull('voided_at').
+     */
+    public function voidTool(int $usageId)
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) {
+            abort(403);
+        }
+
+        try {
+            DB::transaction(function () use ($usageId) {
+                $usage = ToolUsage::lockForUpdate()->findOrFail($usageId);
+                if (!is_null($usage->voided_at)) {
+                    throw new \Exception('Peminjaman ini sudah dibatalkan sebelumnya.');
+                }
+                if (!is_null($usage->return_date)) {
+                    throw new \Exception('Hanya peminjaman aktif yang dapat dibatalkan.');
+                }
+
+                $tool = Tool::lockForUpdate()->findOrFail($usage->tool_id);
+                $tool->increment('available_qty', $usage->quantity);
+
+                $usage->update([
+                    'voided_at' => now(),
+                    'voided_by' => auth()->id(),
+                ]);
+            });
+            session()->flash('success', 'Peminjaman alat dibatalkan; qty tersedia dikembalikan.');
+        } catch (\Exception $e) {
+            $this->addError('void', $e->getMessage());
+        }
     }
 
     public function exportExcel()

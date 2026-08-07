@@ -61,6 +61,7 @@ class HouseFinish extends Component
         // Pre-populate toolSelections with defaults
         $activeUsages = ToolUsage::where('house_id', $house->id)
             ->whereNull('return_date')
+            ->whereNull('voided_at')
             ->get();
 
         foreach ($activeUsages as $usage) {
@@ -88,6 +89,7 @@ class HouseFinish extends Component
                 // Pre-flight check: ensure all active usages are included in selections
                 $activeUsageIds = ToolUsage::where('house_id', $this->house->id)
                     ->whereNull('return_date')
+                    ->whereNull('voided_at')
                     ->pluck('id')
                     ->sort()
                     ->values();
@@ -119,9 +121,9 @@ class HouseFinish extends Component
                         $tool->save();
 
                     } elseif ($action === 'broken') {
-                        // Return to stock (available) but mark condition as rusak
+                        // A2 mirror: move to broken pool — available_qty stays as-is
                         $tool->condition = 'rusak';
-                        $tool->available_qty = min($tool->available_qty + $qty, $tool->total_qty);
+                        $tool->qty_broken = min($tool->qty_broken + $qty, $tool->total_qty);
                         $tool->save();
 
                         $hasCharge = $sel['has_charge'] ?? false;
@@ -182,11 +184,13 @@ class HouseFinish extends Component
             ->paginate(15);
 
         $totalMaterialCost = \App\Models\MaterialUsage::where('house_id', $this->house->id)
+            ->whereNull('voided_at')
             ->sum('total_cost');
 
         $activeToolUsages = ToolUsage::with(['tool'])
             ->where('house_id', $this->house->id)
             ->whereNull('return_date')
+            ->whereNull('voided_at')
             ->get();
 
         return view('livewire.logistik.house-finish', [

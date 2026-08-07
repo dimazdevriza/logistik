@@ -18,6 +18,9 @@ class ToolUsage extends Model
         'checkout_date',
         'return_date',
         'notes',
+        'parent_usage_id',
+        'voided_at',
+        'voided_by',
     ];
 
     protected function casts(): array
@@ -26,7 +29,18 @@ class ToolUsage extends Model
             'quantity' => 'integer',
             'checkout_date' => 'date',
             'return_date' => 'date',
+            'voided_at' => 'datetime',
         ];
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_usage_id');
+    }
+
+    public function voidedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by');
     }
 
     public function house(): BelongsTo

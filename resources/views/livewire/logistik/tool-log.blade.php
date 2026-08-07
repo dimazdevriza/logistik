@@ -1,92 +1,115 @@
 <div>
-    <div class="flex h-full w-full flex-1 flex-col gap-6 p-4">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" class="font-bold">Catatan Alat</flux:heading>
-                <flux:text class="mt-1 text-zinc-700 dark:text-zinc-300">Riwayat peminjaman dan pengembalian alat proyek.</flux:text>
-            </div>
-            @if(in_array(auth()->user()->role, ['admin', 'logistik']))
-                <flux:button wire:click="exportExcel" variant="filled" class="bg-emerald-600 hover:bg-emerald-700 text-white" icon="document-chart-bar">Export Excel</flux:button>
-            @endif
-        </div>
-
-        <div class="flex flex-col md:flex-row md:items-center gap-3">
-            <flux:input wire:model.live.debounce.300ms="search" placeholder="Cari alat..." icon="magnifying-glass" class="w-full md:max-w-[200px]" />
-
-            <div class="flex items-center gap-2 w-full md:w-auto">
-                <flux:button 
-                    wire:click="toggleSortDirection" 
-                    variant="ghost" 
-                    :icon="$sortDirection === 'asc' ? 'bars-arrow-up' : 'bars-arrow-down'"
-                    title="Urutkan Tanggal"
-                />
-
-                <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
-                    {{-- Status Filter --}}
-                    <div>
-                        <flux:label>Status</flux:label>
-                        <flux:select wire:model.live="filterStatus" class="mt-2">
-                            <option value="">Semua</option>
-                            <option value="dipinjam">Dipinjam</option>
-                            <option value="dikembalikan">Dikembalikan</option>
-                        </flux:select>
-                    </div>
-
-                    {{-- House Filter --}}
-                    <div>
-                        <flux:label>Rumah</flux:label>
-                        <flux:select wire:model.live="filterHouse" class="mt-2">
-                            <option value="">Semua Rumah</option>
-                            @foreach ($houses as $house)
-                                <option value="{{ $house->id }}">{{ $house->name }}</option>
-                            @endforeach
-                        </flux:select>
-                    </div>
-                </x-filter-modal>
+    <div class="container-fluid p-0">
+        <!-- Hero Header -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
+            <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                <div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Equipment History</span>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">
+                        Tool <span class="text-success">Checkout Log</span>
+                    </h1>
+                    <p class="text-secondary mb-0 max-w-xl">
+                        Detailed record tracking project equipment borrowing timelines and return statuses.
+                    </p>
+                </div>
+                <div>
+                    @if(in_array(auth()->user()->role, ['admin', 'logistik']))
+                        <button type="button" wire:click="exportExcel" class="btn btn-outline-success font-semibold">Export Excel</button>
+                    @endif
+                </div>
             </div>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 shadow-sm">
-            <table class="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
-                <thead class="bg-zinc-50 dark:bg-zinc-900">
-                    <tr>
-                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200 w-16">No.</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Tgl Pinjam</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Rumah</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Alat</th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Qty</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Tgl Kembali</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Dicatat oleh</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
-                    @forelse ($usages as $usage)
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition">
-                        <td class="px-4 py-3 text-sm text-center text-zinc-700 dark:text-zinc-500">{{ ($usages->currentPage() - 1) * $usages->perPage() + $loop->iteration }}</td>
-                        <td class="px-4 py-3 text-sm text-zinc-800 dark:text-zinc-400">{{ $usage->checkout_date->format('d/m/Y') }}</td>
-                        <td class="px-4 py-3 text-sm font-medium text-zinc-800 dark:text-zinc-300">{{ $usage->house->name }}</td>
-                        <td class="px-4 py-3 text-sm font-medium dark:text-zinc-100">{{ $usage->tool->name }} ({{ $usage->tool->code }})</td>
-                        <td class="px-4 py-3 text-sm text-center font-bold text-zinc-900 dark:text-white">{{ $usage->quantity }}</td>
-                        <td class="px-4 py-3 text-sm text-zinc-800 dark:text-zinc-400">{{ $usage->return_date?->format('d/m/Y') ?? '-' }}</td>
-                        <td class="px-4 py-3 text-sm">
-                            @if ($usage->return_date)
-                                <span class="text-xs font-bold text-emerald-500">✓ Dikembalikan</span>
-                            @else
-                                <span class="text-xs font-bold text-amber-500">⏳ Dipinjam</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400 font-medium">{{ $usage->user->name }}</td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-sm text-zinc-600 dark:text-zinc-500">Belum ada data penggunaan alat.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <!-- Search & Filter Controls -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
+            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+                <div class="w-100 max-w-sm">
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari alat..." class="form-control" />
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" wire:click="toggleSortDirection" class="btn btn-outline-secondary btn-sm" title="Urutkan Tanggal">
+                        {{ $sortDirection === 'asc' ? '⬆ Tanggal' : '⬇ Tanggal' }}
+                    </button>
+                    <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase text-secondary">Status Peminjaman</label>
+                            <select wire:model.live="filterStatus" class="form-select">
+                                <option value="">Semua Status</option>
+                                <option value="dipinjam">Dipinjam</option>
+                                <option value="dikembalikan">Dikembalikan</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase text-secondary">Rumah</label>
+                            <select wire:model.live="filterHouse" class="form-select">
+                                <option value="">Semua Rumah</option>
+                                @foreach ($houses as $house)
+                                    <option value="{{ $house->id }}">{{ $house->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </x-filter-modal>
+                </div>
+            </div>
         </div>
 
-        <div>{{ $usages->links() }}</div>
+        <!-- Tool Log Table -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small font-geist">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">No.</th>
+                            <th>Tgl Pinjam</th>
+                            <th>Rumah</th>
+                            <th>Alat</th>
+                            <th class="text-center">Qty</th>
+                            <th>Tgl Kembali</th>
+                            <th>Status</th>
+                            <th>Dicatat oleh</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($usages as $usage)
+                        <tr wire:key="t-log-{{ $usage->id }}">
+                            <td class="text-center text-secondary small">{{ ($usages->currentPage() - 1) * $usages->perPage() + $loop->iteration }}</td>
+                            <td class="font-mono text-secondary small">{{ $usage->checkout_date->format('d/m/Y') }}</td>
+                            <td class="fw-bold text-body">{{ $usage->house->name }}</td>
+                            <td>
+                                <div class="fw-bold text-body">{{ $usage->tool->name }}</div>
+                                <span class="font-mono extra-small text-secondary">Kode: {{ $usage->tool->code }}</span>
+                            </td>
+                            <td class="text-center font-mono fw-bold">{{ $usage->quantity }}</td>
+                            <td class="font-mono text-secondary small">{{ $usage->return_date?->format('d/m/Y') ?? '-' }}</td>
+                            <td>
+                                @if ($usage->return_date)
+                                    <span class="badge bg-success-subtle text-success">✓ Dikembalikan</span>
+                                @else
+                                    <span class="badge bg-warning-subtle text-warning">⏳ Dipinjam</span>
+                                @endif
+                            </td>
+                            <td class="text-secondary small">{{ $usage->user->name }}
+                                @if (is_null($usage->return_date) && in_array(auth()->user()->role, ['admin', 'logistik']))
+                                    @if ($usage->voided_at !== null)
+                                        <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border border-zinc-500/20">VOIDED</span>
+                                    @else
+                                        <button type="button" wire:confirm="Yakin membatalkan peminjaman ini? Qty tersedia akan dikembalikan."
+                                            wire:click="voidTool({{ $usage->id }})"
+                                            class="ml-2 text-[11px] font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400">Batalkan</button>
+                                    @endif
+                                @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-secondary">Belum ada data penggunaan alat.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end">{{ $usages->links() }}</div>
     </div>
 </div>

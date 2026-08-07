@@ -24,13 +24,15 @@ class HouseCostDetail extends Component
     {
         $materialUsages = MaterialUsage::with(['material', 'user'])
             ->where('house_id', $this->house->id)
+            ->whereNull('voided_at')
             ->orderByDesc('usage_date')
             ->paginate(15);
 
-        $totalCost = MaterialUsage::where('house_id', $this->house->id)->sum('total_cost');
+        $totalCost = MaterialUsage::where('house_id', $this->house->id)->whereNull('voided_at')->sum('total_cost');
 
         // Cost by category
         $costByCategory = MaterialUsage::where('house_id', $this->house->id)
+            ->whereNull('material_usages.voided_at')
             ->join('materials', 'material_usages.material_id', '=', 'materials.id')
             ->join('categories', 'materials.category_id', '=', 'categories.id')
             ->selectRaw('categories.id, categories.name as category_name, SUM(material_usages.total_cost) as total')

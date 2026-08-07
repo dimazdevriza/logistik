@@ -61,7 +61,7 @@ class House extends Model
      */
     public function getTotalMaterialCostAttribute(): float
     {
-        return (float) $this->materialUsages()->sum('total_cost');
+        return (float) $this->materialUsages()->whereNull('voided_at')->sum('total_cost');
     }
 
     /**

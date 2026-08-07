@@ -33,6 +33,7 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
     {
         return MaterialUsage::with(['material', 'user'])
             ->where('house_id', $this->houseId)
+            ->whereNull('voided_at')
             ->orderBy('usage_date', 'desc')
             ->orderBy('id', 'desc');
     }
@@ -131,7 +132,7 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
                 $footerRow = $lastRow + 1;
                 
                 // Calculate Total
-                $totalCost = MaterialUsage::where('house_id', $this->houseId)->sum('total_cost');
+                $totalCost = MaterialUsage::where('house_id', $this->houseId)->whereNull('voided_at')->sum('total_cost');
 
                 // Add Footer Row
                 $event->sheet->append([

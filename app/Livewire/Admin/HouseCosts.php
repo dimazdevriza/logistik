@@ -20,8 +20,8 @@ class HouseCosts extends Component
 
     public function render()
     {
-        $houses = House::withSum('materialUsages', 'total_cost')
-            ->withCount('materialUsages')
+        $houses = House::withSum(['materialUsages' => fn ($q) => $q->whereNull('voided_at')], 'total_cost')
+            ->withCount(['materialUsages' => fn ($q) => $q->whereNull('voided_at')])
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")
@@ -32,7 +32,7 @@ class HouseCosts extends Component
             ->paginate(10);
 
         $totalSpent = cache()->remember('total_material_spent', 60, function () {
-            return MaterialUsage::sum('total_cost');
+            return MaterialUsage::whereNull('voided_at')->sum('total_cost');
         });
         
         return view('livewire.admin.house-costs', compact('houses', 'totalSpent'))

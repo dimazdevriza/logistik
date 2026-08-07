@@ -93,7 +93,7 @@ class Materials extends Component
             'category_id' => 'nullable|exists:categories,id',
             'unit' => 'required|string|max:50',
             'unit_price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
+            'stock' => 'required|numeric|min:0',
         ];
     }
 
@@ -201,7 +201,7 @@ class Materials extends Component
     {
         $this->validate([
             'restockMaterialId' => 'required|exists:materials,id',
-            'restockQuantity' => 'required|integer|min:1',
+            'restockQuantity' => 'required|numeric|min:0.01',
             'restockUnitPrice' => 'required|numeric|min:0',
             'restockSupplierName' => 'nullable|string|max:255',
             'restockDate' => 'required|date',

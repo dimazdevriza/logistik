@@ -34,7 +34,7 @@ class DashboardController extends Controller
             'total_users' => User::count(),
             'total_suppliers' => Supplier::count(),
             'total_cost' => cache()->remember('dashboard_total_cost', 60, function () {
-                return MaterialUsage::sum('total_cost');
+                return MaterialUsage::whereNull('voided_at')->sum('total_cost');
             }),
         ];
 
@@ -49,9 +49,10 @@ class DashboardController extends Controller
                 return Material::where('stock', '<=', 10)->count();
             }),
             'tools_on_loan' => cache()->remember('dashboard_tools_on_loan', 60, function () {
-                return ToolUsage::whereNull('return_date')->count();
+                return ToolUsage::whereNull('return_date')->whereNull('voided_at')->count();
             }),
             'recent_activities' => MaterialUsage::with(['material', 'house'])
+                ->whereNull('voided_at')
                 ->latest()
                 ->take(5)
                 ->get(),

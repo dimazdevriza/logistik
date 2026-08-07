@@ -24,7 +24,7 @@ class Material extends Model
     {
         return [
             'unit_price' => 'decimal:2',
-            'stock' => 'integer',
+            'stock' => 'decimal:2',
         ];
     }
 

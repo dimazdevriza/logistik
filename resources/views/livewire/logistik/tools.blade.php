@@ -1,201 +1,271 @@
 <div>
-    <div class="flex h-full w-full flex-1 flex-col gap-6 p-4">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" class="font-bold">Alat</flux:heading>
-                <flux:text class="mt-1 text-zinc-700 dark:text-zinc-300">Kelola inventaris alat dan peralatan proyek.</flux:text>
-            </div>
-            <div class="flex gap-2">
-                @if(in_array(auth()->user()->role, ['admin', 'logistik']))
-                    <flux:button wire:click="exportExcel" variant="filled" class="bg-emerald-600 hover:bg-emerald-700 text-white" icon="document-chart-bar">Export Excel</flux:button>
-                @endif
-                <flux:button wire:click="create" variant="primary" icon="plus">Tambah Alat</flux:button>
+    <div class="container-fluid p-0">
+        <!-- Hero Header -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
+            <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                <div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Equipment Module</span>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">
+                        Equipment <span class="text-success">Inventory Control</span>
+                    </h1>
+                    <p class="text-secondary mb-0 max-w-xl">
+                        Manage construction tools, equipment condition statuses, and project allocations.
+                    </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    @if(in_array(auth()->user()->role, ['admin', 'logistik']))
+                        <button type="button" wire:click="exportExcel" class="btn btn-outline-success font-semibold">Export Excel</button>
+                    @endif
+                    <button type="button" wire:click="create" class="btn btn-success font-semibold">+ Tambah Alat</button>
+                </div>
             </div>
         </div>
 
         @if (session('success'))
-            <flux:callout variant="success" icon="check-circle" dismissible>{{ session('success') }}</flux:callout>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         @endif
         @if (session('error'))
-            <flux:callout variant="danger" icon="x-circle" dismissible>{{ session('error') }}</flux:callout>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         @endif
 
-        {{-- Stats Cards --}}
-        <div class="grid grid-cols-2 gap-4">
-            <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 p-4 shadow-sm">
-                <flux:text class="text-xs uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Total Alat</flux:text>
-                <flux:heading size="xl" class="font-bold text-2xl mt-1">{{ number_format($totalTools) }}</flux:heading>
+        <!-- Bento Stats Grid -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 border-start border-4 border-primary shadow-sm rounded-4 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Total Alat</span>
+                        <div class="p-2 bg-primary-subtle text-primary rounded">🔧</div>
+                    </div>
+                    <div>
+                        <h2 class="fw-black text-body mb-1">{{ number_format($totalTools) }} <span class="fs-6 text-secondary font-normal">Unit</span></h2>
+                        <span class="text-secondary small">Jumlah seluruh unit alat proyek terdaftar</span>
+                    </div>
+                </div>
             </div>
-            <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 p-4 shadow-sm">
-                <flux:text class="text-xs uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Tersedia di Stok</flux:text>
-                <flux:heading size="xl" class="font-bold text-2xl mt-1 text-emerald-600">{{ number_format($totalAvailable) }}</flux:heading>
+            <div class="col-md-6">
+                <div class="card border-0 border-start border-4 border-success shadow-sm rounded-4 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Tersedia di Stok</span>
+                        <div class="p-2 bg-success-subtle text-success rounded">✅</div>
+                    </div>
+                    <div>
+                        <h2 class="fw-black text-success mb-1">{{ number_format($totalAvailable) }} <span class="fs-6 text-secondary font-normal">Unit</span></h2>
+                        <span class="text-secondary small">Alat yang siap digunakan di gudang</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-
-        <div class="flex flex-col md:flex-row md:items-center gap-3">
-            <flux:input wire:model.live.debounce.300ms="search" placeholder="Cari nama atau kode alat..." icon="magnifying-glass" class="w-full md:max-w-[250px]" />
-            
-            <div class="flex items-center gap-2 w-full md:w-auto">
+        <!-- Search & Filter Controls -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
+            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+                <div class="w-100 max-w-sm">
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama atau kode alat..." class="form-control" />
+                </div>
                 <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
-                    {{-- Category Filter --}}
-                    <div>
-                        <flux:label>Kategori</flux:label>
-                        <flux:select wire:model.live="filterCategory" class="mt-2">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-secondary">Kategori</label>
+                        <select wire:model.live="filterCategory" class="form-select">
                             <option value="">Semua Kategori</option>
                             @foreach ($categories as $cat)
                                 <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                             @endforeach
-                        </flux:select>
+                        </select>
                     </div>
-                    
-                    {{-- Condition Filter --}}
-                    <div>
-                        <flux:label>Kondisi</flux:label>
-                        <flux:select wire:model.live="filterCondition" class="mt-2">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-secondary">Kondisi</label>
+                        <select wire:model.live="filterCondition" class="form-select">
                             <option value="">Semua Kondisi</option>
                             <option value="baik">Baik</option>
                             <option value="rusak">Rusak</option>
                             <option value="hilang">Hilang</option>
-                        </flux:select>
+                        </select>
                     </div>
                 </x-filter-modal>
             </div>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 shadow-sm">
-            <table class="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
-                <thead class="bg-zinc-50 dark:bg-zinc-900">
-                    <tr>
-                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200 w-16">No.</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Kode</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Nama</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Kategori</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Kondisi</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Harga Beli</th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Total</th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Tersedia</th>
-
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
-                    @forelse ($tools as $tool)
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition">
-                        <td class="px-4 py-3 text-sm text-center text-zinc-700 dark:text-zinc-500">{{ ($tools->currentPage() - 1) * $tools->perPage() + $loop->iteration }}</td>
-                        <td class="px-4 py-3 text-sm font-mono font-medium dark:text-zinc-300">{{ $tool->code }}</td>
-                        <td class="px-4 py-3 text-sm font-medium dark:text-zinc-100">{{ $tool->name }}</td>
-                        <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $tool->category?->name ?? '-' }}</td>
-                        <td class="px-4 py-3 text-sm">
-                            @php $conditionColors = ['baik' => 'success', 'rusak' => 'danger', 'hilang' => 'warning']; @endphp
-                            <flux:badge :variant="$conditionColors[$tool->condition] ?? 'default'" size="sm">{{ ucfirst($tool->condition) }}</flux:badge>
-                        </td>
-                        <td class="px-4 py-3 text-sm text-right font-mono dark:text-zinc-200">Rp {{ number_format($tool->purchase_price, 0, ',', '.') }}</td>
-                        <td class="px-4 py-3 text-sm text-center dark:text-zinc-300">{{ $tool->total_qty }}</td>
-                        <td class="px-4 py-3 text-sm text-center">
-                            <span class="{{ $tool->available_qty === 0 ? 'text-red-500 dark:text-red-400 font-semibold' : 'dark:text-zinc-100' }}">{{ $tool->available_qty }}</span>
-                        </td>
-
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex justify-end gap-2">
-                                <flux:button wire:click="edit({{ $tool->id }})" size="sm" variant="ghost" icon="pencil-square" title="Edit Data" />
-                                <flux:button wire:click="confirm('delete', {{ $tool->id }}, 'Hapus Alat?', 'Apakah Anda yakin ingin menghapus alat ini dari inventaris?')" size="sm" variant="ghost" icon="trash" class="text-red-500 hover:text-red-700" title="Hapus Data" />
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-sm text-zinc-400">Belum ada data alat.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <!-- Tools Table -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small font-geist">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">No.</th>
+                            <th>Kode</th>
+                            <th>Nama</th>
+                            <th>Kategori</th>
+                            <th>Kondisi</th>
+                            <th class="text-end">Harga Beli</th>
+                            <th class="text-center">Total</th>
+                            <th class="text-center">Rusak</th>
+                            <th class="text-center">Tersedia</th>
+                            <th class="text-end" style="width: 100px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($tools as $tool)
+                        <tr wire:key="tool-{{ $tool->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $tool->id }}) }">
+                            <td class="text-center text-secondary small">{{ ($tools->currentPage() - 1) * $tools->perPage() + $loop->iteration }}</td>
+                            <td class="font-mono text-secondary small">{{ $tool->code }}</td>
+                            <td class="fw-bold text-body">{{ $tool->name }}</td>
+                            <td class="text-secondary small">{{ $tool->category?->name ?? '-' }}</td>
+                            <td>
+                                @php 
+                                    $badgeClasses = ['baik' => 'bg-success-subtle text-success', 'rusak' => 'bg-danger-subtle text-danger', 'hilang' => 'bg-warning-subtle text-warning'];
+                                @endphp
+                                <span class="badge {{ $badgeClasses[$tool->condition] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($tool->condition) }}</span>
+                            </td>
+                            <td class="text-end font-mono text-secondary">Rp {{ number_format($tool->purchase_price, 0, ',', '.') }}</td>
+                            <td class="text-center fw-bold">{{ $tool->total_qty }}</td>
+                            <td class="text-center">
+                                <span class="{{ $tool->qty_broken > 0 ? 'text-amber-600 dark:text-amber-400 font-bold' : 'dark:text-zinc-100 font-bold' }}">{{ $tool->qty_broken }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="{{ $tool->available_qty === 0 ? 'badge bg-danger-subtle text-danger' : 'fw-bold' }}">{{ $tool->available_qty }}</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" wire:click="edit({{ $tool->id }})" class="btn btn-outline-secondary" title="Edit">✏️</button>
+                                    <button type="button" wire:click="confirm('delete', {{ $tool->id }}, 'Hapus Alat?', 'Apakah Anda yakin ingin menghapus alat ini dari inventaris?')" class="btn btn-outline-danger" title="Hapus">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="10" class="text-center py-4 text-secondary">Belum ada data alat.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div>{{ $tools->links() }}</div>
-
-
-
+        <div class="d-flex justify-content-end">{{ $tools->links() }}</div>
     </div>
 
-    {{-- Modal --}}
-    <flux:modal wire:model="showModal" class="max-w-xl">
-        <div class="space-y-6">
-            <flux:heading size="lg">{{ $editMode ? 'Edit Alat' : 'Tambah Alat' }}</flux:heading>
-
-            <flux:input wire:model="name" label="Nama Alat" placeholder="Contoh: Molen Beton" :error="$errors->first('name')" />
-
-            <div class="grid grid-cols-2 gap-4">
-                <flux:select wire:model.live="category_id" label="Kategori" :error="$errors->first('category_id')">
-                    <option value="">-- Pilih Kategori --</option>
-                    @foreach ($categories as $cat)
-                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                    @endforeach
-                </flux:select>
-
-                <flux:input wire:model="code" label="Kode Aset" placeholder="Pilih kategori..." readonly class="bg-zinc-50 dark:bg-zinc-900 pointer-events-none" :error="$errors->first('code')">
-                    <x-slot name="append">
-                        <span class="text-[10px] font-bold text-emerald-600 uppercase pr-3 tracking-widest">Otomatis</span>
-                    </x-slot>
-                </flux:input>
-            </div>
-
-            <flux:select wire:model="condition" label="Kondisi" :error="$errors->first('condition')">
-                <option value="baik">Baik</option>
-                <option value="rusak">Rusak</option>
-                <option value="hilang">Hilang</option>
-            </flux:select>
-
-            <div class="grid grid-cols-3 gap-4">
-                <div x-data="{ 
-                    display: '',
-                    init() {
-                        this.display = this.format($wire.purchase_price);
-                        this.$watch('display', val => {
-                            let clean = val.replace(/[^\d]/g, '');
-                            if (clean === '') { $wire.purchase_price = null; this.display = ''; return; }
-                            let num = parseInt(clean, 10);
-                            let formatted = this.format(num);
-                            if (this.display !== formatted) { this.display = formatted; }
-                            $wire.purchase_price = num;
-                        });
-                        $wire.$watch('purchase_price', val => {
-                            if (document.activeElement !== this.$refs.input) {
-                                this.display = this.format(val);
-                            }
-                        });
-                    },
-                    format(num) {
-                        if (num === null || num === undefined || num === '') return '';
-                        return 'Rp ' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-                    }
-                }">
-                    <flux:input x-ref="input" x-model="display" label="Harga Beli" type="text" :error="$errors->first('purchase_price')" />
+    <!-- Modal: Create / Edit Tool -->
+    @if($showModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">{{ $editMode ? 'Edit Alat' : 'Tambah Alat' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
                 </div>
-                <flux:input wire:model="total_qty" label="Total Qty" type="number" :error="$errors->first('total_qty')" />
-                <flux:input wire:model="available_qty" label="Tersedia" type="number" :error="$errors->first('available_qty')" />
-            </div>
-
-            <div class="flex justify-end gap-3">
-                <flux:button wire:click="$set('showModal', false)" variant="ghost">Batal</flux:button>
-                <flux:button wire:click="save" variant="primary">{{ $editMode ? 'Perbarui' : 'Simpan' }}</flux:button>
+                <div class="modal-body py-4">
+                    <div class="mb-3">
+                        <label class="form-label font-semibold">Nama Alat</label>
+                        <input type="text" wire:model="name" class="form-control" placeholder="Contoh: Molen Beton" />
+                        @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold">Kategori</label>
+                            <select wire:model.live="category_id" class="form-select">
+                                <option value="">-- Pilih Kategori --</option>
+                                @foreach ($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('category_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold">Kode Aset</label>
+                            <div class="input-group">
+                                <input type="text" wire:model="code" class="form-control bg-light" readonly placeholder="Pilih kategori..." />
+                                <span class="input-group-text small fw-bold text-success font-geist">Otomatis</span>
+                            </div>
+                            @error('code') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-semibold">Kondisi</label>
+                        <select wire:model="condition" class="form-select">
+                            <option value="baik">Baik</option>
+                            <option value="rusak">Rusak</option>
+                            <option value="hilang">Hilang</option>
+                        </select>
+                        @error('condition') <span class="text-danger small">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4" x-data="{ 
+                            display: '',
+                            init() {
+                                this.display = this.format($wire.purchase_price);
+                                this.$watch('display', val => {
+                                    let clean = val.replace(/[^\d]/g, '');
+                                    if (clean === '') { $wire.purchase_price = null; this.display = ''; return; }
+                                    let num = parseInt(clean, 10);
+                                    let formatted = this.format(num);
+                                    if (this.display !== formatted) { this.display = formatted; }
+                                    $wire.purchase_price = num;
+                                });
+                                $wire.$watch('purchase_price', val => {
+                                    if (document.activeElement !== this.$refs.input) {
+                                        this.display = this.format(val);
+                                    }
+                                });
+                            },
+                            format(num) {
+                                if (num === null || num === undefined || num === '') return '';
+                                return 'Rp ' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                            }
+                        }">
+                            <label class="form-label font-semibold">Harga Beli</label>
+                            <input type="text" x-ref="input" x-model="display" class="form-control" />
+                            @error('purchase_price') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label font-semibold">Total Qty</label>
+                            <input type="number" wire:model="total_qty" class="form-control" />
+                            @error('total_qty') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label font-semibold">Tersedia</label>
+                            <input type="number" wire:model="available_qty" class="form-control" />
+                            @error('available_qty') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label font-semibold">Rusak</label>
+                            <input type="number" wire:model="qty_broken" class="form-control" />
+                            @error('qty_broken') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success font-semibold" wire:click="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
+                </div>
             </div>
         </div>
-    </flux:modal>
+    </div>
+    @endif
 
-    {{-- Confirmation Modal --}}
-    <flux:modal wire:model="showConfirmation" class="max-w-sm">
-        <div class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ $confirmTitle ?? 'Konfirmasi' }}</flux:heading>
-                <flux:text>{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</flux:text>
-            </div>
-            <div class="flex gap-2 justify-end">
-                <flux:modal.close>
-                    <flux:button variant="ghost">Batal</flux:button>
-                </flux:modal.close>
-                <flux:button wire:click="executeConfirmedAction" variant="danger">{{ $confirmingAction === 'fixTool' ? 'Ya, Konfirmasi' : 'Ya, Hapus' }}</flux:button>
+    <!-- Confirmation Modal -->
+    @if($showConfirmation)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">{{ $confirmTitle ?? 'Konfirmasi' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-secondary mb-0">{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm font-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
+                    <button type="button" class="btn btn-danger btn-sm font-semibold" wire:click="executeConfirmedAction">{{ $confirmingAction === 'fixTool' ? 'Ya, Konfirmasi' : 'Ya, Hapus' }}</button>
+                </div>
             </div>
         </div>
-    </flux:modal>
+    </div>
+    @endif
 </div>

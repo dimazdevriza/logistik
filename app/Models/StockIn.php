@@ -26,7 +26,7 @@ class StockIn extends Model
         return [
             'unit_price' => 'decimal:2',
             'total_cost' => 'decimal:2',
-            'quantity' => 'integer',
+            'quantity' => 'decimal:2',
             'date' => 'date',
         ];
     }

@@ -36,12 +36,13 @@ class HouseDetail extends Component
         $materialUsages = null;
         $toolUsages = null;
 
-        $materialCount = $this->house->materialUsages()->count();
+        $materialCount = $this->house->materialUsages()->whereNull('voided_at')->count();
         $toolCount = $this->house->toolUsages()->count();
 
         if ($this->activeTab === 'material') {
             $materialUsages = MaterialUsage::with(['material', 'user'])
                 ->where('house_id', $this->house->id)
+                ->whereNull('voided_at')
                 ->orderByDesc('usage_date')
                 ->orderByDesc('id')
                 ->paginate(15, ['*'], 'materialPage');

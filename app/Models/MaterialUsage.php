@@ -19,6 +19,8 @@ class MaterialUsage extends Model
         'total_cost',
         'usage_date',
         'notes',
+        'voided_at',
+        'voided_by',
     ];
 
     protected function casts(): array
@@ -28,7 +30,13 @@ class MaterialUsage extends Model
             'unit_price_at_usage' => 'decimal:2',
             'total_cost' => 'decimal:2',
             'usage_date' => 'date',
+            'voided_at' => 'datetime',
         ];
+    }
+
+    public function voidedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by');
     }
 
     public function house(): BelongsTo

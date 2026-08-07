@@ -4,6 +4,7 @@ namespace App\Livewire\Logistik;
 
 use App\Exports\MaterialLogExport;
 use App\Models\MaterialUsage;
+use App\Models\Material;
 use App\Models\StockIn;
 use App\Models\House;
 use App\Models\Supplier;
@@ -48,6 +49,38 @@ class MaterialLog extends Component
         $this->resetPage();
     }
 
+    /**
+     * B5 — void a material allocation: restore stock, flag the row.
+     * Voided rows STAY visible in the log (VOIDED badge) but are excluded
+     * from every cost aggregate/export via whereNull('voided_at').
+     */
+    public function voidMaterial(int $usageId)
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) {
+            abort(403);
+        }
+
+        try {
+            DB::transaction(function () use ($usageId) {
+                $usage = MaterialUsage::lockForUpdate()->findOrFail($usageId);
+                if (!is_null($usage->voided_at)) {
+                    throw new \Exception('Alokasi ini sudah dibatalkan sebelumnya.');
+                }
+
+                $material = Material::lockForUpdate()->findOrFail($usage->material_id);
+                $material->increment('stock', $usage->quantity);
+
+                $usage->update([
+                    'voided_at' => now(),
+                    'voided_by' => auth()->id(),
+                ]);
+            });
+            session()->flash('success', 'Alokasi material dibatalkan; stok dikembalikan.');
+        } catch (\Exception $e) {
+            $this->addError('void', $e->getMessage());
+        }
+    }
+
     protected function getKeluarQuery()
     {
         return MaterialUsage::with(['house', 'material', 'user'])
@@ -69,6 +102,8 @@ class MaterialLog extends Component
         $keluarQuery = MaterialUsage::query()
             ->select(
                 DB::raw("'keluar' as type"),
+                'material_usages.id as id',
+                'material_usages.voided_at as voided_at',
                 'material_usages.usage_date as date',
                 'materials.name as material_name',
                 'materials.unit as material_unit',
@@ -88,6 +123,8 @@ class MaterialLog extends Component
         $masukQuery = StockIn::query()
             ->select(
                 DB::raw("'masuk' as type"),
+                DB::raw('NULL as id'),
+                DB::raw('NULL as voided_at'),
                 'stock_ins.date',
                 'materials.name as material_name',
                 'materials.unit as material_unit',

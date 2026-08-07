@@ -1,155 +1,177 @@
 <div>
-    <div class="flex h-full w-full flex-1 flex-col gap-6 p-4">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" class="font-bold">Catatan Material</flux:heading>
-                <flux:text class="mt-1 text-zinc-700 dark:text-zinc-300">Riwayat barang masuk dan barang keluar material.</flux:text>
-            </div>
-            @if(in_array(auth()->user()->role, ['admin', 'logistik']))
-                <flux:button wire:click="exportExcel" variant="filled" class="bg-emerald-600 hover:bg-emerald-700 text-white" icon="document-chart-bar">Export Excel</flux:button>
-            @endif
-        </div>
-
-        <div class="flex flex-col md:flex-row md:items-center gap-3">
-            <flux:input wire:model.live.debounce.300ms="search" placeholder="Cari material..." icon="magnifying-glass" class="w-full md:max-w-[200px]" />
-
-            <div class="flex items-center gap-2 w-full md:w-auto">
-                <flux:button 
-                    wire:click="toggleSortDirection" 
-                    variant="ghost" 
-                    :icon="$sortDirection === 'asc' ? 'bars-arrow-up' : 'bars-arrow-down'"
-                    title="Urutkan Tanggal"
-                />
-
-                <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
-                    {{-- Type Filter --}}
-                    <div>
-                        <flux:label>Tipe Transaksi</flux:label>
-                        <flux:select wire:model.live="filterType" class="mt-2">
-                            <option value="">Semua</option>
-                            <option value="masuk">Barang Masuk</option>
-                            <option value="keluar">Barang Keluar</option>
-                        </flux:select>
-                    </div>
-
-                    @if ($filterType === 'keluar')
-                        {{-- House Filter (for Barang Keluar) --}}
-                        <div>
-                            <flux:label>Rumah</flux:label>
-                            <flux:select wire:model.live="filterHouse" class="mt-2">
-                                <option value="">Semua Rumah</option>
-                                @foreach ($houses as $house)
-                                    <option value="{{ $house->id }}">{{ $house->name }}</option>
-                                @endforeach
-                            </flux:select>
-                        </div>
-                    @elseif ($filterType === 'masuk')
-                        {{-- Supplier Filter (for Barang Masuk) --}}
-                        <div>
-                            <flux:label>Supplier</flux:label>
-                            <flux:select wire:model.live="filterSupplier" class="mt-2">
-                                <option value="">Semua Supplier</option>
-                                @foreach ($suppliers as $sup)
-                                    <option value="{{ $sup->id }}">{{ $sup->name }}</option>
-                                @endforeach
-                            </flux:select>
-                        </div>
+    <div class="container-fluid p-0">
+        <!-- Hero Header -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
+            <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                <div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Audit Trail</span>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">
+                        Material <span class="text-success">Transaction Log</span>
+                    </h1>
+                    <p class="text-secondary mb-0 max-w-xl">
+                        Comprehensive ledger recording raw material restocks and project site consumption logs.
+                    </p>
+                </div>
+                <div>
+                    @if(in_array(auth()->user()->role, ['admin', 'logistik']))
+                        <button type="button" wire:click="exportExcel" class="btn btn-outline-success font-semibold">Export Excel</button>
                     @endif
-                </x-filter-modal>
+                </div>
             </div>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 shadow-sm">
-            <table class="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
-                <thead class="bg-zinc-50 dark:bg-zinc-900">
-                    <tr>
-                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200 w-16">No.</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Tanggal</th>
-                        @if ($filterType === '')
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Tipe</th>
+        <!-- Search & Filter Controls -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
+            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+                <div class="w-100 max-w-sm">
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari material..." class="form-control" />
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" wire:click="toggleSortDirection" class="btn btn-outline-secondary btn-sm" title="Urutkan Tanggal">
+                        {{ $sortDirection === 'asc' ? '⬆ Tanggal' : '⬇ Tanggal' }}
+                    </button>
+                    <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase text-secondary">Tipe Transaksi</label>
+                            <select wire:model.live="filterType" class="form-select">
+                                <option value="">Semua Transaksi</option>
+                                <option value="masuk">Barang Masuk</option>
+                                <option value="keluar">Barang Keluar</option>
+                            </select>
+                        </div>
+                        @if ($filterType === 'keluar')
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-uppercase text-secondary">Rumah</label>
+                                <select wire:model.live="filterHouse" class="form-select">
+                                    <option value="">Semua Rumah</option>
+                                    @foreach ($houses as $house)
+                                        <option value="{{ $house->id }}">{{ $house->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @elseif ($filterType === 'masuk')
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-uppercase text-secondary">Supplier</label>
+                                <select wire:model.live="filterSupplier" class="form-select">
+                                    <option value="">Semua Supplier</option>
+                                    @foreach ($suppliers as $sup)
+                                        <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         @endif
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">
-                            @if ($filterType === 'masuk') Supplier
-                            @elseif ($filterType === 'keluar') Rumah
-                            @else Referensi
-                            @endif
-                        </th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Material</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Qty</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Harga Satuan</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Total Biaya</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Dicatat oleh</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
-                    {{-- Combined "Semua" view --}}
-                    @if ($filterType === '')
-                        @forelse ($records as $record)
-                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition">
-                            <td class="px-4 py-3 text-sm text-center text-zinc-700 dark:text-zinc-500">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
-                            <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ \Carbon\Carbon::parse($record->date)->format('d/m/Y') }}</td>
-                            <td class="px-4 py-3 text-sm">
-                                @if ($record->type === 'masuk')
-                                    <span class="text-xs font-bold text-emerald-500">▼ Masuk</span>
-                                @else
-                                    <span class="text-xs font-bold text-orange-500">▲ Keluar</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ $record->reference }}</td>
-                            <td class="px-4 py-3 text-sm font-medium dark:text-zinc-100">{{ $record->material_name }}</td>
-                            <td class="px-4 py-3 text-sm text-right text-zinc-800 dark:text-zinc-100 font-bold">{{ number_format($record->quantity, 0, ',', '.') }} {{ $record->material_unit }}</td>
-                            <td class="px-4 py-3 text-sm text-right font-mono text-zinc-700 dark:text-zinc-400">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>
-                            <td class="px-4 py-3 text-sm text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
-                            <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $record->user_name }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="9" class="px-4 py-8 text-center text-sm text-zinc-600 dark:text-zinc-500">Belum ada catatan material.</td>
-                        </tr>
-                        @endforelse
-
-                    {{-- Barang Masuk view --}}
-                    @elseif ($filterType === 'masuk')
-                        @forelse ($records as $record)
-                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition">
-                            <td class="px-4 py-3 text-sm text-center text-zinc-700 dark:text-zinc-500">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
-                            <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $record->date->format('d/m/Y') }}</td>
-                            <td class="px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ $record->supplier->name ?? '-' }}</td>
-                            <td class="px-4 py-3 text-sm font-medium dark:text-zinc-100">{{ $record->material->name ?? '-' }}</td>
-                            <td class="px-4 py-3 text-sm text-right text-zinc-800 dark:text-zinc-100 font-bold">{{ number_format($record->quantity, 0, ',', '.') }} {{ $record->material->unit ?? '' }}</td>
-                            <td class="px-4 py-3 text-sm text-right font-mono text-zinc-700 dark:text-zinc-400">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>
-                            <td class="px-4 py-3 text-sm text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
-                            <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $record->user->name ?? '-' }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-sm text-zinc-600 dark:text-zinc-500">Belum ada data barang masuk.</td>
-                        </tr>
-                        @endforelse
-
-                    {{-- Barang Keluar view --}}
-                    @else
-                        @forelse ($records as $record)
-                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition">
-                            <td class="px-4 py-3 text-sm text-center text-zinc-700 dark:text-zinc-500">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
-                            <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $record->usage_date->format('d/m/Y') }}</td>
-                            <td class="px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ $record->house->name }}</td>
-                            <td class="px-4 py-3 text-sm font-medium dark:text-zinc-100">{{ $record->material->name }}</td>
-                            <td class="px-4 py-3 text-sm text-right text-zinc-800 dark:text-zinc-100 font-bold">{{ str_replace('.', ',', (float) $record->quantity) }} {{ $record->material->unit }}</td>
-                            <td class="px-4 py-3 text-sm text-right font-mono text-zinc-700 dark:text-zinc-400">Rp {{ number_format($record->unit_price_at_usage, 0, ',', '.') }}</td>
-                            <td class="px-4 py-3 text-sm text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
-                            <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $record->user->name }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-sm text-zinc-600 dark:text-zinc-500">Belum ada data barang keluar.</td>
-                        </tr>
-                        @endforelse
-                    @endif
-                </tbody>
-            </table>
+                    </x-filter-modal>
+                </div>
+            </div>
         </div>
 
-        <div>{{ $records->links() }}</div>
+        <!-- Material Log Table -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small font-geist">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">No.</th>
+                            <th>Tanggal</th>
+                            @if ($filterType === '') <th>Tipe</th> @endif
+                            <th>
+                                @if ($filterType === 'masuk') Supplier
+                                @elseif ($filterType === 'keluar') Rumah
+                                @else Referensi
+                                @endif
+                            </th>
+                            <th>Material</th>
+                            <th class="text-end">Qty</th>
+                            <th class="text-end">Harga Satuan</th>
+                            <th class="text-end">Total Biaya</th>
+                            <th>Dicatat oleh</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if ($filterType === '')
+                            @forelse ($records as $record)
+                            <tr wire:key="m-log-{{ $loop->index }}">
+                                <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
+                                <td class="font-mono text-secondary small">{{ \Carbon\Carbon::parse($record->date)->format('d/m/Y') }}</td>
+                                <td>
+                                    @if ($record->type === 'masuk')
+                                        <span class="badge bg-success-subtle text-success">▼ Masuk</span>
+                                    @else
+                                        <span class="badge bg-warning-subtle text-warning">▲ Keluar</span>
+                                    @endif
+                                </td>
+                                <td class="fw-bold text-body">{{ $record->reference }}</td>
+                                <td class="fw-bold text-body">{{ $record->material_name }}</td>
+                                <td class="text-end fw-bold">{{ number_format($record->quantity, 0, ',', '.') }} <span class="text-secondary small font-normal">{{ $record->material_unit }}</span></td>
+                                <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>
+                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
+                                <td class="text-secondary small">{{ $record->user_name }}
+                                    @if ($record->type === 'keluar' && in_array(auth()->user()->role, ['admin', 'logistik']))
+                                        @if (($record->voided_at ?? null) !== null)
+                                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border border-zinc-500/20">VOIDED</span>
+                                        @else
+                                            <button type="button" wire:confirm="Yakin membatalkan alokasi material ini? Stok akan dikembalikan."
+                                                wire:click="voidMaterial({{ $record->id }})"
+                                                class="ml-2 text-[11px] font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400">Batalkan</button>
+                                        @endif
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="9" class="text-center py-4 text-secondary">Belum ada catatan material.</td>
+                            </tr>
+                            @endforelse
+                        @elseif ($filterType === 'masuk')
+                            @forelse ($records as $record)
+                            <tr wire:key="m-in-log-{{ $loop->index }}">
+                                <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
+                                <td class="font-mono text-secondary small">{{ $record->date->format('d/m/Y') }}</td>
+                                <td class="fw-bold text-body">{{ $record->supplier->name ?? '-' }}</td>
+                                <td class="fw-bold text-body">{{ $record->material->name ?? '-' }}</td>
+                                <td class="text-end fw-bold">{{ number_format($record->quantity, 0, ',', '.') }} <span class="text-secondary small font-normal">{{ $record->material->unit ?? '' }}</span></td>
+                                <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>
+                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
+                                <td class="text-secondary small">{{ $record->user->name ?? '-' }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-secondary">Belum ada data barang masuk.</td>
+                            </tr>
+                            @endforelse
+                        @else
+                            @forelse ($records as $record)
+                            <tr wire:key="m-out-log-{{ $loop->index }}">
+                                <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
+                                <td class="font-mono text-secondary small">{{ $record->usage_date->format('d/m/Y') }}</td>
+                                <td class="fw-bold text-body">{{ $record->house->name }}</td>
+                                <td class="fw-bold text-body">{{ $record->material->name }}</td>
+                                <td class="text-end fw-bold">{{ str_replace('.', ',', (float) $record->quantity) }} <span class="text-secondary small font-normal">{{ $record->material->unit }}</span></td>
+                                <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price_at_usage, 0, ',', '.') }}</td>
+                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
+                                <td class="text-secondary small">{{ $record->user->name }}
+                                    @if (in_array(auth()->user()->role, ['admin', 'logistik']))
+                                        @if ($record->voided_at !== null)
+                                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border border-zinc-500/20">VOIDED</span>
+                                        @else
+                                            <button type="button" wire:confirm="Yakin membatalkan alokasi material ini? Stok akan dikembalikan."
+                                                wire:click="voidMaterial({{ $record->id }})"
+                                                class="ml-2 text-[11px] font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400">Batalkan</button>
+                                        @endif
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-secondary">Belum ada data barang keluar.</td>
+                            </tr>
+                            @endforelse
+                        @endif
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end">{{ $records->links() }}</div>
     </div>
 </div>

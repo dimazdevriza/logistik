@@ -30,6 +30,7 @@ class ToolLogExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
     public function query()
     {
         return ToolUsage::with(['tool', 'house', 'user'])
+            ->whereNull('tool_usages.voided_at')
             ->when($this->search, fn ($q) => $q->whereHas('tool', fn ($tq) => $tq->where('name', 'like', "%{$this->search}%")))
             ->when($this->filterHouse, fn ($q) => $q->where('house_id', $this->filterHouse))
             ->when($this->filterStatus === 'dipinjam', fn ($q) => $q->whereNull('return_date'))

@@ -30,7 +30,7 @@ class HouseExport implements FromQuery, WithHeadings, WithMapping, WithColumnFor
     public function query()
     {
         return House::query()
-            ->withSum('materialUsages', 'total_cost')
+            ->withSum(['materialUsages' => fn ($q) => $q->whereNull('voided_at')], 'total_cost')
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")

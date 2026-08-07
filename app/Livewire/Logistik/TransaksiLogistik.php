@@ -30,11 +30,13 @@ class TransaksiLogistik extends Component
     public $tool_id = '';
     public $tool_quantity = 1;
     public $checkout_date = '';
-    public $return_date = '';
     public $tool_notes = '';
     public bool $showToolConfirmation = false;
     public array $toolConfirmationData = [];
     public bool $toolPickerOpen = false;
+
+    // Save idempotency guard (C) — blocks re-entrant double-submit
+    public bool $saving = false;
 
     // Return tab state
     public string $activeTab = 'material';
@@ -62,7 +64,6 @@ class TransaksiLogistik extends Component
             'tool_id' => 'required|exists:tools,id',
             'tool_quantity' => 'required|integer|min:1',
             'checkout_date' => 'required|date',
-            'return_date' => 'nullable|date|after_or_equal:checkout_date',
             'tool_notes' => 'nullable|string|max:500',
         ];
     }
@@ -112,6 +113,11 @@ class TransaksiLogistik extends Component
 
     public function saveMaterial()
     {
+        if ($this->saving) {
+            return;
+        }
+        $this->saving = true;
+
         try {
             DB::transaction(function () {
                 $material = Material::lockForUpdate()->findOrFail($this->material_id);
@@ -144,6 +150,8 @@ class TransaksiLogistik extends Component
             $this->usage_date = now()->format('Y-m-d');
         } catch (\Exception $e) {
             $this->addError('material_quantity', $e->getMessage());
+        } finally {
+            $this->saving = false;
         }
     }
 
@@ -152,10 +160,7 @@ class TransaksiLogistik extends Component
         $this->validate($this->toolRules());
 
         $tool = Tool::findOrFail($this->tool_id);
-        if ($tool->condition !== 'baik') {
-            $this->addError('tool_id', 'Alat ini dalam kondisi rusak/hilang.');
-            return;
-        }
+        // D2: condition is display-only now — available_qty is the single source of truth
         $houses = House::whereIn('id', $this->house_ids)->get();
         $totalQuantity = $this->tool_quantity * count($this->house_ids);
 
@@ -189,16 +194,28 @@ class TransaksiLogistik extends Component
 
     public function saveTool()
     {
+        if ($this->saving) {
+            return;
+        }
+        $this->saving = true;
+
         try {
             DB::transaction(function () {
                 $tool = Tool::lockForUpdate()->findOrFail($this->tool_id);
-                if ($tool->condition !== 'baik') {
-                    throw new \Exception('Alat ini dalam kondisi rusak/hilang.');
-                }
                 $totalQuantityRequired = $this->tool_quantity * count($this->house_ids);
 
                 if ($tool->available_qty < $totalQuantityRequired) {
                     throw new \Exception('Jumlah alat tersedia tidak mencukupi. Tersedia: ' . $tool->available_qty);
+                }
+
+                // C: reject duplicate active checkout for same tool + house (D5 void filter included)
+                $existing = ToolUsageModel::where('tool_id', $this->tool_id)
+                    ->whereIn('house_id', $this->house_ids)
+                    ->whereNull('return_date')
+                    ->whereNull('voided_at')
+                    ->pluck('house_id');
+                if ($existing->isNotEmpty()) {
+                    throw new \Exception('Alat ini masih dipinjam oleh rumah: ' . House::whereIn('id', $existing)->pluck('name')->join(', '));
                 }
 
                 foreach ($this->house_ids as $h_id) {
@@ -208,14 +225,12 @@ class TransaksiLogistik extends Component
                         'user_id' => auth()->id(),
                         'quantity' => $this->tool_quantity,
                         'checkout_date' => $this->checkout_date,
-                        'return_date' => $this->return_date ?: null,
                         'notes' => $this->tool_notes,
                     ]);
                 }
 
-                if (!$this->return_date) {
-                    $tool->decrement('available_qty', $totalQuantityRequired);
-                }
+                // A3: always reserve — no return_date escape hatch
+                $tool->decrement('available_qty', $totalQuantityRequired);
 
                 session()->flash('success', 'Penggunaan alat berhasil dicatat untuk ' . count($this->house_ids) . ' rumah.');
             });
@@ -225,6 +240,8 @@ class TransaksiLogistik extends Component
             $this->checkout_date = now()->format('Y-m-d');
         } catch (\Exception $e) {
             $this->addError('tool_quantity', $e->getMessage());
+        } finally {
+            $this->saving = false;
         }
     }
 
@@ -245,7 +262,6 @@ class TransaksiLogistik extends Component
         $this->tool_id = '';
         $this->tool_quantity = 1;
         $this->checkout_date = now()->format('Y-m-d');
-        $this->return_date = '';
         $this->tool_notes = '';
         $this->showToolConfirmation = false;
         $this->toolConfirmationData = [];
@@ -262,6 +278,7 @@ class TransaksiLogistik extends Component
         return ToolUsageModel::with(['house', 'tool'])
             ->whereIn('house_id', $this->house_ids)
             ->whereNull('return_date')
+            ->whereNull('voided_at')
             ->get();
     }
 
@@ -323,6 +340,11 @@ class TransaksiLogistik extends Component
 
     public function saveReturn()
     {
+        if ($this->saving) {
+            return;
+        }
+        $this->saving = true;
+
         try {
             DB::transaction(function () {
                 foreach ($this->returnConfirmationData as $item) {
@@ -354,6 +376,8 @@ class TransaksiLogistik extends Component
                             'quantity' => $remainingQty,
                             'checkout_date' => $usage->checkout_date,
                             'return_date' => null,
+                            // A4: lineage — remainder points back to the (returned) parent row
+                            'parent_usage_id' => $usage->id,
                             'notes' => $usage->notes,
                         ]);
                     }
@@ -363,9 +387,9 @@ class TransaksiLogistik extends Component
                         $tool->available_qty = min($tool->available_qty + $qtyNormal, $tool->total_qty);
                     }
 
-                    // Broken: return to available (ceiling guard) + mark condition rusak + log
+                    // A2: broken moves to the broken pool — available UNCHANGED, condition = rusak (display)
                     if ($qtyBroken > 0) {
-                        $tool->available_qty = min($tool->available_qty + $qtyBroken, $tool->total_qty);
+                        $tool->qty_broken = min($tool->qty_broken + $qtyBroken, $tool->total_qty);
                         $tool->condition = 'rusak';
 
                         ToolReturnLog::create([
@@ -406,6 +430,8 @@ class TransaksiLogistik extends Component
             $this->resetReturnForm();
         } catch (\Exception $e) {
             $this->addError('returnSelections', $e->getMessage());
+        } finally {
+            $this->saving = false;
         }
     }
 
@@ -426,56 +452,11 @@ class TransaksiLogistik extends Component
         $this->resetReturnForm();
     }
 
-    public function updatedMaterialQuantity()
-    {
-        $this->dispatch('cost-calculated');
-    }
-
-    public function updatedMaterialId()
-    {
-        $this->dispatch('cost-calculated');
-    }
-
-    public function updatedHouseIds()
-    {
-        $this->dispatch('cost-calculated');
-        $this->dispatch('tool-info-updated');
-    }
-
-    public function updatedMaterialNotes()
-    {
-        $this->dispatch('cost-calculated');
-    }
-
-    public function updatedUsageDate()
-    {
-        $this->dispatch('cost-calculated');
-    }
-
-    public function updatedToolId()
-    {
-        $this->dispatch('tool-info-updated');
-    }
-
-    public function updatedToolQuantity()
-    {
-        $this->dispatch('tool-info-updated');
-    }
-
-    public function updatedToolNotes()
-    {
-        $this->dispatch('tool-info-updated');
-    }
-
-    public function updatedCheckoutDate()
-    {
-        $this->dispatch('tool-info-updated');
-    }
-
-    public function updatedReturnDate()
-    {
-        $this->dispatch('tool-info-updated');
-    }
+    // C: all 10 dead dispatch handlers removed (HEAD L429-477):
+    // updatedMaterialQuantity, updatedMaterialId, updatedHouseIds, updatedMaterialNotes,
+    // updatedUsageDate, updatedToolId, updatedToolQuantity, updatedToolNotes,
+    // updatedCheckoutDate, updatedReturnDate — fired cost-calculated / tool-info-updated
+    // with zero listeners; also made every keystroke on .live fields a network round-trip.
 
     public function getHouses()
     {
@@ -489,7 +470,8 @@ class TransaksiLogistik extends Component
 
     public function getTools()
     {
-        return Tool::where('available_qty', '>', 0)->where('condition', 'baik')->orderBy('name')->get();
+        // D2: available_qty is the only gate — condition is display-only now
+        return Tool::where('available_qty', '>', 0)->orderBy('name')->get();
     }
 
     public function render()
@@ -502,11 +484,21 @@ class TransaksiLogistik extends Component
         $activeUsages = collect();
         if ($this->activeTab === 'return') {
             $activeUsages = $this->getActiveToolUsages();
+
+            // C: prune stale selections (usages returned/voided since last render)
+            $activeIds = $activeUsages->pluck('id')->map(fn ($id) => (int) $id)->all();
+            foreach (array_keys($this->returnSelections) as $usageId) {
+                if (!in_array((int) $usageId, $activeIds, true)) {
+                    unset($this->returnSelections[$usageId]);
+                }
+            }
+
+            // C: default qty_normal to 0 (operator opts in per row)
             foreach ($activeUsages as $usage) {
                 if (!isset($this->returnSelections[$usage->id])) {
                     $this->returnSelections[$usage->id] = [
                         'selected' => false,
-                        'qty_normal' => $usage->quantity,
+                        'qty_normal' => 0,
                         'qty_broken' => 0,
                         'qty_lost' => 0,
                         'notes' => '',

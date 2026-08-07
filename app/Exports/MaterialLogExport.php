@@ -53,7 +53,8 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
             ->join('houses', 'material_usages.house_id', '=', 'houses.id')
             ->join('users', 'material_usages.user_id', '=', 'users.id')
             ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
-            ->when($this->filterHouse, fn ($q) => $q->where('material_usages.house_id', $this->filterHouse));
+            ->when($this->filterHouse, fn ($q) => $q->where('material_usages.house_id', $this->filterHouse))
+            ->whereNull('material_usages.voided_at');
 
         $masukQuery = StockIn::query()
             ->select(
@@ -194,6 +195,7 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                     ->join('materials', 'material_usages.material_id', '=', 'materials.id')
                     ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
                     ->when($this->filterHouse, fn ($q) => $q->where('material_usages.house_id', $this->filterHouse))
+                    ->whereNull('material_usages.voided_at')
                     ->when($this->filterType !== 'masuk', fn ($q) => $q, fn ($q) => $q->whereRaw('1=0'))
                     ->sum('material_usages.total_cost');
 

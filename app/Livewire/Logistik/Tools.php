@@ -28,6 +28,7 @@ class Tools extends Component
     public $purchase_price = 0;
     public $total_qty = 1;
     public $available_qty = 1;
+    public $qty_broken = 0;
     
     // Filters
     public $filterCategory = '';
@@ -120,6 +121,7 @@ class Tools extends Component
             'purchase_price' => 'required|numeric|min:0',
             'total_qty' => 'required|integer|min:1',
             'available_qty' => 'required|integer|min:0',
+            'qty_broken' => 'required|integer|min:0',
         ];
     }
 
@@ -141,6 +143,7 @@ class Tools extends Component
         $this->purchase_price = $tool->purchase_price;
         $this->total_qty = $tool->total_qty;
         $this->available_qty = $tool->available_qty;
+        $this->qty_broken = $tool->qty_broken;
         $this->editMode = true;
         $this->showModal = true;
     }
@@ -157,6 +160,7 @@ class Tools extends Component
             'purchase_price' => $this->purchase_price,
             'total_qty' => $this->total_qty,
             'available_qty' => $this->available_qty,
+            'qty_broken' => $this->qty_broken,
         ];
 
         if ($this->editMode) {
@@ -190,6 +194,7 @@ class Tools extends Component
         $this->purchase_price = 0;
         $this->total_qty = 1;
         $this->available_qty = 1;
+        $this->qty_broken = 0;
         $this->resetValidation();
     }
 

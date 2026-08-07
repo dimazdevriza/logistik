@@ -19,6 +19,7 @@ class Tool extends Model
         'purchase_price',
         'total_qty',
         'available_qty',
+        'qty_broken',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class Tool extends Model
             'purchase_price' => 'decimal:2',
             'total_qty' => 'integer',
             'available_qty' => 'integer',
+            'qty_broken' => 'integer',
         ];
     }
 

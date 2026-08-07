@@ -29,6 +29,7 @@ class ToolUsageExport implements FromQuery, WithHeadings, WithMapping, WithStyle
     {
         return ToolUsage::with(['tool', 'user'])
             ->where('house_id', $this->houseId)
+            ->whereNull('voided_at')
             ->orderBy('checkout_date', 'desc');
     }
 
