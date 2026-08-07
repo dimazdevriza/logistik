@@ -1,22 +1,18 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light">
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white antialiased dark:bg-linear-to-b dark:from-neutral-950 dark:to-neutral-900">
-        <div class="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-            <div class="flex w-full max-w-sm flex-col gap-2">
-                <a href="{{ route('home') }}" class="flex flex-col items-center gap-2 font-medium" wire:navigate>
-                    <span class="flex h-9 w-9 mb-1 items-center justify-center rounded-md">
-                        <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
-                    </span>
-                    <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>
+    <body class="bg-light min-vh-100 d-flex align-items-center justify-content-center py-5">
+        <div class="container" style="max-width: 420px;">
+            <div class="text-center mb-4">
+                <a href="{{ route('home') }}" class="text-decoration-none" wire:navigate>
+                    <h2 class="fw-black text-success font-outfit">D'Royal Village</h2>
                 </a>
-                <div class="flex flex-col gap-6">
-                    {{ $slot }}
-                </div>
+            </div>
+            <div class="card border-0 shadow-lg rounded-4 p-4 bg-body">
+                {{ $slot }}
             </div>
         </div>
-        @fluxScripts
     </body>
 </html>

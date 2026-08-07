@@ -1,197 +1,210 @@
+@php
+    $user = auth()->user();
+    $role = $user?->role;
+    $isStaff = in_array($role, ['logistik', 'admin'], true);
+
+    // Nav model: each section is a label plus its links. Sections with no
+    // visible links are dropped, so role changes never leave an empty header.
+    $sections = collect([
+        [
+            'label' => 'Ringkasan',
+            'links' => [
+                ['route' => 'dashboard', 'active' => 'dashboard', 'icon' => 'i-dashboard', 'label' => 'Dashboard'],
+            ],
+        ],
+        [
+            'label' => 'Inventaris',
+            'show' => $isStaff,
+            'links' => [
+                ['route' => 'logistik.materials', 'active' => 'logistik.materials', 'icon' => 'i-box', 'label' => 'Material'],
+                ['route' => 'logistik.tools', 'active' => 'logistik.tools', 'icon' => 'i-wrench', 'label' => 'Alat'],
+                ['route' => 'logistik.suppliers', 'active' => 'logistik.suppliers', 'icon' => 'i-truck', 'label' => 'Supplier'],
+                ['route' => 'logistik.categories', 'active' => 'logistik.categories', 'icon' => 'i-tags', 'label' => 'Kategori'],
+            ],
+        ],
+        [
+            'label' => 'Lapangan',
+            'show' => $isStaff,
+            'links' => [
+                ['route' => 'logistik.houses', 'active' => 'logistik.houses*', 'icon' => 'i-houses', 'label' => 'Rumah'],
+                ['route' => 'logistik.transaksi', 'active' => 'logistik.transaksi', 'icon' => 'i-transfer', 'label' => 'Transaksi'],
+            ],
+        ],
+        [
+            'label' => 'Riwayat',
+            'show' => $isStaff,
+            'links' => [
+                ['route' => 'logistik.material-log', 'active' => 'logistik.material-log', 'icon' => 'i-journal-text', 'label' => 'Catatan Material'],
+                ['route' => 'logistik.tool-log', 'active' => 'logistik.tool-log', 'icon' => 'i-journal-check', 'label' => 'Catatan Alat'],
+            ],
+        ],
+        [
+            'label' => 'Admin',
+            'show' => $role === 'admin',
+            'links' => [
+                ['route' => 'admin.house-costs', 'active' => 'admin.house-costs*', 'icon' => 'i-chart', 'label' => 'Biaya Rumah'],
+                ['route' => 'admin.users', 'active' => 'admin.users', 'icon' => 'i-people', 'label' => 'Manajemen User'],
+            ],
+        ],
+    ])->filter(fn ($s) => $s['show'] ?? true)->values();
+
+    $currentLabel = collect($sections)->flatMap(fn ($s) => $s['links'])
+        ->first(fn ($l) => request()->routeIs($l['active']))['label'] ?? null;
+@endphp
+
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
-    x-data
-    x-init="
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    ">
-    <head>
-        @include('partials.head')
-    </head>
-    <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:sidebar.header>
-                <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
-                <flux:sidebar.collapse class="lg:hidden" />
-            </flux:sidebar.header>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light">
+<head>
+    @include('partials.head')
+    <script>
+        // Applied before first paint so the theme never flashes.
+        (function () {
+            try {
+                var t = localStorage.getItem('theme');
+                if (t !== 'light' && t !== 'dark') {
+                    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.setAttribute('data-bs-theme', t);
+            } catch (e) {}
+        })();
+    </script>
+</head>
+<body class="bg-body">
+    @include('partials.icons')
 
-            {{-- Scrollable nav area — account button stays pinned below --}}
-            <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-            <flux:sidebar.nav>
-                <flux:sidebar.group class="grid">
-                    <x-slot name="heading">
-                        <span class="text-zinc-900 dark:text-white font-bold uppercase tracking-widest text-[10px]">{{ __('Platform') }}</span>
-                    </x-slot>
-                    @if(auth()->user()?->role === 'admin')
-                        <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                            <span class="text-zinc-800 dark:text-zinc-100 font-semibold">{{ __('Dashboard Admin') }}</span>
-                        </flux:sidebar.item>
-                    @elseif(auth()->user()?->role === 'logistik')
-                        <flux:sidebar.item icon="truck" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                            <span class="text-zinc-800 dark:text-zinc-100 font-semibold">{{ __('Dashboard Logistik') }}</span>
-                        </flux:sidebar.item>
+    <div
+        class="app-shell d-flex"
+        x-data="{
+            rail: false,
+            open: false,
+            init() {
+                try { this.rail = localStorage.getItem('sidebar-rail') === '1' } catch (e) {}
+                this.$watch('rail', v => { try { localStorage.setItem('sidebar-rail', v ? '1' : '0') } catch (e) {} })
+            },
+            theme: document.documentElement.getAttribute('data-bs-theme'),
+            toggleTheme() {
+                this.theme = this.theme === 'dark' ? 'light' : 'dark'
+                document.documentElement.setAttribute('data-bs-theme', this.theme)
+                try { localStorage.setItem('theme', this.theme) } catch (e) {}
+            },
+        }"
+        :class="{ 'is-rail': rail, 'is-open': open }"
+        @keydown.escape.window="open = false"
+    >
+        <div class="sidebar-backdrop" @click="open = false" aria-hidden="true"></div>
 
-                    @else
-                        <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                            <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Dashboard') }}</span>
-                        </flux:sidebar.item>
-                    @endif
-                </flux:sidebar.group>
+        <aside class="sidebar" aria-label="Navigasi utama">
+            <!-- Brand -->
+            <div class="d-flex align-items-center gap-2 p-3">
+                <a href="{{ route('dashboard') }}" class="d-flex align-items-center gap-2 text-decoration-none flex-grow-1 overflow-hidden">
+                    <span class="d-flex align-items-center justify-content-center rounded-3 bg-success text-white flex-shrink-0" style="width: 34px; height: 34px;">
+                        <svg width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#i-logo"/></svg>
+                    </span>
+                    <span class="sidebar-label lh-sm overflow-hidden">
+                        <span class="d-block fw-bold text-body text-truncate" style="letter-spacing: -0.02em;">D'Royal</span>
+                        <span class="d-block extra-small text-secondary text-truncate font-geist" style="letter-spacing: 0.08em;">LOGISTIK</span>
+                    </span>
+                </a>
 
-                {{-- Logistik & Admin menu items --}}
-                @if(in_array(auth()->user()?->role, ['logistik', 'admin']))
-                <flux:sidebar.group class="grid">
-                    <x-slot name="heading">
-                        <span class="text-zinc-900 dark:text-white font-bold uppercase tracking-widest text-[10px]">{{ __('Inventaris') }}</span>
-                    </x-slot>
-
-                    <flux:sidebar.item icon="cube" :href="route('logistik.materials')" :current="request()->routeIs('logistik.materials')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Material') }}</span>
-                    </flux:sidebar.item>
-                    <flux:sidebar.item icon="wrench" :href="route('logistik.tools')" :current="request()->routeIs('logistik.tools')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Alat') }}</span>
-                    </flux:sidebar.item>
-                    <flux:sidebar.item icon="building-storefront" :href="route('logistik.suppliers')" :current="request()->routeIs('logistik.suppliers')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Supplier') }}</span>
-                    </flux:sidebar.item>
-                    <flux:sidebar.item icon="tag" :href="route('logistik.categories')" :current="request()->routeIs('logistik.categories')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Kategori') }}</span>
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-
-                <flux:sidebar.group class="grid">
-                    <x-slot name="heading">
-                        <span class="text-zinc-900 dark:text-white font-bold uppercase tracking-widest text-[10px]">{{ __('Proyek') }}</span>
-                    </x-slot>
-                    <flux:sidebar.item icon="home-modern" :href="route('logistik.houses')" :current="request()->routeIs('logistik.houses*')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Rumah') }}</span>
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-
-                <flux:sidebar.group class="grid">
-                    <x-slot name="heading">
-                        <span class="text-zinc-900 dark:text-white font-bold uppercase tracking-widest text-[10px]">{{ __('Transaksi') }}</span>
-                    </x-slot>
-                    <flux:sidebar.item icon="clipboard-document-list" :href="route('logistik.transaksi')" :current="request()->routeIs('logistik.transaksi')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Transaksi Logistik') }}</span>
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-
-                <flux:sidebar.group class="grid">
-                    <x-slot name="heading">
-                        <span class="text-zinc-900 dark:text-white font-bold uppercase tracking-widest text-[10px]">{{ __('Log') }}</span>
-                    </x-slot>
-                    <flux:sidebar.item icon="document-text" :href="route('logistik.material-log')" :current="request()->routeIs('logistik.material-log')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Catatan Material') }}</span>
-                    </flux:sidebar.item>
-                    <flux:sidebar.item icon="clipboard-document-list" :href="route('logistik.tool-log')" :current="request()->routeIs('logistik.tool-log')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Catatan Alat') }}</span>
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-                @endif
-
-                {{-- Admin-only report items --}}
-                @if(auth()->user()?->role === 'admin')
-                <flux:sidebar.group class="grid">
-                    <x-slot name="heading">
-                        <span class="text-zinc-900 dark:text-white font-bold uppercase tracking-widest text-[10px]">{{ __('Laporan') }}</span>
-                    </x-slot>
-                    <flux:sidebar.item icon="currency-dollar" :href="route('admin.house-costs')" :current="request()->routeIs('admin.house-costs*')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Biaya Rumah') }}</span>
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-                @endif
-
-                {{-- Admin-only menu items --}}
-                @if(auth()->user()?->role === 'admin')
-                <flux:sidebar.group class="grid">
-                    <x-slot name="heading">
-                        <span class="text-zinc-900 dark:text-white font-bold uppercase tracking-widest text-[10px]">{{ __('Administrasi') }}</span>
-                    </x-slot>
-                    <flux:sidebar.item icon="users" :href="route('admin.users')" :current="request()->routeIs('admin.users')" wire:navigate>
-                        <span class="text-zinc-800 dark:text-white font-semibold">{{ __('Manajemen User') }}</span>
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-                @endif
-            </flux:sidebar.nav>
+                <!-- Desktop rail toggle -->
+                <button
+                    type="button"
+                    class="btn btn-sm btn-link text-secondary p-1 d-none d-lg-inline-flex rail-hide"
+                    @click="rail = !rail"
+                    aria-label="Ciutkan menu"
+                >
+                    <svg width="14" height="14" fill="currentColor" aria-hidden="true"><use href="#i-chevron-left"/></svg>
+                </button>
             </div>
-            <x-desktop-user-menu class="hidden lg:block shrink-0" :name="auth()->user()->name" />
-        </flux:sidebar>
 
-        <!-- Mobile User Menu -->
-        <flux:header class="lg:hidden">
-            <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+            <!-- Expand button, rail mode only -->
+            <div class="px-3 pb-1 d-none d-lg-block" x-show="rail" x-cloak>
+                <button type="button" class="btn btn-sm btn-link text-secondary w-100 p-1" @click="rail = false" aria-label="Lebarkan menu">
+                    <svg width="14" height="14" fill="currentColor" style="transform: rotate(180deg);" aria-hidden="true"><use href="#i-chevron-left"/></svg>
+                </button>
+            </div>
 
-            <flux:spacer />
-
-            <flux:dropdown position="top" align="end">
-                <flux:profile
-                    :initials="auth()->user()->initials()"
-                    icon-trailing="chevron-down"
-                />
-
-                <flux:menu>
-                    <flux:menu.radio.group>
-                        <div class="p-0 text-sm font-normal">
-                            <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
-                                <flux:avatar
-                                    :name="auth()->user()->name"
-                                    :initials="auth()->user()->initials()"
-                                />
-
-                                <div class="grid flex-1 text-start text-sm leading-tight">
-                                    <flux:heading class="truncate text-zinc-950 dark:text-zinc-50 font-black">{{ auth()->user()->name }}</flux:heading>
-                                    <flux:text class="truncate text-zinc-800 dark:text-zinc-200 font-semibold">{{ auth()->user()->email }}</flux:text>
-                                </div>
-                            </div>
-                        </div>
-                    </flux:menu.radio.group>
-
-                    <flux:menu.separator />
-
-                    <flux:menu.radio.group>
-                        <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
-                            {{ __('Settings') }}
-                        </flux:menu.item>
-                        <flux:menu.item icon="moon"
-                            x-data
-                            @click.prevent="
-                                if (document.documentElement.classList.contains('dark')) {
-                                    document.documentElement.classList.remove('dark');
-                                    localStorage.theme = 'light';
-                                } else {
-                                    document.documentElement.classList.add('dark');
-                                    localStorage.theme = 'dark';
-                                }
-                            "
+            <!-- Navigation -->
+            <nav class="flex-grow-1 overflow-y-auto overflow-x-hidden px-3 pb-2">
+                @foreach ($sections as $section)
+                    <div class="sidebar-section">{{ $section['label'] }}</div>
+                    @foreach ($section['links'] as $link)
+                        <a
+                            href="{{ route($link['route']) }}"
+                            class="sidebar-link {{ request()->routeIs($link['active']) ? 'active' : '' }}"
+                            data-label="{{ $link['label'] }}"
+                            @if (request()->routeIs($link['active'])) aria-current="page" @endif
+                            @click="open = false"
                         >
-                            <span x-text="document.documentElement.classList.contains('dark') ? 'Light Mode' : 'Dark Mode'"></span>
-                        </flux:menu.item>
-                    </flux:menu.radio.group>
+                            <svg width="17" height="17" fill="currentColor" aria-hidden="true"><use href="#{{ $link['icon'] }}"/></svg>
+                            <span class="sidebar-label">{{ $link['label'] }}</span>
+                        </a>
+                    @endforeach
+                @endforeach
+            </nav>
 
-                    <flux:menu.separator />
+            <!-- Account -->
+            <div class="border-top p-2 mt-auto">
+                <div class="dropdown dropup">
+                    <button
+                        type="button"
+                        class="btn w-100 d-flex align-items-center gap-2 p-2 border-0 text-start user-profile-card"
+                        data-bs-toggle="dropdown"
+                        data-bs-display="static"
+                        aria-expanded="false"
+                    >
+                        <span class="d-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success fw-bold flex-shrink-0 extra-small" style="width: 32px; height: 32px;">
+                            {{ $user?->initials() }}
+                        </span>
+                        <span class="sidebar-label overflow-hidden lh-sm flex-grow-1">
+                            <span class="d-block small fw-semibold text-body text-truncate">{{ $user?->name }}</span>
+                            <span class="d-block extra-small text-secondary text-truncate">{{ ucfirst($role ?? '') }}</span>
+                        </span>
+                    </button>
 
-                    <form method="POST" action="{{ route('logout') }}" class="w-full">
-                        @csrf
-                        <flux:menu.item
-                            as="button"
-                            type="submit"
-                            icon="arrow-right-start-on-rectangle"
-                            class="w-full cursor-pointer"
-                            data-test="logout-button"
-                        >
-                            {{ __('Log out') }}
-                        </flux:menu.item>
-                    </form>
-                </flux:menu>
-            </flux:dropdown>
-        </flux:header>
+                    <ul class="dropdown-menu shadow-lg border rounded-3 p-1 w-100">
+                        <li>
+                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2 small fw-medium" href="{{ route('profile.edit') }}">
+                                <svg width="14" height="14" fill="currentColor" class="text-secondary" aria-hidden="true"><use href="#i-gear"/></svg>
+                                Pengaturan
+                            </a>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2 small fw-medium" @click="toggleTheme()">
+                                <svg width="14" height="14" fill="currentColor" class="text-secondary" aria-hidden="true">
+                                    <use :href="theme === 'dark' ? '#i-sun' : '#i-moon'" href="#i-moon"/>
+                                </svg>
+                                <span x-text="theme === 'dark' ? 'Mode terang' : 'Mode gelap'">Mode gelap</span>
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2 small fw-medium text-danger">
+                                    <svg width="14" height="14" fill="currentColor" aria-hidden="true"><use href="#i-logout"/></svg>
+                                    Keluar
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
 
-        {{ $slot }}
+        <div class="flex-grow-1 min-vh-100 d-flex flex-column overflow-hidden">
+            <!-- Mobile top bar -->
+            <header class="d-lg-none sticky-top d-flex align-items-center gap-2 px-3 py-2 bg-body border-bottom">
+                <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center p-2" @click="open = true" aria-label="Buka menu">
+                    <svg width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-menu"/></svg>
+                </button>
+                <span class="fw-semibold text-body text-truncate">{{ $title ?? $currentLabel ?? "D'Royal Logistik" }}</span>
+            </header>
 
-        @fluxScripts
-    </body>
+            <main class="flex-grow-1 p-3 p-md-4">
+                {{ $slot }}
+            </main>
+        </div>
+    </div>
+</body>
 </html>

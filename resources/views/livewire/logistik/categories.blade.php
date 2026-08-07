@@ -1,102 +1,142 @@
 <div>
-    <div class="flex h-full w-full flex-1 flex-col gap-6 p-4">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" class="font-bold">Kategori</flux:heading>
-                <flux:text class="mt-1 text-zinc-700 dark:text-zinc-300">Kelola kategori untuk material dan alat.</flux:text>
+    <div class="container-fluid p-0">
+        <!-- Hero Header -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
+            <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                <div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Category Management</span>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">
+                        Inventory <span class="text-success">Categories</span>
+                    </h1>
+                    <p class="text-secondary mb-0 max-w-xl">
+                        Organize and classify material and tool assets across construction projects.
+                    </p>
+                </div>
+                <div>
+                    <button type="button" wire:click="create" class="btn btn-success font-semibold">+ Tambah Kategori</button>
+                </div>
             </div>
-            <flux:button wire:click="create" variant="primary" icon="plus">Tambah Kategori</flux:button>
         </div>
 
         @if (session('success'))
-            <flux:callout variant="success" icon="check-circle" dismissible>{{ session('success') }}</flux:callout>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         @endif
 
-        <div class="flex gap-3">
-            <flux:input wire:model.live.debounce.300ms="search" placeholder="Cari kategori..." icon="magnifying-glass" class="max-w-sm" />
-            
-            <flux:select wire:model.live="filterType" class="max-w-[180px]">
-                <option value="">Semua Tipe</option>
-                <option value="material">Material</option>
-                <option value="tool">Alat (Tool)</option>
-            </flux:select>
-            
-            @if ($search || $filterType)
-                <flux:button wire:click="resetFilters" variant="ghost" size="sm" icon="x-mark" class="self-center">Reset Filter</flux:button>
-            @endif
+        <!-- Search & Filter Controls -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
+            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center">
+                <div class="w-100 max-w-sm">
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari kategori..." class="form-control" />
+                </div>
+                <div class="w-100 max-w-xs">
+                    <select wire:model.live="filterType" class="form-select">
+                        <option value="">Semua Tipe</option>
+                        <option value="material">Material</option>
+                        <option value="tool">Alat (Tool)</option>
+                    </select>
+                </div>
+                @if ($search || $filterType)
+                    <button type="button" wire:click="resetFilters" class="btn btn-link text-secondary text-decoration-none btn-sm">✕ Reset Filter</button>
+                @endif
+            </div>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 shadow-sm">
-            <table class="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
-                <thead class="bg-zinc-50 dark:bg-zinc-900">
-                    <tr>
-                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200 w-16">No.</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Nama</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Tipe</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
-                    @forelse ($categories as $category)
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition cursor-pointer"
-                        x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $category->id }}) }">
-                        <td class="px-4 py-3 text-sm text-center text-zinc-700 dark:text-zinc-500">{{ ($categories->currentPage() - 1) * $categories->perPage() + $loop->iteration }}</td>
-                        <td class="px-4 py-3 text-sm font-medium dark:text-zinc-100">{{ $category->name }}</td>
-                        <td class="px-4 py-3 text-sm">
-                            <flux:badge :variant="$category->type === 'material' ? 'primary' : 'warning'" size="sm">
-                                {{ $category->type === 'material' ? 'Material' : 'Alat' }}
-                            </flux:badge>
-                        </td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex justify-end gap-2">
-                                <flux:button wire:click="edit({{ $category->id }})" size="sm" variant="ghost" icon="pencil-square" title="Edit Data" />
-                                <flux:button wire:click="confirm('delete', {{ $category->id }}, 'Hapus Kategori?', 'Yakin ingin menghapus kategori ini? Seluruh data material dan alat di dalamnya akan tetap ada namun referensi kategori akan hilang.')" size="sm" variant="ghost" icon="trash" class="text-red-500 hover:text-red-700" title="Hapus Data" />
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="4" class="px-4 py-8 text-center text-sm text-zinc-600 dark:text-zinc-500">Belum ada data kategori.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <!-- Categories Table -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small font-geist">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">No.</th>
+                            <th>Nama</th>
+                            <th>Tipe</th>
+                            <th class="text-end" style="width: 100px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($categories as $category)
+                        <tr wire:key="cat-{{ $category->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $category->id }}) }">
+                            <td class="text-center text-secondary small">{{ ($categories->currentPage() - 1) * $categories->perPage() + $loop->iteration }}</td>
+                            <td class="fw-bold text-body">{{ $category->name }}</td>
+                            <td>
+                                <span class="badge {{ $category->type === 'material' ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-warning' }}">
+                                    {{ $category->type === 'material' ? 'Material' : 'Alat' }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" wire:click="edit({{ $category->id }})" class="btn btn-outline-secondary" title="Edit">✏️</button>
+                                    <button type="button" wire:click="confirm('delete', {{ $category->id }}, 'Hapus Kategori?', 'Yakin ingin menghapus kategori ini? Seluruh data material dan alat di dalamnya akan tetap ada namun referensi kategori akan hilang.')" class="btn btn-outline-danger" title="Hapus">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-secondary">Belum ada data kategori.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div>{{ $categories->links() }}</div>
+        <div class="d-flex justify-content-end">{{ $categories->links() }}</div>
     </div>
 
-    {{-- Modal --}}
-    <flux:modal wire:model="showModal" class="max-w-lg">
-        <div class="space-y-6">
-            <flux:heading size="lg">{{ $editMode ? 'Edit Kategori' : 'Tambah Kategori' }}</flux:heading>
-
-            <flux:input wire:model="name" label="Nama Kategori" placeholder="Contoh: Semen & Beton" :error="$errors->first('name')" />
-            <flux:select wire:model="type" label="Tipe" :error="$errors->first('type')">
-                <option value="material">Material</option>
-                <option value="tool">Alat</option>
-            </flux:select>
-
-            <div class="flex justify-end gap-3">
-                <flux:button wire:click="$set('showModal', false)" variant="ghost">Batal</flux:button>
-                <flux:button wire:click="save" variant="primary">{{ $editMode ? 'Perbarui' : 'Simpan' }}</flux:button>
+    <!-- Modal: Create / Edit Category -->
+    @if($showModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">{{ $editMode ? 'Edit Kategori' : 'Tambah Kategori' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="mb-3">
+                        <label class="form-label font-semibold">Nama Kategori</label>
+                        <input type="text" wire:model="name" class="form-control" placeholder="Contoh: Semen & Beton" />
+                        @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-semibold">Tipe</label>
+                        <select wire:model="type" class="form-select">
+                            <option value="material">Material</option>
+                            <option value="tool">Alat</option>
+                        </select>
+                        @error('type') <span class="text-danger small">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success font-semibold" wire:click="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
+                </div>
             </div>
         </div>
-    </flux:modal>
+    </div>
+    @endif
 
-    {{-- Confirmation Modal --}}
-    <flux:modal wire:model="showConfirmation" class="max-w-sm">
-        <div class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ $confirmTitle ?? 'Konfirmasi' }}</flux:heading>
-                <flux:text>{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</flux:text>
-            </div>
-            <div class="flex gap-2 justify-end">
-                <flux:modal.close>
-                    <flux:button variant="ghost">Batal</flux:button>
-                </flux:modal.close>
-                <flux:button wire:click="executeConfirmedAction" variant="danger">Ya, Hapus</flux:button>
+    <!-- Confirmation Modal -->
+    @if($showConfirmation)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">{{ $confirmTitle ?? 'Konfirmasi' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-secondary mb-0">{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm font-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
+                    <button type="button" class="btn btn-danger btn-sm font-semibold" wire:click="executeConfirmedAction">Ya, Hapus</button>
+                </div>
             </div>
         </div>
-    </flux:modal>
+    </div>
+    @endif
 </div>

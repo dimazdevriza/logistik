@@ -1,95 +1,139 @@
 <div>
-    <div class="flex h-full w-full flex-1 flex-col gap-6 p-4">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" class="font-bold">Supplier</flux:heading>
-                <flux:text class="mt-1 text-zinc-500 dark:text-zinc-400">Kelola data supplier material bangunan.</flux:text>
+    <div class="container-fluid p-0">
+        <!-- Hero Header -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
+            <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                <div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Supplier Management</span>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">
+                        Vendor <span class="text-success">Suppliers</span>
+                    </h1>
+                    <p class="text-secondary mb-0 max-w-xl">
+                        Kelola data supplier material bangunan dan kontak mitra pasokan.
+                    </p>
+                </div>
+                <div>
+                    <button type="button" wire:click="create" class="btn btn-success font-semibold">+ Tambah Supplier</button>
+                </div>
             </div>
-            <flux:button wire:click="create" variant="primary" icon="plus">Tambah Supplier</flux:button>
         </div>
 
         @if (session('success'))
-            <flux:callout variant="success" icon="check-circle" dismissible>{{ session('success') }}</flux:callout>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         @endif
 
-        <div class="flex gap-3">
-            <flux:input wire:model.live.debounce.300ms="search" placeholder="Cari supplier..." icon="magnifying-glass" class="max-w-sm" />
-            
-            @if ($search)
-                <flux:button wire:click="resetFilters" variant="ghost" size="sm" icon="x-mark" class="self-center">Reset Filter</flux:button>
-            @endif
+        <!-- Search Controls -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
+            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center">
+                <div class="w-100 max-w-sm">
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari supplier..." class="form-control" />
+                </div>
+                @if ($search)
+                    <button type="button" wire:click="resetFilters" class="btn btn-link text-secondary text-decoration-none btn-sm">✕ Reset Filter</button>
+                @endif
+            </div>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 shadow-sm">
-            <table class="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
-                <thead class="bg-zinc-50 dark:bg-zinc-900">
-                    <tr>
-                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200 w-16">No.</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Nama</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Kontak</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Telepon</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Alamat</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
-                    @forelse ($suppliers as $supplier)
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition cursor-pointer"
-                        x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $supplier->id }}) }">
-                        <td class="px-4 py-3 text-sm text-center text-zinc-700 dark:text-zinc-500">{{ ($suppliers->currentPage() - 1) * $suppliers->perPage() + $loop->iteration }}</td>
-                        <td class="px-4 py-3 text-sm font-medium dark:text-zinc-100">{{ $supplier->name }}</td>
-                        <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $supplier->contact_person ?? '-' }}</td>
-                        <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $supplier->phone ?? '-' }}</td>
-                        <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400 max-w-xs truncate">{{ $supplier->address ?? '-' }}</td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex justify-end gap-2">
-                                <flux:button wire:click="edit({{ $supplier->id }})" size="sm" variant="ghost" icon="pencil-square" title="Edit Data" />
-                                <flux:button wire:click="confirm('delete', {{ $supplier->id }}, 'Hapus Supplier?', 'Yakin ingin menghapus supplier ini? Seluruh data riwayat material terkait akan tetap ada namun referensi supplier akan hilang.')" size="sm" variant="ghost" icon="trash" class="text-red-500 hover:text-red-700" title="Hapus Data" />
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-sm text-zinc-600 dark:text-zinc-500">Belum ada data supplier.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <!-- Suppliers Table -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small font-geist">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">No.</th>
+                            <th>Nama</th>
+                            <th>Kontak</th>
+                            <th>Telepon</th>
+                            <th>Alamat</th>
+                            <th class="text-end" style="width: 100px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($suppliers as $supplier)
+                        <tr wire:key="sup-{{ $supplier->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $supplier->id }}) }">
+                            <td class="text-center text-secondary small">{{ ($suppliers->currentPage() - 1) * $suppliers->perPage() + $loop->iteration }}</td>
+                            <td class="fw-bold text-body">{{ $supplier->name }}</td>
+                            <td class="text-secondary small">{{ $supplier->contact_person ?? '-' }}</td>
+                            <td class="text-secondary small">{{ $supplier->phone ?? '-' }}</td>
+                            <td class="text-secondary small text-truncate" style="max-width: 200px;">{{ $supplier->address ?? '-' }}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" wire:click="edit({{ $supplier->id }})" class="btn btn-outline-secondary" title="Edit">✏️</button>
+                                    <button type="button" wire:click="confirm('delete', {{ $supplier->id }}, 'Hapus Supplier?', 'Yakin ingin menghapus supplier ini? Seluruh data riwayat material terkait akan tetap ada namun referensi supplier akan hilang.')" class="btn btn-outline-danger" title="Hapus">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-secondary">Belum ada data supplier.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div>{{ $suppliers->links() }}</div>
+        <div class="d-flex justify-content-end">{{ $suppliers->links() }}</div>
     </div>
 
-    {{-- Modal --}}
-    <flux:modal wire:model="showModal" class="max-w-lg">
-        <div class="space-y-6">
-            <flux:heading size="lg">{{ $editMode ? 'Edit Supplier' : 'Tambah Supplier' }}</flux:heading>
-
-            <flux:input wire:model="name" label="Nama Supplier" placeholder="PT. Example" :error="$errors->first('name')" />
-            <flux:input wire:model="contact_person" label="Nama Kontak" placeholder="Nama kontak person" />
-            <flux:input wire:model="phone" label="Telepon" placeholder="0812-xxxx-xxxx" />
-            <flux:textarea wire:model="address" label="Alamat" placeholder="Alamat lengkap supplier" rows="2" />
-
-            <div class="flex justify-end gap-3">
-                <flux:button wire:click="$set('showModal', false)" variant="ghost">Batal</flux:button>
-                <flux:button wire:click="save" variant="primary">{{ $editMode ? 'Perbarui' : 'Simpan' }}</flux:button>
+    <!-- Modal: Create / Edit Supplier -->
+    @if($showModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">{{ $editMode ? 'Edit Supplier' : 'Tambah Supplier' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="mb-3">
+                        <label class="form-label font-semibold">Nama Supplier</label>
+                        <input type="text" wire:model="name" class="form-control" placeholder="PT. Example" />
+                        @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-semibold">Nama Kontak</label>
+                        <input type="text" wire:model="contact_person" class="form-control" placeholder="Nama kontak person" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-semibold">Telepon</label>
+                        <input type="text" wire:model="phone" class="form-control" placeholder="0812-xxxx-xxxx" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-semibold">Alamat</label>
+                        <textarea wire:model="address" class="form-control" rows="2" placeholder="Alamat lengkap supplier"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success font-semibold" wire:click="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
+                </div>
             </div>
         </div>
-    </flux:modal>
+    </div>
+    @endif
 
-    {{-- Confirmation Modal --}}
-    <flux:modal wire:model="showConfirmation" class="max-w-sm">
-        <div class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ $confirmTitle ?? 'Konfirmasi' }}</flux:heading>
-                <flux:text>{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</flux:text>
-            </div>
-            <div class="flex gap-2 justify-end">
-                <flux:modal.close>
-                    <flux:button variant="ghost">Batal</flux:button>
-                </flux:modal.close>
-                <flux:button wire:click="executeConfirmedAction" variant="danger">Ya, Hapus</flux:button>
+    <!-- Confirmation Modal -->
+    @if($showConfirmation)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">{{ $confirmTitle ?? 'Konfirmasi' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-secondary mb-0">{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm font-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
+                    <button type="button" class="btn btn-danger btn-sm font-semibold" wire:click="executeConfirmedAction">Ya, Hapus</button>
+                </div>
             </div>
         </div>
-    </flux:modal>
+    </div>
+    @endif
 </div>

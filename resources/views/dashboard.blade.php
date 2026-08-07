@@ -1,63 +1,124 @@
 <x-layouts::app.sidebar title="Admin Dashboard">
-    <flux:main>
-        <div class="flex h-full w-full flex-1 flex-col gap-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div class="container-fluid p-0">
+        <!-- Hero Header -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
+            <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <flux:heading size="xl" class="font-bold">Ringkasan Sistem</flux:heading>
-                    <flux:text class="mt-1 text-zinc-500 dark:text-zinc-400">Ikhtisar operasional dan kesehatan sistem logistik.</flux:text>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">System Operational</span>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">
+                        D'Royal Village <span class="text-success">Control Portal</span>
+                    </h1>
+                    <p class="text-secondary mb-0 max-w-xl">
+                        Monitor logistics, analyze operational costs, and manage resources across system modules.
+                    </p>
                 </div>
-            </div>
-
-            {{-- Admin Stats Grid --}}
-            <div class="grid gap-4 md:grid-cols-4">
-                <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 p-5 flex flex-col gap-2 shadow-sm transition-all duration-300">
-                    <flux:text class="text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-bold">Total Rumah</flux:text>
-                    <flux:heading size="xl" class="font-bold text-2xl text-primary dark:text-blue-400">{{ $total_houses }}</flux:heading>
-                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Unit dalam database</flux:text>
-                </div>
-                <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 p-5 flex flex-col gap-2 shadow-sm transition-all duration-300">
-                    <flux:text class="text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-bold">Total User</flux:text>
-                    <flux:heading size="xl" class="font-bold text-2xl text-green-600 dark:text-green-400">{{ $total_users }}</flux:heading>
-                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Akun terdaftar</flux:text>
-                </div>
-                <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 p-5 flex flex-col gap-2 shadow-sm transition-all duration-300">
-                    <flux:text class="text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-bold">Total Supplier</flux:text>
-                    <flux:heading size="xl" class="font-bold text-2xl text-indigo-600 dark:text-indigo-400">{{ $total_suppliers }}</flux:heading>
-                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Rekan bisnis aktif</flux:text>
-                </div>
-                <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 p-5 flex flex-col gap-2 shadow-sm transition-all duration-300">
-                    <flux:text class="text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-bold">Total Pengeluaran</flux:text>
-                    <flux:heading size="xl" class="font-bold text-lg text-orange-600 dark:text-orange-400">Rp {{ number_format($total_cost, 0, ',', '.') }}</flux:heading>
-                    <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Total biaya material</flux:text>
-                </div>
-            </div>
-
-            <div class="grid gap-6 md:grid-cols-2">
-                {{-- Quick Links / Actions --}}
-                <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 p-6 shadow-sm">
-                    <flux:heading size="lg" class="mb-4 font-semibold">Akses Cepat</flux:heading>
-                    <div class="grid grid-cols-2 gap-3">
-                        <flux:button href="{{ route('admin.users') }}" wire:navigate variant="ghost" class="justify-start" icon="users">Kelola User</flux:button>
-                        <flux:button href="{{ route('logistik.houses') }}" wire:navigate variant="ghost" class="justify-start" icon="home">Unit Rumah</flux:button>
-                        <flux:button href="{{ route('logistik.materials') }}" wire:navigate variant="ghost" class="justify-start" icon="cube">Inventaris</flux:button>
-                        <flux:button href="{{ route('admin.house-costs') }}" wire:navigate variant="ghost" class="justify-start" icon="banknotes">Laporan Biaya</flux:button>
+                <div class="card border border-body-secondary shadow-sm rounded-3 p-3 bg-body" style="min-width: 260px;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
+                            <span class="small fw-bold text-secondary text-uppercase">Server Status</span>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary font-mono">v1.0.0</span>
                     </div>
-                </div>
-
-                {{-- System Info --}}
-                <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-zinc-50 dark:bg-zinc-900/50 p-6 flex flex-col justify-center">
-                    <div class="flex items-center gap-4 mb-4">
-                        <div class="p-3 bg-white dark:bg-zinc-800 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700">
-                            <flux:icon name="cpu-chip" class="text-zinc-400" />
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="bg-success-subtle text-success p-2 rounded">
+                            💻
                         </div>
                         <div>
-                            <flux:heading>Status Sistem</flux:heading>
-                            <flux:text size="sm">D'Royal Village v1.0.0 (PHP v{{ PHP_VERSION }})</flux:text>
+                            <div class="extra-small text-secondary">Database</div>
+                            <div class="fw-bold small">Connected</div>
                         </div>
                     </div>
-                    <flux:text size="sm" class="text-zinc-500">Semua modul operasional berjalan normal. Database terkoneksi.</flux:text>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 94%;"></div>
+                    </div>
                 </div>
             </div>
         </div>
-    </flux:main>
+
+        <!-- Bento Grid -->
+        <div class="row g-4">
+            <!-- Total Houses -->
+            <div class="col-md-6 col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Unit Rumah</span>
+                        <div class="p-2 bg-body rounded">🏠</div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2 mb-3">
+                        <span class="display-5 fw-extrabold text-body">{{ $total_houses }}</span>
+                        <span class="text-secondary small fw-semibold">Unit terdaftar</span>
+                    </div>
+                    <div class="pt-3 border-top d-flex justify-content-between align-items-center small">
+                        <span class="text-secondary">Status pembangunan</span>
+                        <span class="badge bg-success-subtle text-success">Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Users -->
+            <div class="col-md-3 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">User</span>
+                        <div class="p-2 bg-body rounded">👤</div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2 mb-3">
+                        <span class="display-5 fw-extrabold text-body">{{ $total_users }}</span>
+                        <span class="text-secondary extra-small fw-semibold">Aktif</span>
+                    </div>
+                    <div class="pt-3 border-top text-secondary small">
+                        Manajemen peran & akses
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Suppliers -->
+            <div class="col-md-3 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Supplier</span>
+                        <div class="p-2 bg-body rounded">🏬</div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2 mb-3">
+                        <span class="display-5 fw-extrabold text-body">{{ $total_suppliers }}</span>
+                        <span class="text-secondary extra-small fw-semibold">Rekan</span>
+                    </div>
+                    <div class="pt-3 border-top text-secondary small">
+                        Mitra rantai pasok
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Expenses -->
+            <div class="col-md-6 col-lg-6">
+                <div class="card border-0 border-start border-4 border-warning shadow-sm rounded-4 h-100 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Pengeluaran</span>
+                        <div class="p-2 bg-warning-subtle text-warning rounded">💵</div>
+                    </div>
+                    <div class="mb-3">
+                        <h2 class="fw-black text-warning mb-1">Rp {{ number_format($total_cost, 0, ',', '.') }}</h2>
+                        <span class="text-secondary small">Akumulasi pengeluaran material konstruksi</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Access -->
+            <div class="col-md-6 col-lg-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Akses Cepat</span>
+                        <div class="p-2 bg-body rounded">➔</div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6"><a href="{{ route('admin.users') }}" class="btn btn-outline-secondary btn-sm w-100 text-start">Kelola User</a></div>
+                        <div class="col-6"><a href="{{ route('logistik.houses') }}" class="btn btn-outline-secondary btn-sm w-100 text-start">Unit Rumah</a></div>
+                        <div class="col-6"><a href="{{ route('logistik.materials') }}" class="btn btn-outline-secondary btn-sm w-100 text-start">Inventaris</a></div>
+                        <div class="col-6"><a href="{{ route('admin.house-costs') }}" class="btn btn-outline-secondary btn-sm w-100 text-start">Laporan Biaya</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </x-layouts::app.sidebar>

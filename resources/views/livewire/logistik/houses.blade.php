@@ -1,142 +1,178 @@
 <div>
-    <div class="flex h-full w-full flex-1 flex-col gap-6 p-4">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" class="font-bold">Rumah</flux:heading>
-                <flux:text class="mt-1 text-zinc-700 dark:text-zinc-300">Kelola data rumah yang sedang dibangun.</flux:text>
-            </div>
-            <div class="flex gap-2">
-                @if(in_array(auth()->user()->role, ['admin', 'logistik']))
-                    <flux:button wire:click="exportExcel" variant="filled" class="bg-emerald-600 hover:bg-emerald-700 text-white" icon="document-chart-bar">Export Excel</flux:button>
-                @endif
-                <flux:button wire:click="create" variant="primary" icon="plus">Tambah Rumah</flux:button>
+    <div class="container-fluid p-0">
+        <!-- Hero Header -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
+            <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                <div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Project Tracking</span>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">
+                        Housing <span class="text-success">Unit Registry</span>
+                    </h1>
+                    <p class="text-secondary mb-0 max-w-xl">
+                        Monitor residential unit construction progress, project timelines, and raw material utilization.
+                    </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    @if(in_array(auth()->user()->role, ['admin', 'logistik']))
+                        <button type="button" wire:click="exportExcel" class="btn btn-outline-success font-semibold">Export Excel</button>
+                    @endif
+                    <button type="button" wire:click="create" class="btn btn-success font-semibold">+ Tambah Rumah</button>
+                </div>
             </div>
         </div>
 
         @if (session('success'))
-            <flux:callout variant="success" icon="check-circle" dismissible>{{ session('success') }}</flux:callout>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         @endif
 
-        <div class="flex flex-col md:flex-row md:items-center gap-3">
-            <flux:input wire:model.live.debounce.300ms="search" placeholder="Cari rumah, kode, atau tipe..." icon="magnifying-glass" class="w-full md:max-w-[250px]" />
-            
-            <div class="flex items-center gap-2 w-full md:w-auto">
+        <!-- Search & Filter Controls -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
+            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+                <div class="w-100 max-w-sm">
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari rumah, kode, atau tipe..." class="form-control" />
+                </div>
                 <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
-                    {{-- Status Filter --}}
-                    <div>
-                        <flux:label>Status Rumah</flux:label>
-                        <flux:select wire:model.live="filterStatus" class="mt-2">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-secondary">Status Rumah</label>
+                        <select wire:model.live="filterStatus" class="form-select">
                             <option value="">Semua Status</option>
                             <option value="perencanaan">Perencanaan</option>
                             <option value="pembangunan">Pembangunan</option>
                             <option value="selesai">Selesai</option>
-                        </flux:select>
+                        </select>
                     </div>
                 </x-filter-modal>
             </div>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-zinc-800 shadow-sm">
-            <table class="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
-                <thead class="bg-zinc-50 dark:bg-zinc-900">
-                    <tr>
-                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200 w-16">No.</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Kode</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Nama</th>
-
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Tipe</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Status</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Total Biaya</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Mulai</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Target Selesai</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
-                    @forelse ($houses as $house)
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition cursor-pointer" 
-                        x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a')) { window.Livewire.navigate('{{ route('logistik.house-detail', $house) }}') }">
-                        <td class="px-4 py-3 text-sm text-center text-zinc-700 dark:text-zinc-500">{{ $houses->firstItem() + $loop->index }}</td>
-                        <td class="px-4 py-3 text-sm font-mono text-zinc-700 dark:text-zinc-400">{{ $house->house_code ?? '-' }}</td>
-                        <td class="px-4 py-3 text-sm font-medium dark:text-zinc-100">{{ $house->name }}</td>
-
-                        <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $house->type }}</td>
-                        <td class="px-4 py-3 text-sm">
-                            @php
-                                $statusColors = ['perencanaan' => 'warning', 'pembangunan' => 'primary', 'selesai' => 'success'];
-                            @endphp
-                            <flux:badge :variant="$statusColors[$house->status] ?? 'default'" size="sm">
-                                {{ ucfirst($house->status) }}
-                            </flux:badge>
-                        </td>
-                        <td class="px-4 py-3 text-sm text-right font-mono dark:text-zinc-200">Rp {{ number_format($house->total_material_cost, 0, ',', '.') }}</td>
-                        <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $house->start_date?->format('d/m/Y') ?? '-' }}</td>
-                        <td class="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-400">{{ $house->target_end_date?->format('d/m/Y') ?? '-' }}</td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex justify-end gap-2">
-                                <flux:button href="{{ route('logistik.house-detail', $house) }}" wire:navigate size="sm" variant="ghost" icon="eye" class="text-zinc-700 hover:text-zinc-900" title="Lihat Detail" />
-                                <flux:button wire:click="edit({{ $house->id }})" size="sm" variant="ghost" icon="pencil-square" title="Edit Data" />
-                                <flux:button wire:click="confirm('delete', {{ $house->id }}, 'Hapus Rumah?', 'Yakin ingin menghapus data rumah ini? Semua data penggunaan material dan peminjaman alat terkait akan ikut dihapus secara permanen.')" size="sm" variant="ghost" icon="trash" class="text-red-500 hover:text-red-700" title="Hapus Data" />
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-sm text-zinc-600 dark:text-zinc-500">Belum ada data rumah.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <!-- Houses Table -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small font-geist">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">No.</th>
+                            <th>Kode</th>
+                            <th>Nama / Blok</th>
+                            <th>Tipe</th>
+                            <th>Status</th>
+                            <th class="text-end">Total Biaya</th>
+                            <th>Mulai</th>
+                            <th>Target Selesai</th>
+                            <th class="text-end" style="width: 120px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($houses as $house)
+                        <tr wire:key="house-{{ $house->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a')) { window.Livewire.navigate('{{ route('logistik.house-detail', $house) }}') }">
+                            <td class="text-center text-secondary small">{{ $houses->firstItem() + $loop->index }}</td>
+                            <td class="font-mono text-secondary small">{{ $house->house_code ?? '-' }}</td>
+                            <td class="fw-bold text-body">{{ $house->name }}</td>
+                            <td class="text-secondary small">{{ $house->type }}</td>
+                            <td>
+                                @php
+                                    $statusClasses = ['perencanaan' => 'bg-warning-subtle text-warning', 'pembangunan' => 'bg-primary-subtle text-primary', 'selesai' => 'bg-success-subtle text-success'];
+                                @endphp
+                                <span class="badge {{ $statusClasses[$house->status] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($house->status) }}</span>
+                            </td>
+                            <td class="text-end font-mono fw-bold text-body">Rp {{ number_format($house->total_material_cost, 0, ',', '.') }}</td>
+                            <td class="text-secondary small">{{ $house->start_date?->format('d/m/Y') ?? '-' }}</td>
+                            <td class="text-secondary small">{{ $house->target_end_date?->format('d/m/Y') ?? '-' }}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ route('logistik.house-detail', $house) }}" wire:navigate class="btn btn-outline-secondary" title="Lihat Detail">👁️</a>
+                                    <button type="button" wire:click="edit({{ $house->id }})" class="btn btn-outline-secondary" title="Edit">✏️</button>
+                                    <button type="button" wire:click="confirm('delete', {{ $house->id }}, 'Hapus Rumah?', 'Yakin ingin menghapus data rumah ini? Semua data penggunaan material dan peminjaman alat terkait akan ikut dihapus secara permanen.')" class="btn btn-outline-danger" title="Hapus">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-secondary">Belum ada data rumah.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div>{{ $houses->links() }}</div>
+        <div class="d-flex justify-content-end">{{ $houses->links() }}</div>
     </div>
 
-    {{-- Modal --}}
-    <flux:modal wire:model="showModal" class="max-w-lg">
-        <div class="space-y-6">
-            <flux:heading size="lg">{{ $editMode ? 'Edit Rumah' : 'Tambah Rumah' }}</flux:heading>
-
-
-
-            <div class="grid grid-cols-2 gap-4">
-                <flux:input wire:model="name" label="Nama / Blok" placeholder="Blok A-01" :error="$errors->first('name')" />
-                <flux:input wire:model="type" label="Tipe Rumah" placeholder="Tipe 36/72" :error="$errors->first('type')" />
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <flux:select wire:model="status" label="Status" :error="$errors->first('status')">
-                    <option value="perencanaan">Perencanaan</option>
-                    <option value="pembangunan">Pembangunan</option>
-                    <option value="selesai">Selesai</option>
-                </flux:select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <flux:input wire:model="start_date" label="Tanggal Mulai" type="date" :error="$errors->first('start_date')" />
-                <flux:input wire:model="target_end_date" label="Target Selesai" type="date" :error="$errors->first('target_end_date')" />
-            </div>
-
-            <div class="flex justify-end gap-3">
-                <flux:button wire:click="$set('showModal', false)" variant="ghost">Batal</flux:button>
-                <flux:button wire:click="save" variant="primary">{{ $editMode ? 'Perbarui' : 'Simpan' }}</flux:button>
+    <!-- Modal: Create / Edit House -->
+    @if($showModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">{{ $editMode ? 'Edit Rumah' : 'Tambah Rumah' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold">Nama / Blok</label>
+                            <input type="text" wire:model="name" class="form-control" placeholder="Blok A-01" />
+                            @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold">Tipe Rumah</label>
+                            <input type="text" wire:model="type" class="form-control" placeholder="Tipe 36/72" />
+                            @error('type') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-semibold">Status</label>
+                        <select wire:model="status" class="form-select">
+                            <option value="perencanaan">Perencanaan</option>
+                            <option value="pembangunan">Pembangunan</option>
+                            <option value="selesai">Selesai</option>
+                        </select>
+                        @error('status') <span class="text-danger small">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold">Tanggal Mulai</label>
+                            <input type="date" wire:model="start_date" class="form-control" />
+                            @error('start_date') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold">Target Selesai</label>
+                            <input type="date" wire:model="target_end_date" class="form-control" />
+                            @error('target_end_date') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success font-semibold" wire:click="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
+                </div>
             </div>
         </div>
-    </flux:modal>
+    </div>
+    @endif
 
-    {{-- Confirmation Modal --}}
-    <flux:modal wire:model="showConfirmation" class="max-w-sm">
-        <div class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ $confirmTitle ?? 'Konfirmasi' }}</flux:heading>
-                <flux:text>{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</flux:text>
-            </div>
-            <div class="flex gap-2 justify-end">
-                <flux:modal.close>
-                    <flux:button variant="ghost">Batal</flux:button>
-                </flux:modal.close>
-                <flux:button wire:click="executeConfirmedAction" variant="danger">Ya, Hapus</flux:button>
+    <!-- Confirmation Modal -->
+    @if($showConfirmation)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">{{ $confirmTitle ?? 'Konfirmasi' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-secondary mb-0">{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm font-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
+                    <button type="button" class="btn btn-danger btn-sm font-semibold" wire:click="executeConfirmedAction">Ya, Hapus</button>
+                </div>
             </div>
         </div>
-    </flux:modal>
+    </div>
+    @endif
 </div>

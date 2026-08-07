@@ -1,58 +1,50 @@
 @props(['activeFiltersCount' => 0, 'showBadge' => true])
 
-<div class="flex items-center gap-2">
-    <flux:button 
+<div class="d-inline-flex align-items-center gap-2">
+    <button 
+        type="button"
         wire:click="openFilterModal" 
-        variant="ghost" 
-        icon="funnel"
-        class="relative"
-        :class="['text-zinc-700 dark:text-zinc-300', $activeFiltersCount > 0 ? 'font-semibold' : '']"
+        class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 font-semibold"
     >
         <span>Filter</span>
         @if($showBadge && $activeFiltersCount > 0)
-            <span class="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 dark:bg-blue-500 rounded-full">
+            <span class="badge bg-primary rounded-pill ms-1">
                 {{ $activeFiltersCount }}
             </span>
         @endif
-    </flux:button>
+    </button>
 
     @if($activeFiltersCount > 0)
-        <flux:button 
+        <button 
+            type="button"
             wire:click="resetFilters" 
-            variant="ghost" 
-            size="sm" 
-            icon="x-mark" 
-            class="text-zinc-700 dark:text-zinc-300 shrink-0" 
+            class="btn btn-link text-danger btn-sm p-0 text-decoration-none"
             title="Reset Filter"
-        />
+        >
+            ✕ Reset
+        </button>
     @endif
 </div>
 
-{{-- Filter Modal --}}
-<flux:modal wire:model="showFilterModal" class="max-w-2xl">
-    <div class="space-y-6">
-        <flux:heading size="lg">
-            Aplikasikan Filter
-        </flux:heading>
-
-        <div class="space-y-4">
-            {{ $slot }}
-        </div>
-
-        <div class="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
-            <flux:button 
-                wire:click="$set('showFilterModal', false)" 
-                variant="ghost"
-            >
-                Batal
-            </flux:button>
-            <flux:button 
-                wire:click="applyFilters" 
-                variant="primary"
-            >
-                Terapkan Filter
-            </flux:button>
+{{-- Filter Modal using Livewire component state --}}
+@if($this->showFilterModal)
+<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title font-outfit fw-bold">Filter Pencarian</h5>
+                <button type="button" class="btn-close" wire:click="$set('showFilterModal', false)" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="vstack gap-3">
+                    {{ $slot }}
+                </div>
+            </div>
+            <div class="modal-footer border-top bg-light">
+                <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showFilterModal', false)">Batal</button>
+                <button type="button" class="btn btn-success font-semibold" wire:click="applyFilters">Terapkan Filter</button>
+            </div>
         </div>
     </div>
-</flux:modal>
-
+</div>
+@endif
