@@ -3,9 +3,25 @@
         activeTab: @entangle('activeTab').live,
         pickerOpen: false,
         search: '',
+        returnSearch: '',
         blockFilter: 'all',
-        materials: @js($materials->keyBy('id')->map(fn($m) => ['unit_price' => $m->unit_price, 'unit' => $m->unit, 'name' => $m->name])),
-        tools: @js($tools->keyBy('id')->map(fn($t) => ['name' => $t->name, 'available_qty' => $t->available_qty, 'code' => $t->code])),
+        activeUsages: @js($activeUsages->map(fn($u) => ['id' => $u->id, 'text' => strtolower($u->tool->name . ' ' . $u->tool->code . ' ' . $u->house->name)])->values()),
+        get filteredReturnCount() {
+            if (!this.returnSearch) return this.activeUsages.length;
+            const q = this.returnSearch.toLowerCase();
+            return this.activeUsages.filter(u => u.text.includes(q)).length;
+        },
+        matPickerOpen: false,
+        toolPickerOpen: false,
+        matNotePickerOpen: false,
+        toolNotePickerOpen: false,
+        matSearch: '',
+        toolSearch: '',
+        matNoteSearch: '',
+        toolNoteSearch: '',
+        peruntukkanOpts: @js(array_values(array_unique(array_merge(['Pemasangan Pondasi', 'Pekerjaan Dinding', 'Pekerjaan Atap', 'Pengecoran Sloof / Kolom', 'Pemasangan Keramik', 'Instalasi Listrik'], $peruntukkanOptions)))),
+        materials: @js($materials->keyBy('id')->map(fn($m) => ['id' => $m->id, 'name' => $m->name, 'unit_price' => $m->unit_price, 'unit' => $m->unit, 'stock' => $m->stock])),
+        tools: @js($tools->keyBy('id')->map(fn($t) => ['id' => $t->id, 'name' => $t->name, 'available_qty' => $t->available_qty, 'code' => $t->code])),
         get houseCount() { return $wire.house_ids.length },
         get mat() { return this.materials[$wire.material_id] ?? null },
         get tool() { return this.tools[$wire.tool_id] ?? null },
@@ -31,7 +47,7 @@
         $selectedHouses = $houses->whereIn('id', $house_ids);
     @endphp
 
-    <div class="container-fluid p-0" style="padding-bottom: 6rem !important;">
+    <div class="container-fluid p-0" style="padding-bottom: 10rem !important;">
 
         <!-- Slim page header -->
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
@@ -54,6 +70,9 @@
         @endif
 
         <!-- ===== Mode selector ===== -->
+        <div class="mb-2">
+            <span class="extra-small fw-bold text-uppercase tracking-wider text-secondary font-geist">Pilih Jenis Transaksi</span>
+        </div>
         <div class="row g-3 mb-4">
             @foreach ([
                 ['key' => 'material', 'title' => 'Pakai Material', 'desc' => 'Catat konsumsi material per unit'],
@@ -67,16 +86,19 @@
                         class="btn w-100 h-100 text-start p-3 rounded-4 border transition-all"
                         :class="activeTab === '{{ $mode['key'] }}'
                             ? 'btn-success shadow-sm'
-                            : 'btn-outline-secondary bg-body-tertiary'"
+                            : 'bg-body-tertiary border-secondary-subtle text-body'"
                     >
-                        <span class="d-block fw-bold font-outfit">{{ $mode['title'] }}</span>
-                        <span class="d-block extra-small opacity-75">{{ $mode['desc'] }}</span>
+                        <span class="d-block fw-bold font-outfit" :class="activeTab === '{{ $mode['key'] }}' ? 'text-white' : 'text-body'">{{ $mode['title'] }}</span>
+                        <span class="d-block extra-small" :class="activeTab === '{{ $mode['key'] }}' ? 'text-white-50' : 'text-secondary'">{{ $mode['desc'] }}</span>
                     </button>
                 </div>
             @endforeach
         </div>
 
         <!-- ===== House selection ===== -->
+        <div class="mb-2">
+            <span class="extra-small fw-bold text-uppercase tracking-wider text-secondary font-geist">Pilih Unit Rumah</span>
+        </div>
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <button type="button" @click="pickerOpen = !pickerOpen" class="btn text-start w-100 p-3 p-md-4 d-flex align-items-center justify-content-between gap-3 border-0">
                 <div class="overflow-hidden">
@@ -93,7 +115,9 @@
                     <span class="badge rounded-pill font-mono {{ count($house_ids) > 0 ? 'bg-success' : 'bg-secondary-subtle text-secondary' }}">
                         {{ count($house_ids) }}
                     </span>
-                    <span class="text-secondary extra-small" x-text="pickerOpen ? '▴' : '▾'"></span>
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="text-secondary flex-shrink-0 transition-transform" :class="pickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                    </svg>
                 </div>
             </button>
 
@@ -165,6 +189,9 @@
         </div>
 
         <!-- ===== Details ===== -->
+        <div class="mb-2">
+            <span class="extra-small fw-bold text-uppercase tracking-wider text-secondary font-geist">Isi Detail Transaksi</span>
+        </div>
         <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4 bg-body-tertiary">
 
             <!-- ---- Material ---- -->
@@ -174,14 +201,62 @@
                 <div class="row g-3">
                     <div class="col-lg-6">
                         <label class="form-label fw-semibold">Material</label>
-                        <select wire:model.live="material_id" class="form-select">
-                            <option value="">— Pilih material —</option>
-                            @foreach ($materials as $m)
-                                <option value="{{ $m->id }}">
-                                    {{ $m->name }} — Rp {{ number_format($m->unit_price, 0, ',', '.') }} / {{ $m->unit }} (stok {{ $m->stock }})
-                                </option>
-                            @endforeach
-                        </select>
+                        <div class="position-relative" @click.outside="matPickerOpen = false">
+                            <button
+                                type="button"
+                                class="form-select text-start d-flex align-items-center justify-content-between pe-3"
+                                @click="matPickerOpen = !matPickerOpen"
+                            >
+                                <span class="text-truncate me-2" :class="mat ? 'text-body fw-semibold' : 'text-secondary'">
+                                    <template x-if="mat">
+                                        <span x-text="mat.name + ' — ' + rp(mat.unit_price) + ' / ' + mat.unit + ' (stok ' + mat.stock + ')'"></span>
+                                    </template>
+                                    <template x-if="!mat">
+                                        <span>— Pilih material —</span>
+                                    </template>
+                                </span>
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="text-secondary flex-shrink-0 transition-transform" :class="matPickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                </svg>
+                            </button>
+
+                            <div
+                                x-show="matPickerOpen"
+                                x-cloak
+                                class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden"
+                                style="max-height: 280px; z-index: 1050;"
+                            >
+                                <div class="p-2 border-bottom position-relative">
+                                    <input
+                                        type="text"
+                                        x-model="matSearch"
+                                        class="form-control form-control-sm pe-4"
+                                        placeholder="Cari material..."
+                                        @click.stop
+                                    />
+                                    <span class="position-absolute top-50 end-0 translate-middle-y me-3 text-secondary pointer-events-none">
+                                        <svg width="12" height="12" fill="currentColor"><use href="#i-search"/></svg>
+                                    </span>
+                                </div>
+                                <div class="p-1.5" style="max-height: 220px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                    @foreach ($materials as $m)
+                                        <button
+                                            type="button"
+                                            class="dropdown-item rounded-2 py-2 px-3 text-start w-100"
+                                            :class="$wire.material_id == {{ $m->id }} ? 'active bg-success text-white' : ''"
+                                            x-show="matSearch === '' || @js(strtolower($m->name . ' ' . $m->unit)).includes(matSearch.toLowerCase())"
+                                            @click="$wire.material_id = '{{ $m->id }}'; matPickerOpen = false; matSearch = ''"
+                                        >
+                                            <div class="fw-semibold text-truncate">{{ $m->name }}</div>
+                                            <div class="d-flex align-items-center justify-content-between extra-small opacity-75 font-mono mt-0.5">
+                                                <span>Rp {{ number_format($m->unit_price, 0, ',', '.') }} / {{ $m->unit }}</span>
+                                                <span>stok: {{ $m->stock }}</span>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
                         @error('material_id') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
 
@@ -192,36 +267,72 @@
                     </div>
 
                     <div class="col-lg-3 col-6">
-                        <label class="form-label fw-semibold">Tanggal</label>
-                        <input type="date" wire:model="usage_date" class="form-control" />
+                        <label class="form-label fw-semibold">Waktu</label>
+                        <input type="datetime-local" wire:model="usage_date" class="form-control" />
                         @error('usage_date') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="col-12">
-                        <label class="form-label fw-semibold">Catatan <span class="text-secondary fw-normal">(opsional)</span></label>
-                        <textarea wire:model="material_notes" class="form-control" rows="2" placeholder="Keterangan penggunaan material"></textarea>
-                    </div>
-                </div>
+                        <label class="form-label fw-semibold">Peruntukkan</label>
+                        <div class="position-relative" @click.outside="matNotePickerOpen = false">
+                            <div class="position-relative d-flex align-items-center">
+                                <input
+                                    type="text"
+                                    wire:model="material_notes"
+                                    class="form-control pe-5"
+                                    placeholder="Pilih atau ketik peruntukkan (mis. Pemasangan Pondasi, Pekerjaan Dinding)..."
+                                    @focus="matNotePickerOpen = true"
+                                    @input="matNotePickerOpen = true"
+                                />
+                                <button
+                                    type="button"
+                                    class="btn btn-link text-secondary text-decoration-none position-absolute end-0 me-2 p-1 d-flex align-items-center"
+                                    @click="matNotePickerOpen = !matNotePickerOpen"
+                                    aria-label="Tampilkan pilihan peruntukkan"
+                                >
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="transition-transform" :class="matNotePickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                    </svg>
+                                </button>
+                            </div>
 
-                <!-- Inline breakdown -->
-                <div x-show="matReady" x-cloak class="mt-4 pt-3 border-top">
-                    <div class="row g-3 text-center">
-                        <div class="col-6 col-md-3">
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Unit</div>
-                            <div class="fw-black font-mono text-body" x-text="houseCount"></div>
+                            <div
+                                x-show="matNotePickerOpen"
+                                x-cloak
+                                class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden"
+                                style="max-height: 220px; z-index: 1050;"
+                            >
+                                <div class="p-1.5" style="max-height: 210px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                    <template x-for="opt in peruntukkanOpts.filter(o => !$wire.material_notes || o.toLowerCase().includes($wire.material_notes.toLowerCase()))" :key="opt">
+                                        <button
+                                            type="button"
+                                            class="dropdown-item rounded-2 py-2 px-3 text-start w-100 d-flex align-items-center justify-content-between"
+                                            :class="$wire.material_notes === opt ? 'active bg-success text-white' : ''"
+                                            @click="$wire.material_notes = opt; matNotePickerOpen = false"
+                                        >
+                                            <span class="fw-medium text-truncate" x-text="opt"></span>
+                                        </button>
+                                    </template>
+                                    <div
+                                        x-show="$wire.material_notes && !peruntukkanOpts.some(o => o.toLowerCase() === $wire.material_notes.toLowerCase())"
+                                        class="px-3 py-2 extra-small text-secondary fst-italic border-top"
+                                    >
+                                        Gunakan "<span class="fw-bold text-body" x-text="$wire.material_notes"></span>" sebagai peruntukkan baru
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-6 col-md-3">
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Total qty</div>
-                            <div class="fw-black font-mono text-body" x-text="mat ? totalQty.toFixed(2) + ' ' + mat.unit : ''"></div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Harga satuan</div>
-                            <div class="fw-black font-mono text-body" x-text="mat ? rp(mat.unit_price) : ''"></div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Total biaya</div>
-                            <div class="fw-black font-mono text-success" x-text="rp(totalCost)"></div>
-                        </div>
+                        @error('material_notes') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Proof Image Input -->
+                    <div class="col-lg-6">
+                        <label class="form-label fw-semibold d-inline-flex align-items-center gap-1">
+                            <svg width="14" height="14" fill="currentColor"><use href="#i-camera"/></svg> Foto Bukti Pengiriman (Opsional)
+                        </label>
+                        <input type="file" wire:model="proof_image" class="form-control" accept="image/*" capture="environment" />
+                        <div class="extra-small text-secondary mt-1">Ambil atau unggah foto bukti saat material tiba di lokasi unit rumah.</div>
+                        @error('proof_image') <span class="text-danger small fw-semibold d-block mt-1">{{ $message }}</span> @enderror
                     </div>
                 </div>
             </div>
@@ -233,12 +344,62 @@
                 <div class="row g-3">
                     <div class="col-lg-6">
                         <label class="form-label fw-semibold">Alat</label>
-                        <select wire:model.live="tool_id" class="form-select">
-                            <option value="">— Pilih alat —</option>
-                            @foreach ($tools as $t)
-                                <option value="{{ $t->id }}">{{ $t->name }} — {{ $t->code }} (tersedia {{ $t->available_qty }})</option>
-                            @endforeach
-                        </select>
+                        <div class="position-relative" @click.outside="toolPickerOpen = false">
+                            <button
+                                type="button"
+                                class="form-select text-start d-flex align-items-center justify-content-between pe-3"
+                                @click="toolPickerOpen = !toolPickerOpen"
+                            >
+                                <span class="text-truncate me-2" :class="tool ? 'text-body fw-semibold' : 'text-secondary'">
+                                    <template x-if="tool">
+                                        <span x-text="tool.name + ' — ' + tool.code + ' (tersedia ' + tool.available_qty + ')'"></span>
+                                    </template>
+                                    <template x-if="!tool">
+                                        <span>— Pilih alat —</span>
+                                    </template>
+                                </span>
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="text-secondary flex-shrink-0 transition-transform" :class="toolPickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                </svg>
+                            </button>
+
+                            <div
+                                x-show="toolPickerOpen"
+                                x-cloak
+                                class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden"
+                                style="max-height: 280px; z-index: 1050;"
+                            >
+                                <div class="p-2 border-bottom position-relative">
+                                    <input
+                                        type="text"
+                                        x-model="toolSearch"
+                                        class="form-control form-control-sm pe-4"
+                                        placeholder="Cari alat..."
+                                        @click.stop
+                                    />
+                                    <span class="position-absolute top-50 end-0 translate-middle-y me-3 text-secondary pointer-events-none">
+                                        <svg width="12" height="12" fill="currentColor"><use href="#i-search"/></svg>
+                                    </span>
+                                </div>
+                                <div class="p-1.5" style="max-height: 220px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                    @foreach ($tools as $t)
+                                        <button
+                                            type="button"
+                                            class="dropdown-item rounded-2 py-2 px-3 text-start w-100"
+                                            :class="$wire.tool_id == {{ $t->id }} ? 'active bg-success text-white' : ''"
+                                            x-show="toolSearch === '' || @js(strtolower($t->name . ' ' . $t->code)).includes(toolSearch.toLowerCase())"
+                                            @click="$wire.tool_id = '{{ $t->id }}'; toolPickerOpen = false; toolSearch = ''"
+                                        >
+                                            <div class="fw-semibold text-truncate">{{ $t->name }}</div>
+                                            <div class="d-flex align-items-center justify-content-between extra-small opacity-75 font-mono mt-0.5">
+                                                <span>{{ $t->code }}</span>
+                                                <span>sisa: {{ $t->available_qty }}</span>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
                         @error('tool_id') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
 
@@ -249,41 +410,90 @@
                     </div>
 
                     <div class="col-lg-3 col-6">
-                        <label class="form-label fw-semibold">Tanggal pinjam</label>
-                        <input type="date" wire:model="checkout_date" class="form-control" />
+                        <label class="form-label fw-semibold">Waktu</label>
+                        <input type="datetime-local" wire:model="checkout_date" class="form-control" />
                         @error('checkout_date') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="col-12">
-                        <label class="form-label fw-semibold">Catatan <span class="text-secondary fw-normal">(opsional)</span></label>
-                        <textarea wire:model="tool_notes" class="form-control" rows="2" placeholder="Keterangan peminjaman"></textarea>
+                        <label class="form-label fw-semibold">Peruntukkan</label>
+                        <div class="position-relative" @click.outside="toolNotePickerOpen = false">
+                            <div class="position-relative d-flex align-items-center">
+                                <input
+                                    type="text"
+                                    wire:model="tool_notes"
+                                    class="form-control pe-5"
+                                    placeholder="Pilih atau ketik peruntukkan (mis. Pemasangan Pondasi, Pekerjaan Dinding)..."
+                                    @focus="toolNotePickerOpen = true"
+                                    @input="toolNotePickerOpen = true"
+                                />
+                                <button
+                                    type="button"
+                                    class="btn btn-link text-secondary text-decoration-none position-absolute end-0 me-2 p-1 d-flex align-items-center"
+                                    @click="toolNotePickerOpen = !toolNotePickerOpen"
+                                    aria-label="Tampilkan pilihan peruntukkan"
+                                >
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="transition-transform" :class="toolNotePickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div
+                                x-show="toolNotePickerOpen"
+                                x-cloak
+                                class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden"
+                                style="max-height: 220px; z-index: 1050;"
+                            >
+                                <div class="p-1.5" style="max-height: 210px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                    <template x-for="opt in peruntukkanOpts.filter(o => !$wire.tool_notes || o.toLowerCase().includes($wire.tool_notes.toLowerCase()))" :key="opt">
+                                        <button
+                                            type="button"
+                                            class="dropdown-item rounded-2 py-2 px-3 text-start w-100 d-flex align-items-center justify-content-between"
+                                            :class="$wire.tool_notes === opt ? 'active bg-success text-white' : ''"
+                                            @click="$wire.tool_notes = opt; toolNotePickerOpen = false"
+                                        >
+                                            <span class="fw-medium text-truncate" x-text="opt"></span>
+                                        </button>
+                                    </template>
+                                    <div
+                                        x-show="$wire.tool_notes && !peruntukkanOpts.some(o => o.toLowerCase() === $wire.tool_notes.toLowerCase())"
+                                        class="px-3 py-2 extra-small text-secondary fst-italic border-top"
+                                    >
+                                        Gunakan "<span class="fw-bold text-body" x-text="$wire.tool_notes"></span>" sebagai peruntukkan baru
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @error('tool_notes') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Proof Image Input -->
+                    <div class="col-lg-6">
+                        <label class="form-label fw-semibold d-inline-flex align-items-center gap-1">
+                            <svg width="14" height="14" fill="currentColor"><use href="#i-camera"/></svg> Foto Bukti Pengiriman (Opsional)
+                        </label>
+                        <input type="file" wire:model="proof_image" class="form-control" accept="image/*" capture="environment" />
+                        <div class="extra-small text-secondary mt-1">Ambil atau unggah foto bukti saat alat tiba di lokasi unit rumah.</div>
+                        @error('proof_image') <span class="text-danger small fw-semibold d-block mt-1">{{ $message }}</span> @enderror
                     </div>
                 </div>
 
-                <div x-show="toolReady" x-cloak class="mt-4 pt-3 border-top">
-                    <div class="row g-3 text-center">
-                        <div class="col-4">
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Unit</div>
-                            <div class="fw-black font-mono text-body" x-text="houseCount"></div>
-                        </div>
-                        <div class="col-4">
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Total dipinjam</div>
-                            <div class="fw-black font-mono" :class="toolShortfall < 0 ? 'text-danger' : 'text-body'" x-text="totalTools"></div>
-                        </div>
-                        <div class="col-4">
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Sisa stok</div>
-                            <div class="fw-black font-mono" :class="toolShortfall < 0 ? 'text-danger' : 'text-success'" x-text="toolShortfall"></div>
-                        </div>
-                    </div>
-                    <div x-show="toolShortfall < 0" x-cloak class="alert alert-danger py-2 small fw-semibold mt-3 mb-0">
-                        Jumlah melebihi stok tersedia sebanyak <span x-text="Math.abs(toolShortfall)"></span> unit.
-                    </div>
+                <div x-show="toolShortfall < 0" x-cloak class="alert alert-danger py-2 small fw-semibold mt-3 mb-0">
+                    Jumlah melebihi stok tersedia sebanyak <span x-text="Math.abs(toolShortfall)"></span> unit.
                 </div>
             </div>
 
             <!-- ---- Tool return ---- -->
             <div x-show="activeTab === 'return'" x-cloak>
-                <h6 class="fw-bold font-outfit text-body mb-3">Alat Sedang Dipinjam</h6>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                    <h6 class="fw-bold font-outfit text-body mb-0">Alat Sedang Dipinjam</h6>
+                    @if (!$activeUsages->isEmpty())
+                        <span class="badge bg-secondary-subtle text-secondary rounded-pill font-mono extra-small">
+                            {{ $activeUsages->count() }} peminjaman aktif
+                        </span>
+                    @endif
+                </div>
 
                 @if (empty($house_ids))
                     <div class="text-center py-5">
@@ -298,9 +508,26 @@
                 @else
                     @error('returnSelections') <div class="alert alert-danger py-2 small fw-semibold">{{ $message }}</div> @enderror
 
+                    <!-- Quick search bar -->
+                    <div class="mb-3 position-relative">
+                        <input
+                            type="text"
+                            x-model="returnSearch"
+                            class="form-control pe-5"
+                            placeholder="Cari nama alat, kode, atau unit rumah (mis. Molen, AB-001, A-01)..."
+                        />
+                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 text-secondary pointer-events-none d-flex align-items-center">
+                            <svg width="15" height="15" fill="currentColor" aria-hidden="true"><use href="#i-search"/></svg>
+                        </span>
+                    </div>
+
                     <div class="vstack gap-2">
                         @foreach ($activeUsages as $usage)
-                            <div class="border rounded-3 p-3 bg-body" wire:key="ret-{{ $usage->id }}">
+                            <div
+                                class="border rounded-3 p-3 bg-body"
+                                wire:key="ret-{{ $usage->id }}"
+                                x-show="returnSearch === '' || @js(strtolower($usage->tool->name . ' ' . $usage->tool->code . ' ' . $usage->house->name)).includes(returnSearch.toLowerCase())"
+                            >
                                 <div class="form-check d-flex gap-2 mb-0">
                                     <input type="checkbox" wire:model.live="returnSelections.{{ $usage->id }}.selected" class="form-check-input mt-1 flex-shrink-0" id="rc-{{ $usage->id }}" />
                                     <label class="form-check-label flex-grow-1" for="rc-{{ $usage->id }}">
@@ -338,63 +565,74 @@
                             </div>
                         @endforeach
                     </div>
+
+                    <!-- Empty search state -->
+                    <div x-show="filteredReturnCount === 0" x-cloak class="text-center py-5">
+                        <p class="fw-semibold text-body mb-1">Tidak ada alat ditemukan</p>
+                        <p class="small text-secondary mb-0">Tidak ada peminjaman alat yang cocok dengan kata kunci "<span class="fw-bold" x-text="returnSearch"></span>".</p>
+                    </div>
                 @endif
             </div>
         </div>
     </div>
 
-    <!-- ===== Persistent action bar ===== -->
-    <div class="position-sticky bottom-0 z-3 mt-3">
+    <!-- ===== Sticky bottom receipt bar ===== -->
+    <div class="sticky-receipt-bar sticky-bottom pt-3 mt-auto z-3">
         <div class="card border-0 shadow-lg rounded-4 bg-dark text-white">
-            <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="card-body p-3">
+                <div class="extra-small fw-bold text-uppercase tracking-wider text-secondary font-geist mb-2 pb-1 border-bottom border-secondary border-opacity-25">
+                    Ringkasan Transaksi
+                </div>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
 
-                <div class="d-flex align-items-center gap-4">
-                    <div>
-                        <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Unit</div>
-                        <div class="fw-black font-mono lh-1" x-text="houseCount"></div>
+                    <div class="d-flex align-items-center gap-4">
+                        <div>
+                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Unit</div>
+                            <div class="fw-black font-mono lh-1" x-text="houseCount"></div>
+                        </div>
+
+                        <template x-if="activeTab === 'material'">
+                            <div>
+                                <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Total biaya</div>
+                                <div class="fs-5 fw-black font-mono text-success lh-1" x-text="matReady ? rp(totalCost) : '—'"></div>
+                            </div>
+                        </template>
+
+                        <template x-if="activeTab === 'tool'">
+                            <div>
+                                <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Total alat</div>
+                                <div class="fs-5 fw-black font-mono lh-1" :class="toolShortfall < 0 ? 'text-danger' : 'text-success'" x-text="toolReady ? totalTools + ' unit' : '—'"></div>
+                            </div>
+                        </template>
+
+                        <template x-if="activeTab === 'return'">
+                            <div>
+                                <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Dipilih</div>
+                                <div class="fs-5 fw-black font-mono text-success lh-1" x-text="returnCount + ' alat'"></div>
+                            </div>
+                        </template>
                     </div>
 
-                    <template x-if="activeTab === 'material'">
-                        <div>
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Total biaya</div>
-                            <div class="fs-5 fw-black font-mono text-success lh-1" x-text="matReady ? rp(totalCost) : '—'"></div>
-                        </div>
-                    </template>
-
-                    <template x-if="activeTab === 'tool'">
-                        <div>
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Total alat</div>
-                            <div class="fs-5 fw-black font-mono lh-1" :class="toolShortfall < 0 ? 'text-danger' : 'text-success'" x-text="toolReady ? totalTools + ' unit' : '—'"></div>
-                        </div>
-                    </template>
-
-                    <template x-if="activeTab === 'return'">
-                        <div>
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Dipilih</div>
-                            <div class="fs-5 fw-black font-mono text-success lh-1" x-text="returnCount + ' alat'"></div>
-                        </div>
-                    </template>
-                </div>
-
-                <div class="d-flex gap-2 ms-auto">
-                    <template x-if="activeTab === 'material'">
-                        <div class="d-flex gap-2">
-                            <button type="button" wire:click="resetMaterialForm" class="btn btn-outline-light fw-semibold px-3">Reset</button>
-                            <button type="button" wire:click="showMaterialConfirmationModal" class="btn btn-success fw-semibold px-4" :disabled="!matReady">Simpan Alokasi</button>
-                        </div>
-                    </template>
-                    <template x-if="activeTab === 'tool'">
-                        <div class="d-flex gap-2">
-                            <button type="button" wire:click="resetToolForm" class="btn btn-outline-light fw-semibold px-3">Reset</button>
-                            <button type="button" wire:click="showToolConfirmationModal" class="btn btn-success fw-semibold px-4" :disabled="!toolReady || toolShortfall < 0">Simpan Peminjaman</button>
-                        </div>
-                    </template>
-                    <template x-if="activeTab === 'return'">
-                        <div class="d-flex gap-2">
-                            <button type="button" wire:click="resetReturnForm" class="btn btn-outline-light fw-semibold px-3">Reset</button>
-                            <button type="button" wire:click="showReturnConfirmationModal" class="btn btn-success fw-semibold px-4" :disabled="returnCount === 0">Simpan Pengembalian</button>
-                        </div>
-                    </template>
+                    <div class="d-flex gap-2 ms-auto">
+                        <template x-if="activeTab === 'material'">
+                            <div class="d-flex gap-2">
+                                <button type="button" wire:click="resetMaterialForm" class="btn btn-outline-light fw-semibold px-3">Reset</button>
+                                <button type="button" wire:click="showMaterialConfirmationModal" class="btn btn-success fw-semibold px-4" :disabled="!matReady">Simpan Alokasi</button>
+                            </div>
+                        </template>
+                        <template x-if="activeTab === 'tool'">
+                            <div class="d-flex gap-2">
+                                <button type="button" wire:click="resetToolForm" class="btn btn-outline-light fw-semibold px-3">Reset</button>
+                                <button type="button" wire:click="showToolConfirmationModal" class="btn btn-success fw-semibold px-4" :disabled="!toolReady || toolShortfall < 0">Simpan Peminjaman</button>
+                            </div>
+                        </template>
+                        <template x-if="activeTab === 'return'">
+                            <div class="d-flex gap-2">
+                                <button type="button" wire:click="resetReturnForm" class="btn btn-outline-light fw-semibold px-3">Reset</button>
+                                <button type="button" wire:click="showReturnConfirmationModal" class="btn btn-success fw-semibold px-4" :disabled="returnCount === 0">Simpan Pengembalian</button>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>

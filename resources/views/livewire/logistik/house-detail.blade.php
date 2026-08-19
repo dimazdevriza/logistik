@@ -42,7 +42,9 @@
                 <div class="card border-0 border-start border-4 border-warning shadow-sm rounded-4 p-4 bg-body-tertiary">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="small fw-bold text-secondary text-uppercase tracking-wider">Total Biaya Material</span>
-                        <div class="p-2 bg-warning-subtle text-warning rounded">💵</div>
+                        <div class="p-2 bg-warning-subtle text-warning rounded d-flex align-items-center justify-content-center">
+                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9A1.5 1.5 0 0 1 1.5 3H2V1.78a1.5 1.5 0 0 1 1.864-1.454l8.272 2zm-7.468 3h6.664V1.8a.5.5 0 0 0-.62-.485L3.864 2.827a.5.5 0 0 0-.196.499zM1 4.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-13a.5.5 0 0 0-.5.5z"/></svg>
+                        </div>
                     </div>
                     <div>
                         <h2 class="fw-black text-warning mb-1 font-mono">Rp {{ number_format($house->total_material_cost, 0, ',', '.') }}</h2>
@@ -54,7 +56,9 @@
                 <div class="card border-0 border-start border-4 border-primary shadow-sm rounded-4 p-4 bg-body-tertiary">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="small fw-bold text-secondary text-uppercase tracking-wider">Total Transaksi</span>
-                        <div class="p-2 bg-primary-subtle text-primary rounded">🔄</div>
+                        <div class="p-2 bg-primary-subtle text-primary rounded d-flex align-items-center justify-content-center">
+                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/></svg>
+                        </div>
                     </div>
                     <div>
                         <h2 class="fw-black text-body mb-1 font-mono">{{ $materialCount + $toolCount }} <span class="fs-6 text-secondary font-normal">Log</span></h2>
@@ -68,13 +72,15 @@
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary">
             <ul class="nav nav-tabs mb-4">
                 <li class="nav-item">
-                    <button type="button" class="nav-link font-semibold" :class="$wire.activeTab === 'material' ? 'active text-success border-success' : 'text-secondary'" wire:click="$set('activeTab', 'material')">
-                        📦 Penggunaan Material ({{ $materialCount }})
+                    <button type="button" class="nav-link font-semibold d-inline-flex align-items-center gap-2" :class="$wire.activeTab === 'material' ? 'active text-success border-success' : 'text-secondary'" wire:click="$set('activeTab', 'material')">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l6.154 2.38 6.154-2.38zM15 4.239l-6.5 2.515v7.182l6.5-2.6v-7.097zM7.5 13.936V6.754L1 4.239v7.097z"/></svg>
+                        <span>Penggunaan Material ({{ $materialCount }})</span>
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-link font-semibold" :class="$wire.activeTab === 'tool' ? 'active text-success border-success' : 'text-secondary'" wire:click="$set('activeTab', 'tool')">
-                        🔧 Peminjaman Alat ({{ $toolCount }})
+                    <button type="button" class="nav-link font-semibold d-inline-flex align-items-center gap-2" :class="$wire.activeTab === 'tool' ? 'active text-success border-success' : 'text-secondary'" wire:click="$set('activeTab', 'tool')">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M1 0 0 1l2.2 3.081a1 1 0 0 0 .815.419h.07a1 1 0 0 1 .708.293l2.675 2.675-2.617 2.654A3.003 3.003 0 0 0 0 13a3 3 0 1 0 5.293-1.971l2.646-2.646 2.675 2.675a1 1 0 0 1 .293.707v.07a1 1 0 0 0 .419.815L15 16l1-1-3.081-2.2a1 1 0 0 0-.815-.419h-.07a1 1 0 0 1-.708-.293L8.65 9.412l2.617-2.654A3.003 3.003 0 0 0 16 3a3 3 0 1 0-5.293 1.971L8.06 7.618 5.386 4.943a1 1 0 0 1-.293-.707v-.07a1 1 0 0 0-.419-.815z"/></svg>
+                        <span>Peminjaman Alat ({{ $toolCount }})</span>
                     </button>
                 </li>
             </ul>

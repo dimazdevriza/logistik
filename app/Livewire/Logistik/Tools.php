@@ -9,11 +9,12 @@ use App\Traits\WithFilterModal;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class Tools extends Component
 {
-    use WithPagination, WithFilterModal;
+    use WithPagination, WithFilterModal, WithFileUploads;
 
     public $search = '';
     public $activeTab = 'inventory'; // inventory | maintenance
@@ -33,6 +34,11 @@ class Tools extends Component
     // Filters
     public $filterCategory = '';
     public $filterCondition = '';
+
+    // Import Modal State
+    public $showImportModal = false;
+    public $importFile = null;
+    public $importResultSummary = null;
 
     // Confirmation Modal State
     public $showConfirmation = false;
@@ -198,6 +204,47 @@ class Tools extends Component
         $this->resetValidation();
     }
 
+    public function openImportModal()
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+        $this->importFile = null;
+        $this->importResultSummary = null;
+        $this->resetValidation();
+        $this->showImportModal = true;
+    }
+
+    public function importExcel()
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+
+        $this->validate([
+            'importFile' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ], [
+            'importFile.required' => 'Pilih berkas Excel (.xlsx / .xls) terlebih dahulu.',
+            'importFile.mimes' => 'Berkas harus berupa format Excel (.xlsx, .xls) atau CSV.',
+            'importFile.max' => 'Ukuran berkas maksimal 10MB.',
+        ]);
+
+        try {
+            $import = new \App\Imports\ToolImport();
+            Excel::import($import, $this->importFile->getRealPath());
+
+            $this->importResultSummary = [
+                'totalRows' => $import->totalRows,
+                'successfulRows' => $import->successfulRows,
+                'skippedRows' => $import->skippedRows,
+                'toolsImported' => $import->toolsImported,
+                'transactionsImported' => $import->transactionsImported,
+                'logs' => $import->rowLogs,
+            ];
+
+            session()->flash('success', "Proses validasi & impor selesai: {$import->successfulRows} dari {$import->totalRows} baris data berhasil diproses.");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            $this->addError('importFile', 'Gagal memproses berkas Excel: ' . $e->getMessage());
+        }
+    }
+
     public function exportExcel()
     {
         if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
@@ -224,7 +271,7 @@ class Tools extends Component
             ->orderBy('code')
             ->paginate(10);
 
-        $categories = Category::where('type', 'tool')->orderBy('name')->get();
+        $categories = Category::where('type', 'tool')->orderBy('name')->get()->unique('name');
 
         // Stats
         $totalAvailable = Tool::sum('available_qty');

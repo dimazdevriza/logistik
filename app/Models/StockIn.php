@@ -19,6 +19,7 @@ class StockIn extends Model
         'total_cost',
         'date',
         'notes',
+        'proof_image',
     ];
 
     protected function casts(): array

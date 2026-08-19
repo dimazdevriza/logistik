@@ -18,6 +18,7 @@ class Material extends Model
         'unit',
         'unit_price',
         'stock',
+        'image',
     ];
 
     protected function casts(): array

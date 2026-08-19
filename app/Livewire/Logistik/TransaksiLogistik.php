@@ -44,6 +44,11 @@ class TransaksiLogistik extends Component
     public bool $showReturnConfirmation = false;
     public array $returnConfirmationData = [];
 
+    use \Livewire\WithFileUploads;
+
+    // Proof photo state
+    public $proof_image;
+
     protected function materialRules()
     {
         return [
@@ -52,7 +57,8 @@ class TransaksiLogistik extends Component
             'material_id' => 'required|exists:materials,id',
             'material_quantity' => 'required|numeric|min:0.01',
             'usage_date' => 'required|date',
-            'material_notes' => 'nullable|string|max:500',
+            'material_notes' => 'required|string|max:500',
+            'proof_image' => 'nullable|image|max:5120',
         ];
     }
 
@@ -64,14 +70,15 @@ class TransaksiLogistik extends Component
             'tool_id' => 'required|exists:tools,id',
             'tool_quantity' => 'required|integer|min:1',
             'checkout_date' => 'required|date',
-            'tool_notes' => 'nullable|string|max:500',
+            'tool_notes' => 'required|string|max:500',
+            'proof_image' => 'nullable|image|max:5120',
         ];
     }
 
     public function mount()
     {
-        $this->usage_date = now()->format('Y-m-d');
-        $this->checkout_date = now()->format('Y-m-d');
+        $this->usage_date = now()->format('Y-m-d\TH:i');
+        $this->checkout_date = now()->format('Y-m-d\TH:i');
     }
 
     public function showMaterialConfirmationModal()
@@ -127,6 +134,11 @@ class TransaksiLogistik extends Component
                     throw new \Exception('Stok material tidak mencukupi. Tersedia: ' . $material->stock . ' ' . $material->unit);
                 }
 
+                $proofPath = null;
+                if ($this->proof_image) {
+                    $proofPath = $this->proof_image->store('proofs', 'public');
+                }
+
                 foreach ($this->house_ids as $h_id) {
                     MaterialUsageModel::create([
                         'house_id' => $h_id,
@@ -137,6 +149,7 @@ class TransaksiLogistik extends Component
                         'total_cost' => $this->material_quantity * $material->unit_price,
                         'usage_date' => $this->usage_date,
                         'notes' => $this->material_notes,
+                        'proof_image' => $proofPath,
                     ]);
                 }
 
@@ -147,7 +160,7 @@ class TransaksiLogistik extends Component
 
             $this->showMaterialConfirmation = false;
             $this->resetMaterialForm();
-            $this->usage_date = now()->format('Y-m-d');
+            $this->usage_date = now()->format('Y-m-d\TH:i');
         } catch (\Exception $e) {
             $this->addError('material_quantity', $e->getMessage());
         } finally {
@@ -218,6 +231,11 @@ class TransaksiLogistik extends Component
                     throw new \Exception('Alat ini masih dipinjam oleh rumah: ' . House::whereIn('id', $existing)->pluck('name')->join(', '));
                 }
 
+                $proofPath = null;
+                if ($this->proof_image) {
+                    $proofPath = $this->proof_image->store('proofs', 'public');
+                }
+
                 foreach ($this->house_ids as $h_id) {
                     ToolUsageModel::create([
                         'house_id' => $h_id,
@@ -226,6 +244,7 @@ class TransaksiLogistik extends Component
                         'quantity' => $this->tool_quantity,
                         'checkout_date' => $this->checkout_date,
                         'notes' => $this->tool_notes,
+                        'proof_image' => $proofPath,
                     ]);
                 }
 
@@ -237,7 +256,7 @@ class TransaksiLogistik extends Component
 
             $this->showToolConfirmation = false;
             $this->resetToolForm();
-            $this->checkout_date = now()->format('Y-m-d');
+            $this->checkout_date = now()->format('Y-m-d\TH:i');
         } catch (\Exception $e) {
             $this->addError('tool_quantity', $e->getMessage());
         } finally {
@@ -249,8 +268,9 @@ class TransaksiLogistik extends Component
     {
         $this->material_id = '';
         $this->material_quantity = 1;
-        $this->usage_date = now()->format('Y-m-d');
+        $this->usage_date = now()->format('Y-m-d\TH:i');
         $this->material_notes = '';
+        $this->proof_image = null;
         $this->materialPickerOpen = false;
         $this->showMaterialConfirmation = false;
         $this->materialConfirmationData = [];
@@ -261,8 +281,9 @@ class TransaksiLogistik extends Component
     {
         $this->tool_id = '';
         $this->tool_quantity = 1;
-        $this->checkout_date = now()->format('Y-m-d');
+        $this->checkout_date = now()->format('Y-m-d\TH:i');
         $this->tool_notes = '';
+        $this->proof_image = null;
         $this->showToolConfirmation = false;
         $this->toolConfirmationData = [];
         $this->toolPickerOpen = false;
@@ -443,6 +464,32 @@ class TransaksiLogistik extends Component
         $this->resetValidation();
     }
 
+    public function toggleHouse($id)
+    {
+        $id = (int) $id;
+        if (in_array($id, $this->house_ids)) {
+            $this->house_ids = array_values(array_diff($this->house_ids, [$id]));
+        } else {
+            $this->house_ids[] = $id;
+        }
+    }
+
+    public function toggleBlock(array $blockIds)
+    {
+        $blockIds = array_map('intval', $blockIds);
+        $selectedInBlock = array_intersect($blockIds, $this->house_ids);
+        if (count($selectedInBlock) === count($blockIds)) {
+            $this->house_ids = array_values(array_diff($this->house_ids, $blockIds));
+        } else {
+            $this->house_ids = array_values(array_unique(array_merge($this->house_ids, $blockIds)));
+        }
+    }
+
+    public function clearHouses()
+    {
+        $this->house_ids = [];
+    }
+
     public function resetAll()
     {
         $this->house_ids = [];
@@ -507,7 +554,11 @@ class TransaksiLogistik extends Component
             }
         }
 
-        return view('livewire.logistik.transaksi-logistik', compact('houses', 'materials', 'tools', 'activeUsages'))
+        $matNotes = MaterialUsageModel::whereNotNull('notes')->where('notes', '!=', '')->pluck('notes');
+        $toolNotes = ToolUsageModel::whereNotNull('notes')->where('notes', '!=', '')->pluck('notes');
+        $peruntukkanOptions = $matNotes->merge($toolNotes)->unique()->filter()->values()->all();
+
+        return view('livewire.logistik.transaksi-logistik', compact('houses', 'materials', 'tools', 'activeUsages', 'peruntukkanOptions'))
             ->layout('layouts.app', ['title' => 'Transaksi Logistik']);
     }
 }

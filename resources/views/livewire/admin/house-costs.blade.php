@@ -4,9 +4,9 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Financial Reporting</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Laporan Finansial</span>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
-                        Biaya <span class="text-success">Rumah</span>
+                        Monitoring Biaya <span class="text-success">Pembangunan Rumah</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
                         Monitor biaya pembangunan dan total alokasi material setiap unit rumah.

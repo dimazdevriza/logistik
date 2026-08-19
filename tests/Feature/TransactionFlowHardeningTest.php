@@ -32,7 +32,7 @@ test('A1 decimal stock: allocating 0.4 from 10 leaves 9.60 not 10', function () 
         ->set('material_id', $material->id)
         ->set('house_ids', [$house->id])
         ->set('material_quantity', 0.4)
-        ->set('usage_date', now()->format('Y-m-d'))
+        ->set('usage_date', now()->format('Y-m-d\TH:i'))
         ->call('saveMaterial')
         ->assertHasNoErrors();
 
@@ -109,7 +109,7 @@ test('A3 checkout always decrements and surfaces in return tab', function () {
         ->set('house_ids', [$house->id])
         ->set('tool_id', $tool->id)
         ->set('tool_quantity', 4)
-        ->set('checkout_date', now()->format('Y-m-d'))
+        ->set('checkout_date', now()->format('Y-m-d\TH:i'))
         ->call('saveTool')
         ->assertHasNoErrors();
 
@@ -148,11 +148,11 @@ test('C duplicate active checkout for same tool+house rejected', function () {
     $house = House::factory()->create(['status' => 'pembangunan']);
 
     Livewire::test(TransaksiLogistik::class)
-        ->set('house_ids', [$house->id])->set('tool_id', $tool->id)->set('tool_quantity', 5)->set('checkout_date', now()->format('Y-m-d'))
+        ->set('house_ids', [$house->id])->set('tool_id', $tool->id)->set('tool_quantity', 5)->set('checkout_date', now()->format('Y-m-d\TH:i'))
         ->call('saveTool')->assertHasNoErrors();
 
     Livewire::test(TransaksiLogistik::class)
-        ->set('house_ids', [$house->id])->set('tool_id', $tool->id)->set('tool_quantity', 5)->set('checkout_date', now()->format('Y-m-d'))
+        ->set('house_ids', [$house->id])->set('tool_id', $tool->id)->set('tool_quantity', 5)->set('checkout_date', now()->format('Y-m-d\TH:i'))
         ->call('saveTool')->assertHasErrors(['tool_quantity']);
 });
 
@@ -161,7 +161,7 @@ test('C saving guard blocks re-entrant save', function () {
     $house = House::factory()->create(['status' => 'pembangunan']);
 
     Livewire::test(TransaksiLogistik::class)
-        ->set('house_ids', [$house->id])->set('tool_id', $tool->id)->set('tool_quantity', 5)->set('checkout_date', now()->format('Y-m-d'))
+        ->set('house_ids', [$house->id])->set('tool_id', $tool->id)->set('tool_quantity', 5)->set('checkout_date', now()->format('Y-m-d\TH:i'))
         ->set('saving', true)
         ->call('saveTool');
 
@@ -288,4 +288,37 @@ test('B5 tool void rejects already-returned checkout', function () {
         ->assertHasErrors(['void']);
 
     expect((int) $tool->fresh()->available_qty)->toBe(4); // unchanged
+});
+
+// ─────────────────────────────────────────
+// Direct Logistik Transaction Flow with Photo Proof
+// ─────────────────────────────────────────
+
+test('Logistik records material & tool usage directly to house with proof image', function () {
+    $material = Material::factory()->create([
+        'category_id' => $this->materialCategory->id,
+        'supplier_id' => $this->supplier->id,
+        'unit' => 'sak',
+        'unit_price' => 50000,
+        'stock' => 20,
+    ]);
+    $house = House::factory()->create(['status' => 'pembangunan']);
+
+    $this->actingAs($this->user);
+    $file = Illuminate\Http\UploadedFile::fake()->create('proof.jpg', 100, 'image/jpeg');
+
+    Livewire::test(App\Livewire\Logistik\TransaksiLogistik::class)
+        ->set('house_ids', [$house->id])
+        ->set('material_id', $material->id)
+        ->set('material_quantity', 5)
+        ->set('usage_date', now()->format('Y-m-d\TH:i'))
+        ->set('material_notes', 'Cor Pondasi')
+        ->set('proof_image', $file)
+        ->call('saveMaterial')
+        ->assertHasNoErrors();
+
+    $usage = App\Models\MaterialUsage::where('house_id', $house->id)->first();
+    expect($usage)->not->toBeNull();
+    expect((float) $material->fresh()->stock)->toBe(15.0); // Stock deducted immediately
+    expect($usage->proof_image)->not->toBeNull(); // Proof image stored
 });

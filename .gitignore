@@ -29,3 +29,5 @@ yarn-error.log
 *.pdf
 temp_fix_cats.php
 test_component.php
+/.claude
+/.rpiv

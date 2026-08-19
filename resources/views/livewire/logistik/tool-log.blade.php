@@ -4,12 +4,12 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Equipment History</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Riwayat Alat Kerja</span>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
-                        Tool <span class="text-success">Checkout Log</span>
+                        Catatan Riwayat <span class="text-success">Peminjaman Alat</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
-                        Detailed record tracking project equipment borrowing timelines and return statuses.
+                        Catatan riwayat peminjaman dan pemrosesan pengembalian alat kerja proyek.
                     </p>
                 </div>
                 <div>
@@ -27,8 +27,11 @@
                     <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari alat..." class="form-control" />
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" wire:click="toggleSortDirection" class="btn btn-outline-secondary btn-sm" title="Urutkan Tanggal">
-                        {{ $sortDirection === 'asc' ? '⬆ Tanggal' : '⬇ Tanggal' }}
+                    <button type="button" wire:click="toggleSortDirection" class="btn btn-outline-secondary px-3 d-inline-flex align-items-center gap-2 font-semibold shadow-xs" style="height: 38px;" title="Urutkan Tanggal">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="{{ $sortDirection === 'asc' ? 'transform: rotate(180deg);' : '' }}">
+                            <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
+                        </svg>
+                        <span>Tanggal</span>
                     </button>
                     <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
                         <div class="mb-3">
@@ -88,16 +91,28 @@
                                     <span class="badge bg-warning-subtle text-warning">⏳ Dipinjam</span>
                                 @endif
                             </td>
-                            <td class="text-secondary small">{{ $usage->user->name }}
-                                @if (is_null($usage->return_date) && in_array(auth()->user()->role, ['admin', 'logistik']))
-                                    @if ($usage->voided_at !== null)
-                                        <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border border-zinc-500/20">VOIDED</span>
-                                    @else
-                                        <button type="button" wire:confirm="Yakin membatalkan peminjaman ini? Qty tersedia akan dikembalikan."
-                                            wire:click="voidTool({{ $usage->id }})"
-                                            class="ml-2 text-[11px] font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400">Batalkan</button>
+                            <td class="text-secondary small">
+                                <div class="d-inline-flex align-items-center gap-1 flex-wrap">
+                                    <span>{{ $usage->user->name }}</span>
+                                    @if($usage->proof_image)
+                                        <a href="{{ asset('storage/' . $usage->proof_image) }}" target="_blank" class="badge bg-info-subtle text-info text-decoration-none d-inline-flex align-items-center gap-1" title="Lihat Foto Bukti">
+                                            <svg width="12" height="12" fill="currentColor"><use href="#i-camera"/></svg> Bukti
+                                        </a>
                                     @endif
-                                @endif
+                                    @if (is_null($usage->return_date) && in_array(auth()->user()->role, ['admin', 'logistik']))
+                                        @if ($usage->voided_at !== null)
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small text-uppercase tracking-wider">VOIDED</span>
+                                        @else
+                                            <button type="button" wire:confirm="Yakin membatalkan peminjaman ini? Qty tersedia akan dikembalikan."
+                                                wire:click="voidTool({{ $usage->id }})"
+                                                class="btn btn-outline-danger btn-xs py-0 px-1.5 ms-1 extra-small font-semibold rounded-2 d-inline-flex align-items-center gap-1"
+                                                title="Batalkan Peminjaman">
+                                                <svg width="10" height="10" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+                                                Batalkan
+                                            </button>
+                                        @endif
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                         @empty

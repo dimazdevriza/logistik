@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             ToolSeeder::class,
             HouseSeeder::class,
             ToolUsageSeeder::class,
+            MaterialUsageSeeder::class,
         ]);
     }
 }

@@ -1,89 +1,70 @@
 <div
-    class="py-6 space-y-6 border shadow-sm rounded-xl border-zinc-200 dark:border-white/10"
+    class="vstack gap-3"
     wire:cloak
     x-data="{ showRecoveryCodes: false }"
 >
-    <div class="px-6 space-y-2">
-        <div class="flex items-center gap-2">
-            <flux:icon.lock-closed variant="outline" class="size-4"/>
-            <flux:heading size="lg" level="3">{{ __('2FA recovery codes') }}</flux:heading>
-        </div>
-        <flux:text variant="subtle">
-            {{ __('Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.') }}
-        </flux:text>
+    <div>
+        <h6 class="fw-bold text-body mb-1">Kode Pemulihan Cadangan (Recovery Codes)</h6>
+        <p class="text-secondary small mb-0">
+            Kode pemulihan dapat digunakan untuk masuk jika Anda kehilangan akses ke perangkat otentikator. Simpan di tempat yang aman.
+        </p>
     </div>
 
-    <div class="px-6">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <flux:button
+    <div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary font-semibold rounded-3"
                 x-show="!showRecoveryCodes"
-                icon="eye"
-                icon:variant="outline"
-                variant="primary"
                 @click="showRecoveryCodes = true;"
-                aria-expanded="false"
-                aria-controls="recovery-codes-section"
             >
-                {{ __('View recovery codes') }}
-            </flux:button>
+                Tampilkan Kode Pemulihan
+            </button>
 
-            <flux:button
+            <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary font-semibold rounded-3"
                 x-show="showRecoveryCodes"
-                icon="eye-slash"
-                icon:variant="outline"
-                variant="primary"
                 @click="showRecoveryCodes = false"
-                aria-expanded="true"
-                aria-controls="recovery-codes-section"
             >
-                {{ __('Hide recovery codes') }}
-            </flux:button>
+                Sembunyikan Kode
+            </button>
 
             @if (filled($recoveryCodes))
-                <flux:button
+                <button
+                    type="button"
+                    class="btn btn-sm btn-light border font-semibold rounded-3"
                     x-show="showRecoveryCodes"
-                    icon="arrow-path"
-                    variant="filled"
                     wire:click="regenerateRecoveryCodes"
                 >
-                    {{ __('Regenerate codes') }}
-                </flux:button>
+                    Buat Ulang Kode (Regenerate)
+                </button>
             @endif
         </div>
 
         <div
             x-show="showRecoveryCodes"
             x-transition
-            id="recovery-codes-section"
-            class="relative overflow-hidden"
-            x-bind:aria-hidden="!showRecoveryCodes"
+            class="mt-3"
         >
-            <div class="mt-3 space-y-3">
-                @error('recoveryCodes')
-                    <flux:callout variant="danger" icon="x-circle" heading="{{$message}}"/>
-                @enderror
+            @error('recoveryCodes')
+                <div class="alert alert-danger py-2 px-3 extra-small mb-3">{{ $message }}</div>
+            @enderror
 
-                @if (filled($recoveryCodes))
-                    <div
-                        class="grid gap-1 p-4 font-mono text-sm rounded-lg bg-zinc-100 dark:bg-white/5"
-                        role="list"
-                        aria-label="{{ __('Recovery codes') }}"
-                    >
+            @if (filled($recoveryCodes))
+                <div class="card bg-body-tertiary border rounded-3 p-3 font-mono extra-small mb-2">
+                    <div class="row g-2">
                         @foreach($recoveryCodes as $code)
-                            <div
-                                role="listitem"
-                                class="select-text"
-                                wire:loading.class="opacity-50 animate-pulse"
-                            >
+                            <div class="col-6 col-sm-4 text-body fw-bold">
                                 {{ $code }}
                             </div>
                         @endforeach
                     </div>
-                    <flux:text variant="subtle" class="text-xs">
-                        {{ __('Each recovery code can be used once to access your account and will be removed after use. If you need more, click Regenerate codes above.') }}
-                    </flux:text>
-                @endif
-            </div>
+                </div>
+                <div class="extra-small text-secondary">
+                    Setiap kode hanya dapat digunakan satu kali. Jika kode Anda habis, klik tombol <strong>Buat Ulang Kode</strong>.
+                </div>
+            @endif
         </div>
     </div>
 </div>

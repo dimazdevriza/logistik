@@ -11,11 +11,12 @@ use App\Traits\WithFilterModal;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class Materials extends Component
 {
-    use WithPagination, WithFilterModal;
+    use WithPagination, WithFilterModal, WithFileUploads;
 
     public $search = '';
     public $filterCategory = '';
@@ -33,6 +34,8 @@ class Materials extends Component
     public $unit = '';
     public $unit_price = 0;
     public $stock = 0;
+    public $image = null;
+    public $existingImage = null;
 
     // Restock Modal State
     public $showRestockModal = false;
@@ -44,6 +47,17 @@ class Materials extends Component
     public $restockSupplierName = '';
     public $restockDate = '';
     public $restockNotes = '';
+    public $restockProofImage = null;
+
+    // View Image Modal State
+    public $showImageModal = false;
+    public $viewingImageMaterialName = '';
+    public $viewingImageUrl = '';
+
+    // Import Modal State
+    public $showImportModal = false;
+    public $importFile = null;
+    public $importResultSummary = null;
 
     // Confirmation Modal State
     public $showConfirmation = false;
@@ -94,6 +108,7 @@ class Materials extends Component
             'unit' => 'required|string|max:50',
             'unit_price' => 'required|numeric|min:0',
             'stock' => 'required|numeric|min:0',
+            'image' => 'nullable|image|max:5120',
         ];
     }
 
@@ -102,6 +117,14 @@ class Materials extends Component
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
+    }
+
+    public function showMaterialImage($id)
+    {
+        $material = Material::findOrFail($id);
+        $this->viewingImageMaterialName = $material->name;
+        $this->viewingImageUrl = asset('storage/' . $material->image);
+        $this->showImageModal = true;
     }
 
     public function edit($id)
@@ -114,6 +137,8 @@ class Materials extends Component
         $this->unit = $material->unit;
         $this->unit_price = $material->unit_price;
         $this->stock = $material->stock;
+        $this->image = null;
+        $this->existingImage = $material->image;
         $this->editMode = true;
         $this->showModal = true;
     }
@@ -137,8 +162,17 @@ class Materials extends Component
             'stock' => $this->stock,
         ];
 
+        if ($this->image) {
+            $data['image'] = $this->image->store('materials', 'public');
+        }
+
         if ($this->editMode) {
-            Material::findOrFail($this->materialId)->update($data);
+            $existing = Material::findOrFail($this->materialId);
+            // Protect existing proof image from being overwritten once recorded
+            if ($existing->image && isset($data['image'])) {
+                unset($data['image']);
+            }
+            $existing->update($data);
             session()->flash('success', 'Material berhasil diperbarui.');
         } else {
             $material = Material::create($data);
@@ -179,6 +213,8 @@ class Materials extends Component
         $this->unit = '';
         $this->unit_price = 0;
         $this->stock = 0;
+        $this->image = null;
+        $this->existingImage = null;
         $this->resetValidation();
     }
 
@@ -206,10 +242,16 @@ class Materials extends Component
             'restockSupplierName' => 'nullable|string|max:255',
             'restockDate' => 'required|date',
             'restockNotes' => 'nullable|string|max:500',
+            'restockProofImage' => 'nullable|image|max:5120',
         ]);
 
+        $proofImagePath = null;
+        if ($this->restockProofImage) {
+            $proofImagePath = $this->restockProofImage->store('stock-in-proofs', 'public');
+        }
+
         try {
-            DB::transaction(function () {
+            DB::transaction(function () use ($proofImagePath) {
                 $sourceMaterial = Material::findOrFail($this->restockMaterialId);
 
                 // Resolve supplier
@@ -256,6 +298,7 @@ class Materials extends Component
                     'total_cost' => $totalCost,
                     'date' => $this->restockDate,
                     'notes' => $this->restockNotes,
+                    'proof_image' => $proofImagePath,
                 ]);
 
                 session()->flash('success', 'Restock berhasil dicatat: ' . $this->restockQuantity . ' ' . $sourceMaterial->unit . ' ' . $sourceMaterial->name . '.');
@@ -279,6 +322,47 @@ class Materials extends Component
         $this->restockDate = '';
         $this->restockNotes = '';
         $this->resetValidation();
+    }
+
+    public function openImportModal()
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+        $this->importFile = null;
+        $this->importResultSummary = null;
+        $this->resetValidation();
+        $this->showImportModal = true;
+    }
+
+    public function importExcel()
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+
+        $this->validate([
+            'importFile' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ], [
+            'importFile.required' => 'Pilih berkas Excel (.xlsx / .xls) terlebih dahulu.',
+            'importFile.mimes' => 'Berkas harus berupa format Excel (.xlsx, .xls) atau CSV.',
+            'importFile.max' => 'Ukuran berkas maksimal 10MB.',
+        ]);
+
+        try {
+            $import = new \App\Imports\MaterialImport();
+            Excel::import($import, $this->importFile->getRealPath());
+
+            $this->importResultSummary = [
+                'totalRows' => $import->totalRows,
+                'successfulRows' => $import->successfulRows,
+                'skippedRows' => $import->skippedRows,
+                'materialsImported' => $import->materialsImported,
+                'transactionsImported' => $import->transactionsImported,
+                'logs' => $import->rowLogs,
+            ];
+
+            session()->flash('success', "Proses validasi & impor selesai: {$import->successfulRows} dari {$import->totalRows} baris data berhasil diproses.");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            $this->addError('importFile', 'Gagal memproses berkas Excel: ' . $e->getMessage());
+        }
     }
 
     public function exportExcel()
@@ -321,8 +405,8 @@ class Materials extends Component
             }, fn($q) => $q->orderBy('name', 'asc'))
             ->paginate(10);
 
-        $suppliers = Supplier::orderBy('name')->get();
-        $categories = Category::where('type', 'material')->orderBy('name')->get();
+        $suppliers = Supplier::select('id', 'name')->orderBy('name')->get()->unique('name');
+        $categories = Category::where('type', 'material')->orderBy('name')->get()->unique('name');
 
         // Summary stats
         $totalValue = Material::where('stock', '>', 0)

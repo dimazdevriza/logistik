@@ -210,6 +210,7 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('house_ids', [$house->id])
                 ->set('material_id', $material->id)
                 ->set('material_quantity', 999)
+                ->set('material_notes', 'Tes Peruntukkan')
                 ->set('usage_date', now()->format('Y-m-d'))
                 ->call('showMaterialConfirmationModal')
                 ->assertHasErrors(['material_quantity']);
@@ -297,6 +298,7 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('house_ids', [$house->id])
                 ->set('tool_id', $tool->id)
                 ->set('tool_quantity', 999)
+                ->set('tool_notes', 'Tes Peruntukkan')
                 ->set('checkout_date', now()->format('Y-m-d'))
                 ->call('showToolConfirmationModal')
                 ->assertHasErrors(['tool_quantity']);

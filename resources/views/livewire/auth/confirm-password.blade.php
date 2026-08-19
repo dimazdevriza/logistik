@@ -1,28 +1,32 @@
-<x-layouts::auth :title="__('Confirm password')">
-    <div class="flex flex-col gap-6">
+<x-layouts::auth :title="__('Konfirmasi Kata Sandi')">
+    <div>
         <x-auth-header
-            :title="__('Confirm password')"
-            :description="__('This is a secure area of the application. Please confirm your password before continuing.')"
+            :title="__('Konfirmasi Kata Sandi')"
+            :description="__('Ini adalah area aman aplikasi. Harap konfirmasi kata sandi Anda sebelum melanjutkan.')"
         />
 
-        <x-auth-session-status class="text-center" :status="session('status')" />
+        <x-auth-session-status class="text-center mb-3" :status="session('status')" />
 
-        <form method="POST" action="{{ route('password.confirm.store') }}" class="flex flex-col gap-6">
+        <form method="POST" action="{{ route('password.confirm.store') }}">
             @csrf
 
-            <flux:input
-                name="password"
-                :label="__('Password')"
-                type="password"
-                required
-                autocomplete="current-password"
-                :placeholder="__('Password')"
-                viewable
-            />
+            <div class="mb-3">
+                <label for="password" class="form-label font-semibold small text-body">{{ __('Kata Sandi') }}</label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    class="form-control"
+                    required
+                    autocomplete="current-password"
+                    placeholder="••••••••"
+                />
+                @error('password') <span class="text-danger extra-small mt-1 d-block">{{ $message }}</span> @enderror
+            </div>
 
-            <flux:button variant="primary" type="submit" class="w-full" data-test="confirm-password-button">
-                {{ __('Confirm') }}
-            </flux:button>
+            <button type="submit" class="btn btn-success w-100 font-semibold py-2.5 rounded-3 shadow-xs" data-test="confirm-password-button">
+                {{ __('Konfirmasi') }}
+            </button>
         </form>
     </div>
 </x-layouts::auth>

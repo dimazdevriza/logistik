@@ -64,6 +64,11 @@ class User extends Authenticatable
             ->implode('');
     }
 
+    public function isMandor(): bool
+    {
+        return $this->role === 'mandor';
+    }
+
     public function materialUsages(): HasMany
     {
         return $this->hasMany(MaterialUsage::class);

@@ -1,163 +1,139 @@
 <x-layouts::app.sidebar title="Dashboard Logistik">
-    <flux:main>
-        {{-- Root layout container with Outfit font, ambient glows, and layout spacing --}}
-        <div class="font-outfit text-zinc-900 dark:text-zinc-100 flex flex-col gap-8 py-4 relative overflow-hidden w-full max-w-full">
-            
-            {{-- Ambient glows --}}
-            <div class="ambient-glow -top-20 -left-20 opacity-60"></div>
-            <div class="ambient-glow -bottom-40 -right-20 opacity-40"></div>
-
-            {{-- 1. ATTENTION (Hero/Header Section in Artistic Asymmetry) --}}
-            <div class="animate-header flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 bg-linear-to-r from-zinc-50 to-zinc-100/50 dark:from-zinc-900 dark:to-zinc-900/50 p-8 rounded-3xl border border-zinc-200/80 dark:border-zinc-700/80 shadow-xs relative overflow-hidden">
-                <div class="flex-1 z-10">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 backdrop-blur-md uppercase tracking-wider mb-3 font-geist">Logistics Module</span>
-                    <h1 class="text-4xl md:text-5xl font-black tracking-tight leading-[1.1] max-w-3xl">
-                        Logistics <span class="bg-linear-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">Operations Control</span>
+    <div class="container-fluid p-0">
+        <!-- Hero Header -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
+            <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                <div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Modul Logistik</span>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">
+                        Kontrol Operasional <span class="text-success">Logistik</span>
                     </h1>
-                    <p class="mt-3 text-zinc-500 dark:text-zinc-400 font-medium max-w-xl text-sm md:text-base">
-                        Monitor stock levels, review low stock alerts, and manage tools currently on loan.
+                    <p class="text-secondary mb-0 max-w-xl">
+                        Pantau ketersediaan stok, peringatan stok menipis, dan kelola peminjaman alat konstruksi.
                     </p>
                 </div>
-                {{-- Floating Glass Widget on the right (Asymmetric layout) --}}
-                <div class="lg:w-72 shrink-0 z-10 p-5 rounded-2xl border border-white/20 dark:border-zinc-700/50 bg-white/40 dark:bg-zinc-800/40 backdrop-blur-xl shadow-lg flex flex-col gap-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="size-2 rounded-full bg-green-500 animate-ping"></span>
-                            <span class="text-xs font-bold font-geist tracking-wide text-zinc-500 dark:text-zinc-400 uppercase">Operational Hub</span>
-                        </div>
+                <div class="p-3 rounded-3 border bg-body-tertiary shadow-xs d-flex align-items-center gap-3">
+                    <div class="p-2 bg-success-subtle text-success rounded d-flex align-items-center justify-content-center">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-4 0H1.5A1.5 1.5 0 0 1 0 10.5v-7zm1 0v7a.5.5 0 0 0 .5.5H2a2 2 0 0 1 3.5 0h4.5a2 2 0 0 1 3.5 0h1.5a.5.5 0 0 0 .5-.5V8.851a.5.5 0 0 0-.11-.312L14.41 6.689A.5.5 0 0 0 14.02 6.5H12v-3a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z"/></svg>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="p-2.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg">
-                            <flux:icon name="truck" class="size-5" />
-                        </div>
-                        <div>
-                            <div class="text-xs text-zinc-400">Inventory Status</div>
-                            <div class="text-sm font-bold">All Systems Nominal</div>
-                        </div>
+                    <div>
+                        <div class="extra-small text-secondary fw-bold text-uppercase">Status Inventaris</div>
+                        <div class="fw-bold text-body small">Sistem Berjalan Normal</div>
                     </div>
                 </div>
             </div>
-
-            {{-- 2. INTEREST (Bento Stats Grid - 3 cols) --}}
-            <div class="grid gap-6 md:grid-cols-3">
-                
-                {{-- Stats Card 1: Total Material --}}
-                <div class="animate-card p-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md relative overflow-hidden transition-all duration-500 hover:scale-[1.01] hover:border-zinc-300 dark:hover:border-zinc-600 shadow-md group">
-                    <div class="absolute -right-4 -bottom-4 size-32 bg-green-500/5 rounded-full blur-2xl group-hover:bg-green-500/10 transition-all duration-500"></div>
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-xs font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase font-geist">Total Material</span>
-                        <div class="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg group-hover:text-green-500 transition-colors">
-                            <flux:icon name="cube" class="size-5" />
-                        </div>
-                    </div>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white">{{ $total_materials }}</span>
-                        <span class="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Item</span>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-400">
-                        Tersedia di Gudang
-                    </div>
-                </div>
-
-                {{-- Stats Card 2: Low Stock (Rose glow outline) --}}
-                <div class="animate-card p-6 rounded-2xl border border-rose-200/80 dark:border-rose-900/50 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md relative overflow-hidden transition-all duration-500 hover:scale-[1.01] shadow-md group border-l-4 border-l-rose-500">
-                    <div class="absolute -right-4 -bottom-4 size-32 bg-rose-500/5 rounded-full blur-2xl group-hover:bg-rose-500/10 transition-all duration-500"></div>
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-xs font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase font-geist">Stok Menipis</span>
-                        <div class="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg">
-                            <flux:icon name="exclamation-triangle" class="size-5" />
-                        </div>
-                    </div>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-4xl font-extrabold tracking-tight text-rose-600 dark:text-rose-400">{{ $low_stock_count }}</span>
-                        <span class="text-sm font-semibold text-rose-500 dark:text-rose-400">Item</span>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-rose-100 dark:border-rose-950/30 text-xs text-rose-500/85">
-                        Stok di bawah 10 unit
-                    </div>
-                </div>
-
-                {{-- Stats Card 3: Tools on Loan (Orange glow outline) --}}
-                <div class="animate-card p-6 rounded-2xl border border-orange-200/80 dark:border-orange-900/50 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md relative overflow-hidden transition-all duration-500 hover:scale-[1.01] shadow-md group border-l-4 border-l-orange-500">
-                    <div class="absolute -right-4 -bottom-4 size-32 bg-orange-500/5 rounded-full blur-2xl group-hover:bg-orange-500/10 transition-all duration-500"></div>
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-xs font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase font-geist">Alat Sedang Dipinjam</span>
-                        <div class="p-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg">
-                            <flux:icon name="wrench" class="size-5" />
-                        </div>
-                    </div>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-4xl font-extrabold tracking-tight text-orange-600 dark:text-orange-400">{{ $tools_on_loan }}</span>
-                        <span class="text-sm font-semibold text-orange-500 dark:text-orange-400">Transaksi</span>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-orange-100 dark:border-orange-950/30 text-xs text-orange-500/85">
-                        Menunggu pengembalian
-                    </div>
-                </div>
-
-            </div>
-
-            {{-- 3. DESIRE (Spacious Editorial Recent Activities Table) --}}
-            <div class="animate-card flex flex-col gap-5 mt-4">
-                <div class="flex items-center justify-between">
-                    <flux:heading size="lg" class="font-extrabold tracking-tight">Aktivitas Penggunaan Terbaru</flux:heading>
-                    <flux:button variant="ghost" size="sm" icon-trailing="arrow-right" class="hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold" href="{{ route('logistik.houses') }}" wire:navigate>Buka Proyek Rumah</flux:button>
-                </div>
-                
-                <div class="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md shadow-md">
-                    <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-                        <thead class="bg-zinc-50/50 dark:bg-zinc-950/50">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-geist">Waktu</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-geist">Rumah</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-geist">Material</th>
-                                <th class="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-geist">Jumlah</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800/80">
-                            @forelse ($recent_activities as $activity)
-                            <tr class="hover:bg-zinc-50/70 dark:hover:bg-zinc-800/30 transition-all duration-300">
-                                <td class="px-6 py-4.5 text-sm text-zinc-500 dark:text-zinc-400 font-medium">{{ $activity->created_at->diffForHumans() }}</td>
-                                <td class="px-6 py-4.5 text-sm font-bold text-zinc-900 dark:text-zinc-100">{{ $activity->house->name }}</td>
-                                <td class="px-6 py-4.5 text-sm text-zinc-600 dark:text-zinc-300 font-medium">{{ $activity->material->name }}</td>
-                                <td class="px-6 py-4.5 text-right font-mono text-sm text-zinc-900 dark:text-zinc-200 font-bold">
-                                    {{ str_replace('.', ',', (float) $activity->quantity) }} <span class="text-xs text-zinc-400 font-sans font-medium">{{ $activity->material->unit }}</span>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="4" class="px-6 py-10 text-center text-sm text-zinc-400 font-medium">Belum ada aktivitas penggunaan.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
         </div>
-    </flux:main>
 
-    {{-- Script references for GSAP loading --}}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            if (!window.gsap) return;
-            gsap.set([".animate-header", ".animate-card"], { clearProps: "all" });
-            gsap.from(".animate-header", {
-                opacity: 0,
-                y: -20,
-                duration: 0.8,
-                ease: "power3.out"
-            });
-            gsap.from(".animate-card", {
-                opacity: 0,
-                y: 30,
-                duration: 0.8,
-                stagger: 0.08,
-                ease: "power3.out",
-                delay: 0.15,
-                clearProps: "transform,opacity"
-            });
-        });
-    </script>
+        <!-- Bento Stats Grid -->
+        <div class="row g-4 mb-4">
+            <!-- Total Material -->
+            <div class="col-md-4">
+                <div class="card border-0 border-start border-4 border-success shadow-sm rounded-4 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Total Material</span>
+                        <div class="p-2 bg-success-subtle text-success rounded d-flex align-items-center justify-content-center">
+                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l6.154 2.38 6.154-2.38zM15 4.239l-6.5 2.515v7.182l6.5-2.6v-7.097zM7.5 13.936V6.754L1 4.239v7.097z"/></svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="fw-black text-body mb-1">{{ $total_materials }} <span class="fs-6 text-secondary font-normal">Item</span></h2>
+                        <span class="text-secondary small">Tersedia di Gudang</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Low Stock Alert -->
+            <div class="col-md-4">
+                <div class="card border-0 border-start border-4 border-danger shadow-sm rounded-4 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Stok Menipis</span>
+                        <div class="p-2 bg-danger-subtle text-danger rounded d-flex align-items-center justify-content-center">
+                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="fw-black text-danger mb-1">{{ $low_stock_count }} <span class="fs-6 text-secondary font-normal">Item</span></h2>
+                        <span class="text-danger small">Stok di bawah 10 unit</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tools on Loan -->
+            <div class="col-md-4">
+                <div class="card border-0 border-start border-4 border-warning shadow-sm rounded-4 p-4 bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Alat Sedang Dipinjam</span>
+                        <div class="p-2 bg-warning-subtle text-warning rounded d-flex align-items-center justify-content-center">
+                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M1 0 0 1l2.2 3.081a1 1 0 0 0 .815.419h.07a1 1 0 0 1 .708.293l2.675 2.675-2.617 2.654A3.003 3.003 0 0 0 0 13a3 3 0 1 0 5.293-1.881l2.654-2.617 2.675 2.675a1 1 0 0 1 .293.707v.07a1 1 0 0 0 .419.815L15 16l1-1-3.081-2.2a1 1 0 0 0-.419-.815v-.07a1 1 0 0 1-.293-.708L9.53 8.532l2.617-2.654A3.003 3.003 0 0 0 16 3a3 3 0 1 0-5.293 1.881L8.053 7.5 5.378 4.825a1 1 0 0 1-.293-.707v-.07a1 1 0 0 0-.419-.815L1 0z"/></svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="fw-black text-warning mb-1">{{ $tools_on_loan }} <span class="fs-6 text-secondary font-normal">Transaksi</span></h2>
+                        <span class="text-secondary small">Menunggu pengembalian</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activities Table -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary mb-4">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <h5 class="fw-bold font-outfit text-body mb-0">Aktivitas Penggunaan Terbaru</h5>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 extra-small font-mono">{{ $recent_activities->count() }} Records</span>
+                    </div>
+                    <p class="text-secondary extra-small mb-0">Catatan alokasi material terbaru pada proyek pembangunan rumah.</p>
+                </div>
+                <a href="{{ route('logistik.houses') }}" wire:navigate class="btn btn-outline-secondary btn-sm font-semibold rounded-3 d-inline-flex align-items-center gap-1">
+                    Buka Proyek Rumah →
+                </a>
+            </div>
+
+            <!-- Modern Playground-Style Table Container -->
+            <div class="table-responsive rounded-3 border overflow-hidden">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-body-secondary border-bottom">
+                        <tr class="text-secondary extra-small text-uppercase font-geist tracking-wider">
+                            <th class="py-3 px-3">Waktu</th>
+                            <th class="py-3 px-3">Unit Rumah</th>
+                            <th class="py-3 px-3">Item / Material</th>
+                            <th class="py-3 px-3 text-end">Jumlah Alokasi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        @forelse ($recent_activities as $activity)
+                        <tr class="transition-all">
+                            <td class="py-3 px-3">
+                                <div class="fw-bold font-mono text-body small">{{ $activity->created_at->diffForHumans() }}</div>
+                                <div class="extra-small text-secondary">{{ $activity->created_at->format('d/m/Y H:i') }}</div>
+                            </td>
+                            <td class="py-3 px-3">
+                                <span class="badge bg-body border text-body font-mono px-2.5 py-1.5 rounded-2">{{ $activity->house->name }}</span>
+                            </td>
+                            <td class="py-3 px-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="p-2 rounded-2 bg-success-subtle text-success d-inline-flex align-items-center justify-content-center">
+                                        <svg width="14" height="14" fill="currentColor"><use href="#i-box"/></svg>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold text-body small">{{ $activity->material->name }}</div>
+                                        <div class="extra-small text-secondary">Kategori: {{ $activity->material->category?->name ?? 'Material' }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 text-end font-mono fw-bold text-success">
+                                {{ str_replace('.', ',', (float) $activity->quantity) }} <span class="extra-small text-secondary font-normal">{{ $activity->material->unit }}</span>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="4" class="py-4 text-center text-secondary extra-small">Belum ada aktivitas penggunaan.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </x-layouts::app.sidebar>

@@ -4,12 +4,12 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Project Tracking</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Pemantauan Proyek</span>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
-                        Housing <span class="text-success">Unit Registry</span>
+                        Daftar Unit <span class="text-success">Rumah Proyek</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
-                        Monitor residential unit construction progress, project timelines, and raw material utilization.
+                        Pantau pembangunan unit rumah, tipe klaster, dan rincian alokasi material per unit.
                     </p>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
@@ -83,9 +83,15 @@
                             <td class="text-secondary small">{{ $house->target_end_date?->format('d/m/Y') ?? '-' }}</td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('logistik.house-detail', $house) }}" wire:navigate class="btn btn-outline-secondary" title="Lihat Detail">👁️</a>
-                                    <button type="button" wire:click="edit({{ $house->id }})" class="btn btn-outline-secondary" title="Edit">✏️</button>
-                                    <button type="button" wire:click="confirm('delete', {{ $house->id }}, 'Hapus Rumah?', 'Yakin ingin menghapus data rumah ini? Semua data penggunaan material dan peminjaman alat terkait akan ikut dihapus secara permanen.')" class="btn btn-outline-danger" title="Hapus">🗑️</button>
+                                    <a href="{{ route('logistik.house-detail', $house) }}" wire:navigate class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center" title="Lihat Detail">
+                                        <svg width="14" height="14" fill="currentColor"><use href="#i-eye"/></svg>
+                                    </a>
+                                    <button type="button" wire:click="edit({{ $house->id }})" class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center" title="Edit">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>
+                                    </button>
+                                    <button type="button" wire:click="confirm('delete', {{ $house->id }}, 'Hapus Rumah?', 'Yakin ingin menghapus data rumah ini? Semua data penggunaan material dan peminjaman alat terkait akan ikut dihapus secara permanen.')" class="btn btn-outline-danger d-inline-flex align-items-center justify-content-center" title="Hapus">
+                                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
+                                    </button>
                                 </div>
                             </td>
                         </tr>

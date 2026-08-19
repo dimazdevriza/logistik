@@ -19,6 +19,7 @@ class MaterialUsage extends Model
         'total_cost',
         'usage_date',
         'notes',
+        'proof_image',
         'voided_at',
         'voided_by',
     ];

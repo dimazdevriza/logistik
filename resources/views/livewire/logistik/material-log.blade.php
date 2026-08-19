@@ -4,12 +4,12 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Audit Trail</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Riwayat Transaksi</span>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
-                        Material <span class="text-success">Transaction Log</span>
+                        Catatan Riwayat <span class="text-success">Material</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
-                        Comprehensive ledger recording raw material restocks and project site consumption logs.
+                        Rekam jejak riwayat penambahan stok dari pemasok dan pengeluaran material ke unit rumah.
                     </p>
                 </div>
                 <div>
@@ -27,8 +27,11 @@
                     <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari material..." class="form-control" />
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" wire:click="toggleSortDirection" class="btn btn-outline-secondary btn-sm" title="Urutkan Tanggal">
-                        {{ $sortDirection === 'asc' ? '⬆ Tanggal' : '⬇ Tanggal' }}
+                    <button type="button" wire:click="toggleSortDirection" class="btn btn-outline-secondary px-3 d-inline-flex align-items-center gap-2 font-semibold shadow-xs" style="height: 38px;" title="Urutkan Tanggal">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="{{ $sortDirection === 'asc' ? 'transform: rotate(180deg);' : '' }}">
+                            <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
+                        </svg>
+                        <span>Tanggal</span>
                     </button>
                     <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
                         <div class="mb-3">
@@ -92,7 +95,9 @@
                             @forelse ($records as $record)
                             <tr wire:key="m-log-{{ $loop->index }}">
                                 <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
-                                <td class="font-mono text-secondary small">{{ \Carbon\Carbon::parse($record->date)->format('d/m/Y') }}</td>
+                                <td class="font-mono text-secondary small">
+                                    {{ \Carbon\Carbon::parse($record->created_at ?? $record->date)->format('d/m/Y H:i') }}
+                                </td>
                                 <td>
                                     @if ($record->type === 'masuk')
                                         <span class="badge bg-success-subtle text-success">▼ Masuk</span>
@@ -105,16 +110,23 @@
                                 <td class="text-end fw-bold">{{ number_format($record->quantity, 0, ',', '.') }} <span class="text-secondary small font-normal">{{ $record->material_unit }}</span></td>
                                 <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>
                                 <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
-                                <td class="text-secondary small">{{ $record->user_name }}
-                                    @if ($record->type === 'keluar' && in_array(auth()->user()->role, ['admin', 'logistik']))
-                                        @if (($record->voided_at ?? null) !== null)
-                                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border border-zinc-500/20">VOIDED</span>
-                                        @else
-                                            <button type="button" wire:confirm="Yakin membatalkan alokasi material ini? Stok akan dikembalikan."
-                                                wire:click="voidMaterial({{ $record->id }})"
-                                                class="ml-2 text-[11px] font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400">Batalkan</button>
+                                <td class="text-secondary small">
+                                    <div class="d-inline-flex align-items-center gap-1 flex-wrap">
+                                        <span>{{ $record->user_name }}</span>
+                                        @if ($record->type === 'keluar' && in_array(auth()->user()->role, ['admin', 'logistik']))
+                                            @if (($record->voided_at ?? null) !== null)
+                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small text-uppercase tracking-wider">VOIDED</span>
+                                            @else
+                                                <button type="button" wire:confirm="Yakin membatalkan alokasi material ini? Stok akan dikembalikan."
+                                                    wire:click="voidMaterial({{ $record->id }})"
+                                                    class="btn btn-outline-danger btn-xs py-0 px-1.5 ms-1 extra-small font-semibold rounded-2 d-inline-flex align-items-center gap-1"
+                                                    title="Batalkan Alokasi">
+                                                    <svg width="10" height="10" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+                                                    Batalkan
+                                                </button>
+                                            @endif
                                         @endif
-                                    @endif
+                                    </div>
                                 </td>
                             </tr>
                             @empty
@@ -126,13 +138,19 @@
                             @forelse ($records as $record)
                             <tr wire:key="m-in-log-{{ $loop->index }}">
                                 <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
-                                <td class="font-mono text-secondary small">{{ $record->date->format('d/m/Y') }}</td>
+                                <td class="font-mono text-secondary small">{{ ($record->created_at ?? $record->date)->format('d/m/Y H:i') }}</td>
                                 <td class="fw-bold text-body">{{ $record->supplier->name ?? '-' }}</td>
                                 <td class="fw-bold text-body">{{ $record->material->name ?? '-' }}</td>
                                 <td class="text-end fw-bold">{{ number_format($record->quantity, 0, ',', '.') }} <span class="text-secondary small font-normal">{{ $record->material->unit ?? '' }}</span></td>
                                 <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>
-                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
-                                <td class="text-secondary small">{{ $record->user->name ?? '-' }}</td>
+                                <td class="text-secondary small">
+                                    {{ $record->user->name ?? '-' }}
+                                    @if($record->proof_image)
+                                        <a href="{{ asset('storage/' . $record->proof_image) }}" target="_blank" class="badge bg-info-subtle text-info ms-1 text-decoration-none d-inline-flex align-items-center gap-1" title="Lihat Foto Bukti">
+                                            <svg width="12" height="12" fill="currentColor"><use href="#i-camera"/></svg> Bukti
+                                        </a>
+                                    @endif
+                                </td>
                             </tr>
                             @empty
                             <tr>
@@ -143,22 +161,34 @@
                             @forelse ($records as $record)
                             <tr wire:key="m-out-log-{{ $loop->index }}">
                                 <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
-                                <td class="font-mono text-secondary small">{{ $record->usage_date->format('d/m/Y') }}</td>
+                                <td class="font-mono text-secondary small">{{ ($record->created_at ?? $record->usage_date)->format('d/m/Y H:i') }}</td>
                                 <td class="fw-bold text-body">{{ $record->house->name }}</td>
                                 <td class="fw-bold text-body">{{ $record->material->name }}</td>
                                 <td class="text-end fw-bold">{{ str_replace('.', ',', (float) $record->quantity) }} <span class="text-secondary small font-normal">{{ $record->material->unit }}</span></td>
                                 <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price_at_usage, 0, ',', '.') }}</td>
                                 <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
-                                <td class="text-secondary small">{{ $record->user->name }}
-                                    @if (in_array(auth()->user()->role, ['admin', 'logistik']))
-                                        @if ($record->voided_at !== null)
-                                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border border-zinc-500/20">VOIDED</span>
-                                        @else
-                                            <button type="button" wire:confirm="Yakin membatalkan alokasi material ini? Stok akan dikembalikan."
-                                                wire:click="voidMaterial({{ $record->id }})"
-                                                class="ml-2 text-[11px] font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400">Batalkan</button>
+                                <td class="text-secondary small">
+                                    <div class="d-inline-flex align-items-center gap-1 flex-wrap">
+                                        <span>{{ $record->user->name }}</span>
+                                        @if($record->proof_image)
+                                            <a href="{{ asset('storage/' . $record->proof_image) }}" target="_blank" class="badge bg-info-subtle text-info text-decoration-none d-inline-flex align-items-center gap-1" title="Lihat Foto Bukti">
+                                                <svg width="12" height="12" fill="currentColor"><use href="#i-camera"/></svg> Bukti
+                                            </a>
                                         @endif
-                                    @endif
+                                        @if (in_array(auth()->user()->role, ['admin', 'logistik']))
+                                            @if ($record->voided_at !== null)
+                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small text-uppercase tracking-wider">VOIDED</span>
+                                            @else
+                                                <button type="button" wire:confirm="Yakin membatalkan alokasi material ini? Stok akan dikembalikan."
+                                                    wire:click="voidMaterial({{ $record->id }})"
+                                                    class="btn btn-outline-danger btn-xs py-0 px-1.5 ms-1 extra-small font-semibold rounded-2 d-inline-flex align-items-center gap-1"
+                                                    title="Batalkan Alokasi">
+                                                    <svg width="10" height="10" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+                                                    Batalkan
+                                                </button>
+                                            @endif
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                             @empty

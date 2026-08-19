@@ -30,6 +30,13 @@ class AdminSeeder extends Seeder
             ]
         );
 
-
+        \App\Models\User::updateOrCreate(
+            ['email' => 'mandor@logistik.com'],
+            [
+                'name' => 'Mandor Lapangan',
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                'role' => 'mandor',
+            ]
+        );
     }
 }

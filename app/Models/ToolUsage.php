@@ -18,6 +18,7 @@ class ToolUsage extends Model
         'checkout_date',
         'return_date',
         'notes',
+        'proof_image',
         'parent_usage_id',
         'voided_at',
         'voided_by',

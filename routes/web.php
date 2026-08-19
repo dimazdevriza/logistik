@@ -3,12 +3,18 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 
-Route::view('/', 'welcome')->name('home');
+// Root / IS the Login page
+Route::get('/', fn () => view('livewire.auth.login'))->middleware('guest')->name('login');
+Route::get('home', fn () => redirect()->route('login'))->name('home');
 
 // Redirect any attempts to reach the (now disabled) registration page
 Route::get('register', function () {
-    return redirect()->route('home');
+    return redirect()->route('login');
 });
+
+// Google OAuth Sign-In (Whitelist model)
+Route::get('auth/google', [App\Http\Controllers\Auth\GoogleController::class, 'redirect'])->name('auth.google');
+Route::get('auth/google/callback', [App\Http\Controllers\Auth\GoogleController::class, 'callback'])->name('auth.google.callback');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Main dashboard entry point — redirects based on role
@@ -32,7 +38,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Proyek
         Route::get('houses/{house}', App\Livewire\Logistik\HouseDetail::class)->name('logistik.house-detail');
         Route::get('houses/{house}/finish', App\Livewire\Logistik\HouseFinish::class)->name('logistik.house-finish');
-        // Transaksi
+        // Transaksi Direct
         Route::get('transaksi', App\Livewire\Logistik\TransaksiLogistik::class)->name('logistik.transaksi');
         // Log
         Route::get('material-log', App\Livewire\Logistik\MaterialLog::class)->name('logistik.material-log');
@@ -41,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // ─── Admin module (admin only) ───────────────────────────────
     Route::middleware('role:admin')->prefix('admin')->group(function () {
+        Route::get('playground', App\Livewire\Playground::class)->name('playground');
         Route::get('users', App\Livewire\Admin\UserManagement::class)->name('admin.users');
         Route::get('house-costs', App\Livewire\Admin\HouseCosts::class)->name('admin.house-costs');
         Route::get('house-costs/{house}', App\Livewire\Admin\HouseCostDetail::class)->name('admin.house-costs.detail');
