@@ -20,7 +20,9 @@ class Materials extends Component
 
     public $search = '';
     public $filterCategory = '';
+    public $filterSupplier = '';
     public $filterStock = '';
+    public $filterPhoto = '';
     public $sort = 'name_asc';
 
     public $showModal = false;
@@ -87,14 +89,32 @@ class Materials extends Component
         $this->confirmingId = null;
     }
 
-    public function updatingSearch() { $this->resetPage(); }
-    public function updatingFilterCategory() { $this->resetPage(); }
-    public function updatingFilterStock() { $this->resetPage(); }
-    public function updatingSort() { $this->resetPage(); }
+    public function updatingSearch(): void { $this->resetPage(); }
+    public function updatingSort(): void { $this->resetPage(); }
+    public function updatingFilterCategory(): void { $this->resetPage(); }
+    public function updatingFilterSupplier(): void { $this->resetPage(); }
+    public function updatingFilterStock(): void { $this->resetPage(); }
+    public function updatingFilterPhoto(): void { $this->resetPage(); }
 
-    public function resetFilters()
+    public function toggleSortDirection(): void
     {
-        $this->reset(['search', 'filterCategory', 'filterStock', 'sort']);
+        if (str_ends_with($this->sort, '_asc')) {
+            $this->sort = substr($this->sort, 0, -4) . '_desc';
+        } elseif (str_ends_with($this->sort, '_desc')) {
+            $this->sort = substr($this->sort, 0, -5) . '_asc';
+        } else {
+            $this->sort = 'name_desc';
+        }
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->sort = 'name_asc';
+        $this->filterCategory = '';
+        $this->filterSupplier = '';
+        $this->filterStock = '';
+        $this->filterPhoto = '';
         $this->showFilterModal = false;
         $this->resetPage();
     }
@@ -108,7 +128,9 @@ class Materials extends Component
             'unit' => 'required|string|max:50',
             'unit_price' => 'required|numeric|min:0',
             'stock' => 'required|numeric|min:0',
-            'image' => 'nullable|image|max:5120',
+            'image' => ($this->editMode && $this->existingImage)
+                ? 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120'
+                : 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
     }
 
@@ -382,6 +404,9 @@ class Materials extends Component
         $materials = Material::with(['supplier', 'category'])
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%"))
             ->when($this->filterCategory, fn ($q) => $q->where('category_id', $this->filterCategory))
+            ->when($this->filterSupplier, fn ($q) => $q->where('supplier_id', $this->filterSupplier))
+            ->when($this->filterPhoto === 'has_photo', fn ($q) => $q->whereNotNull('image')->where('image', '!=', ''))
+            ->when($this->filterPhoto === 'no_photo', fn ($q) => $q->where(fn ($sub) => $sub->whereNull('image')->orWhere('image', '')))
             ->when($this->filterStock, function ($q) {
                 if ($this->filterStock === 'low') {
                     $q->where('stock', '<=', 10)->where('stock', '>', 0);
@@ -392,16 +417,17 @@ class Materials extends Component
                 }
             }, fn ($q) => $q->where('stock', '>', 0)) // Default: hide depleted
             ->when($this->sort, function ($q) {
-                $parts = explode('_', $this->sort);
-                $column = $parts[0];
-                $direction = $parts[1] ?? 'asc';
-
-                $whitelist = ['name', 'stock', 'unit_price'];
-                if (in_array($column, $whitelist) && in_array($direction, ['asc', 'desc'])) {
-                    $q->orderBy($column, $direction);
-                } else {
-                    $q->orderBy('name', 'asc');
-                }
+                match ($this->sort) {
+                    'name_asc' => $q->orderBy('name', 'asc'),
+                    'name_desc' => $q->orderBy('name', 'desc'),
+                    'stock_desc' => $q->orderBy('stock', 'desc'),
+                    'stock_asc' => $q->orderBy('stock', 'asc'),
+                    'unit_price_desc' => $q->orderBy('unit_price', 'desc'),
+                    'unit_price_asc' => $q->orderBy('unit_price', 'asc'),
+                    'date_desc' => $q->orderBy('created_at', 'desc'),
+                    'date_asc' => $q->orderBy('created_at', 'asc'),
+                    default => $q->orderBy('name', 'asc'),
+                };
             }, fn($q) => $q->orderBy('name', 'asc'))
             ->paginate(10);
 

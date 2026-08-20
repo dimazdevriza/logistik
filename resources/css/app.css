@@ -221,13 +221,30 @@ body {
     border-color: #2b2b2b !important;
 }
 
-/* Modal Theme Consistency & High Layer Stacking */
+/* Modal Theme Consistency & High Layer Stacking (Break out of stacking context) */
+.modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
 .modal.show {
-    z-index: 1060 !important;
+    z-index: 2050 !important;
+}
+
+.modal-backdrop.show {
+    z-index: 2040 !important;
 }
 
 .modal-dialog {
-    z-index: 1070 !important;
+    z-index: 2060 !important;
+    margin: 1.75rem auto !important;
 }
 
 .modal-content {
@@ -235,7 +252,8 @@ body {
     color: var(--bs-body-color) !important;
     border: 1px solid var(--bs-border-color) !important;
     position: relative;
-    z-index: 1080 !important;
+    z-index: 2070 !important;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.5) !important;
 }
 
 .modal-header,
@@ -590,12 +608,58 @@ html.is-rail-initial .user-profile-card > div,
 
     .main-content {
         margin-left: 0 !important;
-        padding: 1rem !important;
+        padding: 0.75rem !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        overflow-y: visible !important;
     }
 
     .main-card-container {
-        min-height: auto;
-        border-radius: 1rem;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        border-radius: 1.25rem;
+        overflow-y: visible !important;
+        padding: 1.25rem !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        transform: none !important;
+        filter: none !important;
+    }
+
+    .app-header-mobile {
+        position: sticky !important;
+        top: 0.5rem !important;
+        z-index: 1060 !important;
+    }
+
+    [data-bs-theme="dark"] .app-header-mobile {
+        background-color: rgba(22, 25, 23, 0.92) !important;
+        border-color: rgba(255, 255, 255, 0.14) !important;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6) !important;
+    }
+
+    [data-bs-theme="light"] .app-header-mobile {
+        background-color: rgba(255, 255, 255, 0.94) !important;
+        border-color: rgba(0, 0, 0, 0.1) !important;
+        box-shadow: 0 16px 40px rgba(31, 155, 58, 0.12) !important;
+    }
+
+    .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+        position: relative;
+    }
+
+    .table-responsive > .table {
+        min-width: 680px !important;
+        white-space: nowrap !important;
+    }
+
+    .table-responsive > .table th,
+    .table-responsive > .table td {
+        white-space: nowrap !important;
     }
 
     .sticky-receipt-bar { left: 0 !important; }

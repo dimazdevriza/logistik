@@ -13,13 +13,14 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
-class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, WithEvents, ShouldAutoSize
+class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, WithEvents, ShouldAutoSize, WithTitle
 {
     use Exportable;
 
@@ -28,6 +29,11 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
     public function __construct(
         private int $houseId
     ) {}
+
+    public function title(): string
+    {
+        return 'Penggunaan Material';
+    }
 
     public function query()
     {

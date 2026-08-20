@@ -110,9 +110,10 @@
 
     <!-- Modal: Create / Edit House -->
     @if($showModal)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-md">
-            <div class="modal-content border-0 shadow-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title font-outfit fw-bold">{{ $editMode ? 'Edit Rumah' : 'Tambah Rumah' }}</h5>
                     <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
@@ -152,33 +153,36 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showModal', false)">Batal</button>
-                    <button type="button" class="btn btn-success font-semibold" wire:click="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success fw-semibold" wire:click="save" wire:loading.attr="disabled" wire:target="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 
     <!-- Confirmation Modal -->
     @if($showConfirmation)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title font-outfit fw-bold">{{ $confirmTitle ?? 'Konfirmasi' }}</h5>
                     <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)"></button>
                 </div>
-                <div class="modal-body py-3">
+                <div class="modal-body py-4">
                     <p class="text-secondary mb-0">{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-secondary btn-sm font-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
-                    <button type="button" class="btn btn-danger btn-sm font-semibold" wire:click="executeConfirmedAction">Ya, Hapus</button>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary btn-sm fw-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
+                    <button type="button" class="btn btn-danger btn-sm fw-semibold" wire:click="executeConfirmedAction" wire:loading.attr="disabled" wire:target="executeConfirmedAction">Ya, Hapus</button>
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 </div>

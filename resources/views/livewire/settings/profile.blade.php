@@ -5,7 +5,7 @@
         <form wire:submit="updateProfileInformation" class="vstack gap-3">
             <div>
                 <label for="name" class="form-label font-semibold small">{{ __('Name') }}</label>
-                <input id="name" wire:model="name" type="text" class="form-control rounded-3" required autofocus autocomplete="name" />
+                <input id="name" wire:model="name" type="text" class="form-control rounded-3" required autocomplete="name" />
                 @error('name') <span class="text-danger small mt-1 d-block">{{ $message }}</span> @enderror
             </div>
 

@@ -105,9 +105,10 @@
 
     <!-- Modal: Create / Edit User -->
     @if($showModal)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-md">
-            <div class="modal-content border-0 shadow-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title font-outfit fw-bold">{{ $editMode ? 'Edit User' : 'Tambah User' }}</h5>
                     <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
@@ -137,12 +138,13 @@
                         @error('role') <span class="text-danger small">{{ $message }}</span> @enderror
                     </div>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showModal', false)">Batal</button>
-                    <button type="button" class="btn btn-success font-semibold" wire:click="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success fw-semibold" wire:click="save" wire:loading.attr="disabled" wire:target="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 </div>

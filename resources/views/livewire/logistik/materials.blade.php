@@ -39,7 +39,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="small fw-bold text-secondary text-uppercase tracking-wider">Total Nilai Material</span>
                         <div class="p-2 bg-warning-subtle text-warning rounded d-flex align-items-center justify-content-center">
-                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9A1.5 1.5 0 0 1 1.5 3H2V1.78a1.5 1.5 0 0 1 1.864-1.454l8.272 2zm-7.468 3h6.664V1.8a.5.5 0 0 0-.62-.485L3.864 2.827a.5.5 0 0 0-.196.499zM1 4.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-13a.5.5 0 0 0-.5.5z"/></svg>
+                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499L12.136.326zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/></svg>
                         </div>
                     </div>
                     <div>
@@ -70,16 +70,35 @@
                 <div class="w-100 max-w-sm">
                     <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari material..." class="form-control" />
                 </div>
-                <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
+                <div class="d-flex align-items-center gap-2">
+                    <button 
+                        type="button" 
+                        wire:click="toggleSortDirection" 
+                        class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center shadow-xs" 
+                        style="height: 38px; min-width: 38px; padding: 0 10px;"
+                        title="Urutan: {{ str_ends_with($sort, '_asc') ? 'Ascending (A-Z / Terendah / Terlama)' : 'Descending (Z-A / Tertinggi / Terbaru)' }}"
+                    >
+                        @if(str_ends_with($sort, '_asc'))
+                            {{-- Arrow Up / Ascending --}}
+                            <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5"/></svg>
+                        @else
+                            {{-- Arrow Down / Descending --}}
+                            <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1"/></svg>
+                        @endif
+                    </button>
+
+                    <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-secondary">Urutkan Berdasarkan</label>
                         <select wire:model.live="sort" class="form-select">
-                            <option value="name_asc">Nama A-Z</option>
-                            <option value="name_desc">Nama Z-A</option>
-                            <option value="stock_asc">Stok Terendah</option>
-                            <option value="stock_desc">Stok Tertinggi</option>
-                            <option value="unit_price_asc">Harga Terendah</option>
-                            <option value="unit_price_desc">Harga Tertinggi</option>
+                            <option value="name_asc">Nama Material (A-Z)</option>
+                            <option value="name_desc">Nama Material (Z-A)</option>
+                            <option value="date_desc">Tanggal Ditambahkan (Terbaru)</option>
+                            <option value="date_asc">Tanggal Ditambahkan (Terlama)</option>
+                            <option value="stock_desc">Stok (Tertinggi)</option>
+                            <option value="stock_asc">Stok (Terendah)</option>
+                            <option value="unit_price_desc">Harga Satuan (Tertinggi)</option>
+                            <option value="unit_price_asc">Harga Satuan (Terendah)</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -92,6 +111,15 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-secondary">Mitra Supplier</label>
+                        <select wire:model.live="filterSupplier" class="form-select">
+                            <option value="">Semua Supplier</option>
+                            @foreach($suppliers as $sup)
+                                <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-secondary">Status Stok</label>
                         <select wire:model.live="filterStock" class="form-select">
                             <option value="">Semua Stok</option>
@@ -100,7 +128,16 @@
                             <option value="empty">Habis (0)</option>
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-secondary">Foto Material</label>
+                        <select wire:model.live="filterPhoto" class="form-select">
+                            <option value="">Semua Material</option>
+                            <option value="has_photo">Memiliki Foto</option>
+                            <option value="no_photo">Belum Ada Foto</option>
+                        </select>
+                    </div>
                 </x-filter-modal>
+                </div>
             </div>
         </div>
 
@@ -183,31 +220,38 @@
 
     <!-- Modal: Create / Edit Material -->
     @if($showModal)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header border-bottom">
-                    <h5 class="modal-title font-outfit fw-bold">{{ $editMode ? 'Edit Material' : 'Tambah Material' }}</h5>
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header border-bottom py-3 px-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success p-2" style="width: 32px; height: 32px;">
+                            <svg width="16" height="16" fill="currentColor"><use href="#i-box"/></svg>
+                        </span>
+                        <h5 class="modal-title font-outfit fw-bold text-body mb-0">{{ $editMode ? 'Edit Material' : 'Tambah Material Baru' }}</h5>
+                    </div>
                     <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
                 </div>
-                <div class="modal-body py-4">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label font-semibold">Nama Material</label>
+                        <label class="form-label font-semibold small text-secondary">Nama Material <span class="text-danger">*</span></label>
                         <input type="text" wire:model="name" class="form-control" placeholder="Contoh: Semen Portland 50kg" />
                         @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label font-semibold">Kategori</label>
+                            <label class="form-label font-semibold small text-secondary">Kategori <span class="text-danger">*</span></label>
                             <select wire:model="category_id" class="form-select">
-                                <option value="">-- Pilih --</option>
+                                <option value="">-- Pilih Kategori --</option>
                                 @foreach ($categories as $cat)
                                     <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                                 @endforeach
                             </select>
+                            @error('category_id') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                         <div class="col-md-6" x-data="{ isNew: false }">
-                            <label class="form-label font-semibold">Supplier</label>
+                            <label class="form-label font-semibold small text-secondary">Mitra Supplier</label>
                             <template x-if="!isNew">
                                 <select 
                                     wire:model="supplier_name" 
@@ -230,11 +274,11 @@
                             @error('supplier_name') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label font-semibold">Satuan</label>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold small text-secondary">Satuan Material <span class="text-danger">*</span></label>
                             <select wire:model="unit" class="form-select">
-                                <option value="">-- Pilih --</option>
+                                <option value="">-- Pilih Satuan --</option>
                                 <option value="sak">Sak / Zak</option>
                                 <option value="batang">Batang</option>
                                 <option value="buah">Buah / Pcs</option>
@@ -253,7 +297,7 @@
                             </select>
                             @error('unit') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
-                        <div class="col-md-4" x-data="{
+                        <div class="col-md-6" x-data="{
                             display: '',
                             init() {
                                 this.display = this.format($wire.unit_price);
@@ -279,70 +323,72 @@
                             },
                             format(num) {
                                 if (num === null || num === undefined || num === '') return '';
-                                return 'Rp' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                                return 'Rp ' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                             }
                         }">
-                            <label class="form-label font-semibold">Harga Satuan</label>
-                            <input type="text" x-ref="input" x-model="display" class="form-control" />
+                            <label class="form-label font-semibold small text-secondary">Harga Satuan</label>
+                            <input type="text" x-ref="input" x-model="display" class="form-control font-mono" placeholder="Rp 0" />
                             @error('unit_price') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label font-semibold">Stok Awal</label>
-                            <input type="number" step="0.01" min="0" wire:model="stock" class="form-control" />
-                            @error('stock') <span class="text-danger small">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="card bg-body-tertiary border p-3 rounded-3 mb-3">
+                        <h6 class="fw-bold font-outfit text-body mb-2 small text-uppercase font-geist">Kuantitas Stok Awal</h6>
+                        <div>
+                            <label class="form-label font-semibold extra-small text-secondary">Jumlah Stok Masuk Awal</label>
+                            <input type="number" step="0.01" min="0" wire:model="stock" class="form-control font-mono fw-bold text-success" />
+                            @error('stock') <span class="text-danger extra-small">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div class="mt-3">
-                        <label class="form-label font-semibold d-inline-flex align-items-center gap-1">
-                            <svg width="14" height="14" fill="currentColor" aria-hidden="true"><use href="#i-camera"/></svg> Foto / Gambar Bukti Material
+
+                    <div>
+                        <label class="form-label font-semibold small text-secondary d-inline-flex align-items-center gap-1">
+                            <svg width="14" height="14" fill="currentColor" aria-hidden="true"><use href="#i-camera"/></svg> Foto / Gambar Bukti Material @if(!$editMode || !$existingImage)<span class="text-danger">*</span>@endif
                         </label>
 
-                        @if ($editMode && $existingImage)
-                            <!-- Read-Only Proof Lock Mode -->
-                            <div class="p-3 border rounded-3 bg-body-tertiary">
+                        @if ($existingImage && !$image)
+                            <div class="p-3 border rounded-3 bg-body-tertiary mb-2">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle d-inline-flex align-items-center gap-1">
-                                        🔒 Foto Terkunci (Bukti Input Asli)
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                        Foto Saat Ini
                                     </span>
-                                    <button type="button" wire:click="showMaterialImage({{ $materialId }})" class="btn btn-outline-info btn-sm font-semibold d-inline-flex align-items-center gap-1">
-                                        <svg width="14" height="14" fill="currentColor"><use href="#i-eye"/></svg> Lihat Foto Full
-                                    </button>
                                 </div>
                                 <div class="d-flex align-items-center gap-3">
-                                    <img src="{{ asset('storage/' . $existingImage) }}" alt="Foto Bukti Material" class="img-thumbnail rounded-3" style="max-height: 100px; object-fit: cover;" />
+                                    <img src="{{ asset('storage/' . $existingImage) }}" alt="Foto Material" class="img-thumbnail rounded-3" style="max-height: 90px; object-fit: cover;" />
                                     <p class="text-secondary extra-small mb-0">
-                                        Foto material ini telah direkam oleh petugas logistik saat pertama kali diinput dan <strong>tidak dapat diubah</strong> demi menjamin keabsahan bukti audit stok.
+                                        Unggah file baru di bawah jika ingin mengganti foto material ini.
                                     </p>
                                 </div>
                             </div>
-                        @else
-                            <!-- Input Mode for New Material or Missing Photo -->
-                            <input type="file" wire:model="image" class="form-control" accept="image/*" capture="environment" />
-                            <div class="extra-small text-secondary mt-1">Ambil langsung dengan kamera HP atau unggah foto sampel material saat pertama diinput.</div>
-                            @error('image') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
+                        @endif
 
-                            @if ($image)
-                                <div class="mt-2">
-                                    <img src="{{ $image->temporaryUrl() }}" alt="Preview Foto" class="img-thumbnail rounded-3" style="max-height: 120px; object-fit: cover;" />
-                                </div>
-                            @endif
+                        <input type="file" wire:model="image" class="form-control" accept="image/jpeg,image/png,image/jpg,image/webp" capture="environment" />
+                        <div class="extra-small text-secondary mt-1">Format gambar: JPG, PNG, WEBP (Maksimal 5MB).</div>
+                        @error('image') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
+
+                        @if ($image)
+                            <div class="mt-2">
+                                <img src="{{ $image->temporaryUrl() }}" alt="Preview Foto" class="img-thumbnail rounded-3" style="max-height: 110px; object-fit: cover;" />
+                            </div>
                         @endif
                     </div>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showModal', false)">Batal</button>
-                    <button type="button" class="btn btn-success font-semibold" wire:click="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 py-3 px-4 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary fw-semibold px-3" wire:click="$set('showModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success fw-semibold px-4" wire:click="save" wire:loading.attr="disabled" wire:target="save">{{ $editMode ? 'Perbarui' : 'Simpan Material' }}</button>
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 
     <!-- Modal: Restock Material -->
     @if($showRestockModal)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <div>
                         <h5 class="modal-title font-outfit fw-bold">Restock Material</h5>
@@ -446,41 +492,45 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showRestockModal', false)">Batal</button>
-                    <button type="button" class="btn btn-success font-semibold" wire:click="saveRestock">Simpan Restock</button>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showRestockModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success fw-semibold" wire:click="saveRestock" wire:loading.attr="disabled" wire:target="saveRestock">Simpan Restock</button>
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 
     <!-- Confirmation Modal -->
     @if($showConfirmation)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title font-outfit fw-bold">{{ $confirmTitle ?? 'Konfirmasi' }}</h5>
                     <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)"></button>
                 </div>
-                <div class="modal-body py-3">
+                <div class="modal-body py-4">
                     <p class="text-secondary mb-0">{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-secondary btn-sm font-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
-                    <button type="button" class="btn btn-danger btn-sm font-semibold" wire:click="executeConfirmedAction">Ya, Hapus</button>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary btn-sm fw-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
+                    <button type="button" class="btn btn-danger btn-sm fw-semibold" wire:click="executeConfirmedAction" wire:loading.attr="disabled" wire:target="executeConfirmedAction">Ya, Hapus</button>
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 
     <!-- Import Excel Modal -->
     @if($showImportModal)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title font-outfit fw-bold d-flex align-items-center gap-2">
                         <svg width="20" height="20" fill="currentColor" class="text-primary" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
@@ -581,27 +631,29 @@
                         </div>
                     @endif
                 </div>
-                <div class="modal-footer border-top bg-light">
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
                     @if(!$importResultSummary)
-                        <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showImportModal', false)">Batal</button>
-                        <button type="button" class="btn btn-primary font-semibold" wire:click="importExcel" wire:loading.attr="disabled">
+                        <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showImportModal', false)">Batal</button>
+                        <button type="button" class="btn btn-primary fw-semibold" wire:click="importExcel" wire:loading.attr="disabled">
                             <svg width="14" height="14" fill="currentColor" class="me-1" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
                             Proses & Validasi Import
                         </button>
                     @else
-                        <button type="button" class="btn btn-success font-semibold px-4" wire:click="$set('showImportModal', false)">Tutup & Selesai</button>
+                        <button type="button" class="btn btn-success fw-semibold px-4" wire:click="$set('showImportModal', false)">Tutup & Selesai</button>
                     @endif
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 
     <!-- View Material Image Modal -->
     @if($showImageModal)
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6);" aria-modal="true" role="dialog">
+    @teleport('body')
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title font-outfit fw-bold d-flex align-items-center gap-2">
                         <svg width="18" height="18" fill="currentColor" class="text-info" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/></svg>
@@ -612,14 +664,15 @@
                 <div class="modal-body p-3 text-center bg-dark-subtle">
                     <img src="{{ $viewingImageUrl }}" alt="{{ $viewingImageMaterialName }}" class="img-fluid rounded-3 border shadow" style="max-height: 480px; object-fit: contain;" />
                 </div>
-                <div class="modal-footer border-top bg-light justify-content-between">
-                    <a href="{{ $viewingImageUrl }}" target="_blank" download class="btn btn-outline-primary btn-sm font-semibold d-inline-flex align-items-center gap-1">
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 justify-content-between">
+                    <a href="{{ $viewingImageUrl }}" target="_blank" download class="btn btn-outline-primary btn-sm fw-semibold d-inline-flex align-items-center gap-1">
                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg> Unduh Foto
                     </a>
-                    <button type="button" class="btn btn-secondary btn-sm font-semibold" wire:click="$set('showImageModal', false)">Tutup</button>
+                    <button type="button" class="btn btn-secondary btn-sm fw-semibold" wire:click="$set('showImageModal', false)">Tutup</button>
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 </div>

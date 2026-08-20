@@ -5,6 +5,7 @@ namespace App\Livewire\Logistik;
 use App\Models\House;
 use App\Models\MaterialUsage;
 use App\Models\ToolUsage;
+use App\Exports\HouseExport;
 use App\Exports\MaterialUsageExport;
 use App\Exports\ToolUsageExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -69,13 +70,8 @@ class HouseDetail extends Component
             return;
         }
 
-        if ($this->activeTab === 'material') {
-            $export = new MaterialUsageExport($this->house->id);
-            $filename = 'penggunaan-material-' . $this->house->house_code . '-' . now()->format('Ymd-His') . '.xlsx';
-        } else {
-            $export = new ToolUsageExport($this->house->id);
-            $filename = 'peminjaman-alat-' . $this->house->house_code . '-' . now()->format('Ymd-His') . '.xlsx';
-        }
+        $export = new HouseExport($this->house->id);
+        $filename = 'laporan-proyek-' . ($this->house->house_code ?: 'rumah') . '-' . now()->format('Ymd-His') . '.xlsx';
 
         return response()->streamDownload(function () use ($export) {
             echo Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX);

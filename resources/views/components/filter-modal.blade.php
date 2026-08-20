@@ -34,9 +34,10 @@
 
 {{-- Filter Modal using Livewire component state --}}
 @if($this->showFilterModal)
+@teleport('body')
 <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header border-bottom">
                 <h5 class="modal-title font-outfit fw-bold">Filter Pencarian</h5>
                 <button type="button" class="btn-close" wire:click="$set('showFilterModal', false)" aria-label="Close"></button>
@@ -46,11 +47,12 @@
                     {{ $slot }}
                 </div>
             </div>
-            <div class="modal-footer border-top bg-light">
-                <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showFilterModal', false)">Batal</button>
-                <button type="button" class="btn btn-success font-semibold" wire:click="applyFilters">Terapkan Filter</button>
+            <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showFilterModal', false)">Batal</button>
+                <button type="button" class="btn btn-success fw-semibold" wire:click="applyFilters">Terapkan Filter</button>
             </div>
         </div>
     </div>
 </div>
+@endteleport
 @endif

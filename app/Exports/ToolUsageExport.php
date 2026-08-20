@@ -10,12 +10,13 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
-class ToolUsageExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
+class ToolUsageExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle
 {
     use Exportable;
 
@@ -24,6 +25,11 @@ class ToolUsageExport implements FromQuery, WithHeadings, WithMapping, WithStyle
     public function __construct(
         private int $houseId
     ) {}
+
+    public function title(): string
+    {
+        return 'Peminjaman Alat';
+    }
 
     public function query()
     {

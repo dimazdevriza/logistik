@@ -20,6 +20,7 @@ class Tool extends Model
         'total_qty',
         'available_qty',
         'qty_broken',
+        'image',
     ];
 
     protected function casts(): array

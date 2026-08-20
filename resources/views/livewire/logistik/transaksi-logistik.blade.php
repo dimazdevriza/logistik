@@ -262,7 +262,10 @@
 
                     <div class="col-lg-3 col-6">
                         <label class="form-label fw-semibold">Qty / unit</label>
-                        <input type="number" step="0.01" wire:model.live="material_quantity" class="form-control font-mono" placeholder="0.00" />
+                        <div class="input-group">
+                            <input type="number" step="0.01" wire:model.live="material_quantity" class="form-control font-mono" placeholder="0.00" />
+                            <span class="input-group-text font-mono text-secondary small" x-text="mat ? mat.unit : 'unit'"></span>
+                        </div>
                         @error('material_quantity') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
 
@@ -405,7 +408,10 @@
 
                     <div class="col-lg-3 col-6">
                         <label class="form-label fw-semibold">Qty / unit</label>
-                        <input type="number" min="1" wire:model.live="tool_quantity" class="form-control font-mono" />
+                        <div class="input-group">
+                            <input type="number" min="1" wire:model.live="tool_quantity" class="form-control font-mono" />
+                            <span class="input-group-text font-mono text-secondary small">unit</span>
+                        </div>
                         @error('tool_quantity') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
 
@@ -640,6 +646,7 @@
 
     <!-- ===== Confirmation modals ===== -->
     @if($showMaterialConfirmation)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
@@ -666,9 +673,11 @@
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 
     @if($showToolConfirmation)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
@@ -695,9 +704,11 @@
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 
     @if($showReturnConfirmation)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
@@ -730,5 +741,6 @@
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 </div>

@@ -30,15 +30,25 @@ class Tools extends Component
     public $total_qty = 1;
     public $available_qty = 1;
     public $qty_broken = 0;
+    public $image = null;
+    public $existingImage = null;
     
     // Filters
+    public $sort = 'code_asc';
     public $filterCategory = '';
     public $filterCondition = '';
+    public $filterStock = '';
+    public $filterPhoto = '';
 
     // Import Modal State
     public $showImportModal = false;
     public $importFile = null;
     public $importResultSummary = null;
+
+    // Image Viewer Modal State
+    public $showImageModal = false;
+    public $viewingImageUrl = '';
+    public $viewingImageToolName = '';
 
     // Confirmation Modal State
     public $showConfirmation = false;
@@ -69,9 +79,33 @@ class Tools extends Component
     }
 
     public function updatingSearch(): void { $this->resetPage(); }
-
+    public function updatingSort(): void { $this->resetPage(); }
     public function updatingFilterCategory(): void { $this->resetPage(); }
     public function updatingFilterCondition(): void { $this->resetPage(); }
+    public function updatingFilterStock(): void { $this->resetPage(); }
+    public function updatingFilterPhoto(): void { $this->resetPage(); }
+
+    public function toggleSortDirection(): void
+    {
+        if (str_ends_with($this->sort, '_asc')) {
+            $this->sort = substr($this->sort, 0, -4) . '_desc';
+        } elseif (str_ends_with($this->sort, '_desc')) {
+            $this->sort = substr($this->sort, 0, -5) . '_asc';
+        } else {
+            $this->sort = 'code_desc';
+        }
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->sort = 'code_asc';
+        $this->filterCategory = '';
+        $this->filterCondition = '';
+        $this->filterStock = '';
+        $this->filterPhoto = '';
+        $this->resetPage();
+    }
 
     public function updatedCategoryId($value)
     {
@@ -110,13 +144,6 @@ class Tools extends Component
         return $prefix . $nextNumber;
     }
 
-    public function resetFilters()
-    {
-        $this->reset(['search', 'filterCategory', 'filterCondition']);
-        $this->showFilterModal = false;
-        $this->resetPage();
-    }
-
     protected function rules()
     {
         return [
@@ -128,6 +155,9 @@ class Tools extends Component
             'total_qty' => 'required|integer|min:1',
             'available_qty' => 'required|integer|min:0',
             'qty_broken' => 'required|integer|min:0',
+            'image' => ($this->editMode && $this->existingImage)
+                ? 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120'
+                : 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
     }
 
@@ -150,6 +180,8 @@ class Tools extends Component
         $this->total_qty = $tool->total_qty;
         $this->available_qty = $tool->available_qty;
         $this->qty_broken = $tool->qty_broken;
+        $this->existingImage = $tool->image;
+        $this->image = null;
         $this->editMode = true;
         $this->showModal = true;
     }
@@ -169,6 +201,10 @@ class Tools extends Component
             'qty_broken' => $this->qty_broken,
         ];
 
+        if ($this->image) {
+            $data['image'] = $this->image->store('tools', 'public');
+        }
+
         if ($this->editMode) {
             Tool::findOrFail($this->toolId)->update($data);
             session()->flash('success', 'Alat berhasil diperbarui.');
@@ -180,6 +216,16 @@ class Tools extends Component
         $this->showModal = false;
         $this->resetForm();
         $this->resetValidation();
+    }
+
+    public function showToolImage($toolId)
+    {
+        $tool = Tool::find($toolId);
+        if ($tool && $tool->image) {
+            $this->viewingImageUrl = asset('storage/' . $tool->image);
+            $this->viewingImageToolName = $tool->name;
+            $this->showImageModal = true;
+        }
     }
 
     public function delete($id)
@@ -201,6 +247,8 @@ class Tools extends Component
         $this->total_qty = 1;
         $this->available_qty = 1;
         $this->qty_broken = 0;
+        $this->image = null;
+        $this->existingImage = null;
         $this->resetValidation();
     }
 
@@ -263,13 +311,43 @@ class Tools extends Component
 
     public function render()
     {
-        $tools = Tool::with(['category'])
-            ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%")
-                ->orWhere('code', 'like', "%{$this->search}%"))
+        $query = Tool::with(['category'])
+            ->when($this->search, fn ($q) => $q->where(function ($sub) {
+                $sub->where('name', 'like', "%{$this->search}%")
+                    ->orWhere('code', 'like', "%{$this->search}%");
+            }))
             ->when($this->filterCategory, fn ($q) => $q->where('category_id', $this->filterCategory))
             ->when($this->filterCondition, fn ($q) => $q->where('condition', $this->filterCondition))
-            ->orderBy('code')
-            ->paginate(10);
+            ->when($this->filterStock, function ($q) {
+                match ($this->filterStock) {
+                    'available' => $q->where('available_qty', '>', 0),
+                    'empty' => $q->where('available_qty', '<=', 0),
+                    'broken' => $q->where('qty_broken', '>', 0),
+                    default => null,
+                };
+            })
+            ->when($this->filterPhoto, function ($q) {
+                match ($this->filterPhoto) {
+                    'has_photo' => $q->whereNotNull('image')->where('image', '!=', ''),
+                    'no_photo' => $q->where(fn($sub) => $sub->whereNull('image')->orWhere('image', '')),
+                    default => null,
+                };
+            });
+
+        match ($this->sort) {
+            'date_desc' => $query->orderBy('created_at', 'desc'),
+            'date_asc' => $query->orderBy('created_at', 'asc'),
+            'name_asc' => $query->orderBy('name', 'asc'),
+            'name_desc' => $query->orderBy('name', 'desc'),
+            'qty_desc' => $query->orderBy('total_qty', 'desc'),
+            'qty_asc' => $query->orderBy('total_qty', 'asc'),
+            'price_desc' => $query->orderBy('purchase_price', 'desc'),
+            'price_asc' => $query->orderBy('purchase_price', 'asc'),
+            'code_desc' => $query->orderBy('code', 'desc'),
+            default => $query->orderBy('code', 'asc'),
+        };
+
+        $tools = $query->paginate(10);
 
         $categories = Category::where('type', 'tool')->orderBy('name')->get()->unique('name');
 

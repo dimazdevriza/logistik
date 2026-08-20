@@ -45,7 +45,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="small fw-bold text-secondary text-uppercase tracking-wider">Total Alat</span>
                         <div class="p-2 bg-primary-subtle text-primary rounded d-flex align-items-center justify-content-center">
-                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M1 0 0 1l2.2 3.081a1 1 0 0 0 .815.419h.07a1 1 0 0 1 .708.293l2.675 2.675-2.617 2.654A3.003 3.003 0 0 0 0 13a3 3 0 1 0 5.293-1.971l2.646-2.646 2.675 2.675a1 1 0 0 1 .293.707v.07a1 1 0 0 0 .419.815L15 16l1-1-3.081-2.2a1 1 0 0 0-.815-.419h-.07a1 1 0 0 1-.708-.293L8.65 9.412l2.617-2.654A3.003 3.003 0 0 0 16 3a3 3 0 1 0-5.293 1.971L8.06 7.618 5.386 4.943a1 1 0 0 1-.293-.707v-.07a1 1 0 0 0-.419-.815z"/></svg>
+                            <svg width="18" height="18" fill="currentColor"><use href="#i-wrench"/></svg>
                         </div>
                     </div>
                     <div>
@@ -76,7 +76,39 @@
                 <div class="w-100 max-w-sm">
                     <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama atau kode alat..." class="form-control" />
                 </div>
-                <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
+                <div class="d-flex align-items-center gap-2">
+                    <button 
+                        type="button" 
+                        wire:click="toggleSortDirection" 
+                        class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center shadow-xs" 
+                        style="height: 38px; min-width: 38px; padding: 0 10px;"
+                        title="Urutan: {{ str_ends_with($sort, '_asc') ? 'Ascending (A-Z / Terendah / Terlama)' : 'Descending (Z-A / Tertinggi / Terbaru)' }}"
+                    >
+                        @if(str_ends_with($sort, '_asc'))
+                            {{-- Arrow Up / Ascending --}}
+                            <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5"/></svg>
+                        @else
+                            {{-- Arrow Down / Descending --}}
+                            <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1"/></svg>
+                        @endif
+                    </button>
+
+                    <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-secondary">Urutkan Berdasarkan</label>
+                        <select wire:model.live="sort" class="form-select">
+                            <option value="code_asc">Kode Alat (A-Z)</option>
+                            <option value="code_desc">Kode Alat (Z-A)</option>
+                            <option value="name_asc">Nama Alat (A-Z)</option>
+                            <option value="name_desc">Nama Alat (Z-A)</option>
+                            <option value="date_desc">Tanggal Ditambahkan (Terbaru)</option>
+                            <option value="date_asc">Tanggal Ditambahkan (Terlama)</option>
+                            <option value="qty_desc">Total Qty (Tertinggi)</option>
+                            <option value="qty_asc">Total Qty (Terendah)</option>
+                            <option value="price_desc">Harga Beli (Tertinggi)</option>
+                            <option value="price_asc">Harga Beli (Terendah)</option>
+                        </select>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-secondary">Kategori</label>
                         <select wire:model.live="filterCategory" class="form-select">
@@ -95,7 +127,25 @@
                             <option value="hilang">Hilang</option>
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-secondary">Status Stok</label>
+                        <select wire:model.live="filterStock" class="form-select">
+                            <option value="">Semua Status Stok</option>
+                            <option value="available">Tersedia di Stok (> 0)</option>
+                            <option value="empty">Stok Habis / Terpinjam Semua (0)</option>
+                            <option value="broken">Memiliki Alat Rusak (> 0)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-secondary">Foto Alat</label>
+                        <select wire:model.live="filterPhoto" class="form-select">
+                            <option value="">Semua Alat</option>
+                            <option value="has_photo">Memiliki Foto</option>
+                            <option value="no_photo">Belum Ada Foto</option>
+                        </select>
+                    </div>
                 </x-filter-modal>
+                </div>
             </div>
         </div>
 
@@ -106,6 +156,7 @@
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
                             <th class="text-center" style="width: 50px;">No.</th>
+                            <th class="text-center" style="width: 60px;">Foto</th>
                             <th>Kode</th>
                             <th>Nama</th>
                             <th>Kategori</th>
@@ -114,13 +165,23 @@
                             <th class="text-center">Total</th>
                             <th class="text-center">Rusak</th>
                             <th class="text-center">Tersedia</th>
-                            <th class="text-end" style="width: 100px;">Aksi</th>
+                            <th class="text-center">Tanggal Masuk</th>
+                            <th class="text-end" style="width: 140px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($tools as $tool)
                         <tr wire:key="tool-{{ $tool->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $tool->id }}) }">
                             <td class="text-center text-secondary small">{{ ($tools->currentPage() - 1) * $tools->perPage() + $loop->iteration }}</td>
+                            <td class="text-center">
+                                @if($tool->image)
+                                    <button type="button" wire:click.stop="showToolImage({{ $tool->id }})" class="btn btn-link p-0 border-0" title="Klik untuk memperbesar foto">
+                                        <img src="{{ asset('storage/' . $tool->image) }}" alt="{{ $tool->name }}" class="rounded-2 border shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" />
+                                    </button>
+                                @else
+                                    <span class="badge bg-body-secondary text-secondary font-mono small" title="Belum ada foto">—</span>
+                                @endif
+                            </td>
                             <td class="font-mono text-secondary small">{{ $tool->code }}</td>
                             <td class="fw-bold text-body">{{ $tool->name }}</td>
                             <td class="text-secondary small">{{ $tool->category?->name ?? '-' }}</td>
@@ -138,8 +199,16 @@
                             <td class="text-center">
                                 <span class="{{ $tool->available_qty === 0 ? 'badge bg-danger-subtle text-danger' : 'fw-bold' }}">{{ $tool->available_qty }}</span>
                             </td>
+                            <td class="text-center font-mono text-secondary small">
+                                <div>{{ $tool->created_at ? $tool->created_at->format('d/m/Y H:i') : '-' }}</div>
+                            </td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
+                                    @if($tool->image)
+                                        <button type="button" wire:click.stop="showToolImage({{ $tool->id }})" class="btn btn-outline-info d-inline-flex align-items-center justify-content-center" title="Lihat Foto Alat">
+                                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/></svg>
+                                        </button>
+                                    @endif
                                     <button type="button" wire:click="edit({{ $tool->id }})" class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-center" title="Edit">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>
                                     </button>
@@ -151,7 +220,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="10" class="text-center py-4 text-secondary">Belum ada data alat.</td>
+                            <td colspan="12" class="text-center py-4 text-secondary">Belum ada data alat.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -164,22 +233,28 @@
 
     <!-- Modal: Create / Edit Tool -->
     @if($showModal)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header border-bottom">
-                    <h5 class="modal-title font-outfit fw-bold">{{ $editMode ? 'Edit Alat' : 'Tambah Alat' }}</h5>
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header border-bottom py-3 px-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success p-2" style="width: 32px; height: 32px;">
+                            <svg width="16" height="16" fill="currentColor"><use href="#i-wrench"/></svg>
+                        </span>
+                        <h5 class="modal-title font-outfit fw-bold text-body mb-0">{{ $editMode ? 'Edit Alat Kerja' : 'Tambah Alat Kerja Baru' }}</h5>
+                    </div>
                     <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
                 </div>
-                <div class="modal-body py-4">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label font-semibold">Nama Alat</label>
-                        <input type="text" wire:model="name" class="form-control" placeholder="Contoh: Molen Beton" />
+                        <label class="form-label font-semibold small text-secondary">Nama Alat <span class="text-danger">*</span></label>
+                        <input type="text" wire:model="name" class="form-control" placeholder="Contoh: Molen Beton 500L" />
                         @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label font-semibold">Kategori</label>
+                            <label class="form-label font-semibold small text-secondary">Kategori <span class="text-danger">*</span></label>
                             <select wire:model.live="category_id" class="form-select">
                                 <option value="">-- Pilih Kategori --</option>
                                 @foreach ($categories as $cat)
@@ -189,25 +264,25 @@
                             @error('category_id') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label font-semibold">Kode Aset</label>
+                            <label class="form-label font-semibold small text-secondary">Kode Aset</label>
                             <div class="input-group">
-                                <input type="text" wire:model="code" class="form-control bg-light" readonly placeholder="Pilih kategori..." />
-                                <span class="input-group-text small fw-bold text-success font-geist">Otomatis</span>
+                                <input type="text" wire:model="code" class="form-control bg-body-secondary font-mono" readonly placeholder="Pilih kategori..." />
+                                <span class="input-group-text small fw-bold text-success font-geist bg-body-secondary">Otomatis</span>
                             </div>
                             @error('code') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label font-semibold">Kondisi</label>
-                        <select wire:model="condition" class="form-select">
-                            <option value="baik">Baik</option>
-                            <option value="rusak">Rusak</option>
-                            <option value="hilang">Hilang</option>
-                        </select>
-                        @error('condition') <span class="text-danger small">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-4" x-data="{ 
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold small text-secondary">Kondisi Awal</label>
+                            <select wire:model="condition" class="form-select">
+                                <option value="baik">Baik (Layak Pakai)</option>
+                                <option value="rusak">Rusak</option>
+                                <option value="hilang">Hilang</option>
+                            </select>
+                            @error('condition') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-6" x-data="{ 
                             display: '',
                             init() {
                                 this.display = this.format($wire.purchase_price);
@@ -230,62 +305,104 @@
                                 return 'Rp ' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                             }
                         }">
-                            <label class="form-label font-semibold">Harga Beli</label>
-                            <input type="text" x-ref="input" x-model="display" class="form-control" />
+                            <label class="form-label font-semibold small text-secondary">Harga Beli / Unit</label>
+                            <input type="text" x-ref="input" x-model="display" class="form-control font-mono" placeholder="Rp 0" />
                             @error('purchase_price') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label font-semibold">Total Qty</label>
-                            <input type="number" wire:model="total_qty" class="form-control" />
-                            @error('total_qty') <span class="text-danger small">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label font-semibold">Tersedia</label>
-                            <input type="number" wire:model="available_qty" class="form-control" />
-                            @error('available_qty') <span class="text-danger small">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label font-semibold">Rusak</label>
-                            <input type="number" wire:model="qty_broken" class="form-control" />
-                            @error('qty_broken') <span class="text-danger small">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="card bg-body-tertiary border p-3 rounded-3 mb-3">
+                        <h6 class="fw-bold font-outfit text-body mb-3 small text-uppercase font-geist">Kuantitas Stok Alat</h6>
+                        <div class="row g-3">
+                            <div class="col-4">
+                                <label class="form-label font-semibold extra-small text-secondary">Total Qty</label>
+                                <input type="number" wire:model="total_qty" class="form-control font-mono fw-bold" min="0" />
+                                @error('total_qty') <span class="text-danger extra-small">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label font-semibold extra-small text-success">Tersedia</label>
+                                <input type="number" wire:model="available_qty" class="form-control font-mono fw-bold text-success" min="0" />
+                                @error('available_qty') <span class="text-danger extra-small">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label font-semibold extra-small text-danger">Rusak</label>
+                                <input type="number" wire:model="qty_broken" class="form-control font-mono fw-bold text-danger" min="0" />
+                                @error('qty_broken') <span class="text-danger extra-small">{{ $message }}</span> @enderror
+                            </div>
                         </div>
                     </div>
+
+                    <div>
+                        <label class="form-label font-semibold small text-secondary d-inline-flex align-items-center gap-1">
+                            <svg width="14" height="14" fill="currentColor" aria-hidden="true"><use href="#i-camera"/></svg> Foto Alat Kerja @if(!$editMode || !$existingImage)<span class="text-danger">*</span>@endif
+                        </label>
+
+                        @if ($existingImage && !$image)
+                            <div class="p-3 border rounded-3 bg-body-tertiary mb-2">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                        Foto Saat Ini
+                                    </span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <img src="{{ asset('storage/' . $existingImage) }}" alt="Foto Alat" class="img-thumbnail rounded-3" style="max-height: 90px; object-fit: cover;" />
+                                    <p class="text-secondary extra-small mb-0">
+                                        Unggah file baru di bawah ini jika ingin mengganti foto alat kerja ini.
+                                    </p>
+                                </div>
+                            </div>
+                        @endif
+
+                        <input type="file" wire:model="image" class="form-control" accept="image/jpeg,image/png,image/jpg,image/webp" capture="environment" />
+                        <div class="extra-small text-secondary mt-1">Format gambar: JPG, PNG, WEBP (Maksimal 5MB).</div>
+                        @error('image') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
+
+                        @if ($image)
+                            <div class="mt-2">
+                                <img src="{{ $image->temporaryUrl() }}" alt="Preview Foto" class="img-thumbnail rounded-3" style="max-height: 110px; object-fit: cover;" />
+                            </div>
+                        @endif
+                    </div>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showModal', false)">Batal</button>
-                    <button type="button" class="btn btn-success font-semibold" wire:click="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</button>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 py-3 px-4 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary fw-semibold px-3" wire:click="$set('showModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success fw-semibold px-4" wire:click="save" wire:loading.attr="disabled" wire:target="save">{{ $editMode ? 'Perbarui Alat' : 'Simpan Alat' }}</button>
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 
     <!-- Confirmation Modal -->
     @if($showConfirmation)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title font-outfit fw-bold">{{ $confirmTitle ?? 'Konfirmasi' }}</h5>
                     <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)"></button>
                 </div>
-                <div class="modal-body py-3">
+                <div class="modal-body py-4">
                     <p class="text-secondary mb-0">{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-secondary btn-sm font-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
-                    <button type="button" class="btn btn-danger btn-sm font-semibold" wire:click="executeConfirmedAction">{{ $confirmingAction === 'fixTool' ? 'Ya, Konfirmasi' : 'Ya, Hapus' }}</button>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary btn-sm fw-semibold" wire:click="$set('showConfirmation', false)">Batal</button>
+                    <button type="button" class="btn btn-danger btn-sm fw-semibold" wire:click="executeConfirmedAction" wire:loading.attr="disabled" wire:target="executeConfirmedAction">{{ $confirmingAction === 'fixTool' ? 'Ya, Konfirmasi' : 'Ya, Hapus' }}</button>
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
     @endif
 
     <!-- Import Excel Modal -->
     @if($showImportModal)
+    @teleport('body')
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title font-outfit fw-bold d-flex align-items-center gap-2">
                         <svg width="20" height="20" fill="currentColor" class="text-primary" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
@@ -386,19 +503,48 @@
                         </div>
                     @endif
                 </div>
-                <div class="modal-footer border-top bg-light">
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
                     @if(!$importResultSummary)
-                        <button type="button" class="btn btn-secondary font-semibold" wire:click="$set('showImportModal', false)">Batal</button>
-                        <button type="button" class="btn btn-primary font-semibold" wire:click="importExcel" wire:loading.attr="disabled">
+                        <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showImportModal', false)">Batal</button>
+                        <button type="button" class="btn btn-primary fw-semibold" wire:click="importExcel" wire:loading.attr="disabled">
                             <svg width="14" height="14" fill="currentColor" class="me-1" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
                             Proses & Validasi Import
                         </button>
                     @else
-                        <button type="button" class="btn btn-success font-semibold px-4" wire:click="$set('showImportModal', false)">Tutup & Selesai</button>
+                        <button type="button" class="btn btn-success fw-semibold px-4" wire:click="$set('showImportModal', false)">Tutup & Selesai</button>
                     @endif
                 </div>
             </div>
         </div>
     </div>
+    @endteleport
+    @endif
+
+    <!-- View Tool Image Modal -->
+    @if($showImageModal)
+    @teleport('body')
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold d-flex align-items-center gap-2">
+                        <svg width="18" height="18" fill="currentColor" class="text-info"><use href="#i-eye"/></svg>
+                        Foto Alat: {{ $viewingImageToolName }}
+                    </h5>
+                    <button type="button" class="btn-close" wire:click="$set('showImageModal', false)"></button>
+                </div>
+                <div class="modal-body p-3 text-center bg-dark-subtle">
+                    <img src="{{ $viewingImageUrl }}" alt="{{ $viewingImageToolName }}" class="img-fluid rounded-3 border shadow" style="max-height: 480px; object-fit: contain;" />
+                </div>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 justify-content-between">
+                    <a href="{{ $viewingImageUrl }}" target="_blank" download class="btn btn-outline-primary btn-sm fw-semibold d-inline-flex align-items-center gap-1">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg> Unduh Foto
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm fw-semibold" wire:click="$set('showImageModal', false)">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endteleport
     @endif
 </div>

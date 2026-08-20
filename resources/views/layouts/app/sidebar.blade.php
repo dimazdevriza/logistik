@@ -56,12 +56,12 @@
 <head>
     @include('partials.head')
     <script>
-        // Applied before first paint so the theme and sidebar rail state never flash.
-        (function () {
+        // Applied before first paint and on every Livewire navigation so selected theme is preserved
+        function applyTheme() {
             try {
                 var t = localStorage.getItem('theme');
                 if (t !== 'light' && t !== 'dark') {
-                    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    t = 'light'; // default is light (white)
                 }
                 document.documentElement.setAttribute('data-bs-theme', t);
 
@@ -69,7 +69,9 @@
                     document.documentElement.classList.add('is-rail-initial');
                 }
             } catch (e) {}
-        })();
+        }
+        applyTheme();
+        document.addEventListener('livewire:navigated', applyTheme);
     </script>
 </head>
 <body class="bg-body">
@@ -188,9 +190,9 @@
         </aside>
 
         <div class="main-content min-vh-100 d-flex flex-column">
-            <!-- Mobile top bar with expandable dropdown accordion -->
-            <header class="app-header-mobile d-lg-none sticky-top border shadow-sm rounded-4 overflow-hidden mb-3" style="top: 0.5rem; z-index: 1020; transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
-                <div class="d-flex align-items-center justify-content-between px-3" style="min-height: 56px;">
+            <!-- Mobile top bar header (Single Seamless Expanding Capsule) -->
+            <header class="app-header-mobile d-lg-none sticky-top border shadow-sm rounded-4 mb-3 overflow-hidden" style="top: 0.5rem; z-index: 1060;">
+                <div class="d-flex align-items-center justify-content-between px-3" style="height: 56px; min-height: 56px;">
                     <div class="d-flex align-items-center gap-2 overflow-hidden">
                         <button type="button" class="btn btn-icon text-body p-2 d-inline-flex align-items-center justify-content-center rounded-3 hover-bg border-0 bg-transparent" @click="mobileOpen = !mobileOpen" aria-label="Buka menu">
                             <svg width="18" height="18" fill="currentColor" aria-hidden="true" :style="mobileOpen ? 'transform: rotate(90deg); transition: transform 0.2s ease;' : 'transition: transform 0.2s ease;'"><use href="#i-menu"/></svg>
@@ -202,9 +204,6 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-success-subtle text-success border border-success-subtle font-outfit fw-bold px-2.5 py-1.5 rounded-pill extra-small">
-                            {{ $title ?? "D'Royal Logistik" }}
-                        </span>
                         <button type="button" class="btn p-0 border-0" @click="mobileOpen = !mobileOpen">
                             <span class="d-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success fw-bold extra-small" style="width: 32px; height: 32px;">
                                 {{ $user?->initials() }}
@@ -213,12 +212,12 @@
                     </div>
                 </div>
 
-                <!-- Smoothly expanding navigation accordion content -->
+                <!-- Seamless Expandable Navigation Accordion Inside the Header -->
                 <div 
                     x-show="mobileOpen" 
                     x-collapse
                     class="border-top px-3 py-3 overflow-y-auto"
-                    style="max-height: calc(80vh - 56px);"
+                    style="max-height: calc(85vh - 70px);"
                 >
                     <nav class="d-flex flex-column gap-1">
                         @foreach ($sections as $section)
@@ -264,9 +263,24 @@
                 </div>
             </header>
 
-            <main class="flex-grow-1 p-0 d-flex flex-column overflow-hidden">
+            <!-- Dim backdrop when mobile menu is expanded -->
+            <div 
+                x-show="mobileOpen" 
+                x-cloak 
+                @click="mobileOpen = false"
+                class="position-fixed inset-0 d-lg-none"
+                style="z-index: 1055; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+            ></div>
+
+            <main class="flex-grow-1 p-0 d-flex flex-column overflow-lg-hidden">
                 <div 
-                    class="main-card-container p-4 flex-grow-1 scroll-fade"
+                    class="main-card-container p-3 p-md-4 flex-grow-1 scroll-fade"
                     x-data="{ isScrolling: false, scrollTimer: null }"
                     :class="{ 'is-scrolling': isScrolling }"
                     @scroll="
