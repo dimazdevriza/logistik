@@ -3,14 +3,12 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 
-// Root / IS the Login page
-Route::get('/', fn () => view('livewire.auth.login'))->middleware('guest')->name('login');
+// Root / and home redirect to Login page
+Route::get('/', fn () => redirect()->route('login'));
 Route::get('home', fn () => redirect()->route('login'))->name('home');
 
 // Redirect any attempts to reach the (now disabled) registration page
-Route::get('register', function () {
-    return redirect()->route('login');
-});
+Route::get('register', fn () => redirect()->route('login'));
 
 // Google OAuth Sign-In (Whitelist model)
 Route::get('auth/google', [App\Http\Controllers\Auth\GoogleController::class, 'redirect'])->name('auth.google');
