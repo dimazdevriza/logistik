@@ -397,7 +397,7 @@
                             </div>
                         @endif
 
-                        <input type="file" wire:model="image" class="form-control" accept="image/jpeg,image/png,image/jpg,image/webp" capture="environment" />
+                        <input type="file" wire:model="image" class="form-control" accept="image/jpeg,image/png,image/jpg,image/webp" />
                         <div class="extra-small text-secondary mt-1">Format gambar: JPG, PNG, WEBP (Maksimal 5MB).</div>
                         @error('image') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
 
@@ -530,7 +530,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label font-semibold">Foto Bukti / Surat Jalan <span class="text-secondary fw-normal">(opsional)</span></label>
-                            <input type="file" wire:model="restockProofImage" accept="image/*" capture="environment" class="form-control" />
+                            <input type="file" wire:model="restockProofImage" accept="image/*" class="form-control" />
                             @error('restockProofImage') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     </div>

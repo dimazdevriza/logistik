@@ -347,7 +347,7 @@
                         <label class="form-label fw-semibold d-inline-flex align-items-center gap-1">
                             <svg width="14" height="14" fill="currentColor"><use href="#i-camera"/></svg> Foto Bukti Pengiriman (Opsional)
                         </label>
-                        <input type="file" wire:model="proof_image" class="form-control" accept="image/*" capture="environment" />
+                        <input type="file" wire:model="proof_image" class="form-control" accept="image/*" />
                         <div class="extra-small text-secondary mt-1">Ambil atau unggah foto bukti saat material tiba di lokasi unit rumah.</div>
                         @error('proof_image') <span class="text-danger small fw-semibold d-block mt-1">{{ $message }}</span> @enderror
                     </div>
@@ -506,7 +506,7 @@
                         <label class="form-label fw-semibold d-inline-flex align-items-center gap-1">
                             <svg width="14" height="14" fill="currentColor"><use href="#i-camera"/></svg> Foto Bukti Pengiriman (Opsional)
                         </label>
-                        <input type="file" wire:model="proof_image" class="form-control" accept="image/*" capture="environment" />
+                        <input type="file" wire:model="proof_image" class="form-control" accept="image/*" />
                         <div class="extra-small text-secondary mt-1">Ambil atau unggah foto bukti saat alat tiba di lokasi unit rumah.</div>
                         @error('proof_image') <span class="text-danger small fw-semibold d-block mt-1">{{ $message }}</span> @enderror
                     </div>

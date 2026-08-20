@@ -181,7 +181,7 @@
                                 <p class="text-secondary small mb-3">Ambil atau unggah foto barang yang sudah sampai di unit lokasi pembangunan sebagai verifikasi.</p>
                                 <div>
                                     <label class="form-label fw-semibold">Foto Bukti Barang Tiba</label>
-                                    <input type="file" wire:model="arrivalProofImage" accept="image/*" capture="environment" class="form-control" />
+                                    <input type="file" wire:model="arrivalProofImage" accept="image/*" class="form-control" />
                                     @error('arrivalProofImage') <span class="text-danger small">{{ $message }}</span> @enderror
                                 </div>
                             </div>
