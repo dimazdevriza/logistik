@@ -24,7 +24,8 @@ yarn-error.log
 /.qoder
 
 # Test screenshots and temporary files
-*.png
+test-*.png
+screenshot-*.png
 *.pdf
 temp_fix_cats.php
 test_component.php
