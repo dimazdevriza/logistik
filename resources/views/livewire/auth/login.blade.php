@@ -25,14 +25,7 @@
 
             <!-- Password -->
             <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <label for="password" class="form-label font-semibold small text-body mb-0">{{ __('Kata Sandi') }}</label>
-                    @if (Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" class="small text-success text-decoration-none font-medium" wire:navigate>
-                            {{ __('Lupa kata sandi?') }}
-                        </a>
-                    @endif
-                </div>
+                <label for="password" class="form-label font-semibold small text-body">{{ __('Kata Sandi') }}</label>
                 <input
                     id="password"
                     name="password"
