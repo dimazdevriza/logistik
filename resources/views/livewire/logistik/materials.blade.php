@@ -397,7 +397,7 @@
                             </div>
                         @endif
 
-                        <input type="file" wire:model="image" class="form-control" accept="image/jpeg,image/png,image/jpg,image/webp" />
+                        <input type="file" wire:model="image" class="form-control" accept="image/*" />
                         <div class="extra-small text-secondary mt-1">Format gambar: JPG, PNG, WEBP (Maksimal 5MB).</div>
                         @error('image') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
 
