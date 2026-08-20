@@ -200,7 +200,14 @@
 
                 <div class="row g-3">
                     <div class="col-lg-6">
-                        <label class="form-label fw-semibold">Material</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label fw-semibold mb-0">Material</label>
+                            <template x-if="mat">
+                                <span class="extra-small font-mono text-secondary">
+                                    Stok: <strong class="text-body" x-text="mat.stock + ' ' + mat.unit"></strong>
+                                </span>
+                            </template>
+                        </div>
                         <div class="position-relative" @click.outside="matPickerOpen = false">
                             <button
                                 type="button"
@@ -209,7 +216,7 @@
                             >
                                 <span class="text-truncate me-2" :class="mat ? 'text-body fw-semibold' : 'text-secondary'">
                                     <template x-if="mat">
-                                        <span x-text="mat.name + ' — ' + rp(mat.unit_price) + ' / ' + mat.unit + ' (stok ' + mat.stock + ')'"></span>
+                                        <span x-text="mat.name + ' — ' + rp(mat.unit_price) + ' / ' + mat.unit"></span>
                                     </template>
                                     <template x-if="!mat">
                                         <span>— Pilih material —</span>
@@ -261,7 +268,14 @@
                     </div>
 
                     <div class="col-lg-3 col-6">
-                        <label class="form-label fw-semibold">Qty / unit</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label fw-semibold mb-0">Qty / unit</label>
+                            <template x-if="mat">
+                                <span class="extra-small font-mono text-secondary" :class="mat.stock < totalQty ? 'text-danger fw-bold' : ''">
+                                    Maks: <span x-text="mat.stock"></span>
+                                </span>
+                            </template>
+                        </div>
                         <div class="input-group">
                             <input type="number" step="0.01" wire:model.live="material_quantity" class="form-control font-mono" placeholder="0.00" />
                             <span class="input-group-text font-mono text-secondary small" x-text="mat ? mat.unit : 'unit'"></span>
@@ -343,21 +357,27 @@
             <!-- ---- Tool checkout ---- -->
             <div x-show="activeTab === 'tool'" x-cloak>
                 <h6 class="fw-bold font-outfit text-body mb-3">Detail Peminjaman Alat</h6>
-
                 <div class="row g-3">
                     <div class="col-lg-6">
-                        <label class="form-label fw-semibold">Alat</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label fw-semibold mb-0">Alat Kerja</label>
+                            <template x-if="selectedTool">
+                                <span class="extra-small font-mono text-secondary">
+                                    Tersedia: <strong class="text-body" x-text="selectedTool.available_qty + ' unit'"></strong>
+                                </span>
+                            </template>
+                        </div>
                         <div class="position-relative" @click.outside="toolPickerOpen = false">
                             <button
                                 type="button"
                                 class="form-select text-start d-flex align-items-center justify-content-between pe-3"
                                 @click="toolPickerOpen = !toolPickerOpen"
                             >
-                                <span class="text-truncate me-2" :class="tool ? 'text-body fw-semibold' : 'text-secondary'">
-                                    <template x-if="tool">
-                                        <span x-text="tool.name + ' — ' + tool.code + ' (tersedia ' + tool.available_qty + ')'"></span>
+                                <span class="text-truncate me-2" :class="selectedTool ? 'text-body fw-semibold' : 'text-secondary'">
+                                    <template x-if="selectedTool">
+                                        <span x-text="selectedTool.name + ' (' + selectedTool.code + ')'"></span>
                                     </template>
-                                    <template x-if="!tool">
+                                    <template x-if="!selectedTool">
                                         <span>— Pilih alat —</span>
                                     </template>
                                 </span>
@@ -407,7 +427,14 @@
                     </div>
 
                     <div class="col-lg-3 col-6">
-                        <label class="form-label fw-semibold">Qty / unit</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label fw-semibold mb-0">Qty / unit</label>
+                            <template x-if="selectedTool">
+                                <span class="extra-small font-mono text-secondary" :class="selectedTool.available_qty < toolTotalQty ? 'text-danger fw-bold' : ''">
+                                    Maks: <span x-text="selectedTool.available_qty"></span>
+                                </span>
+                            </template>
+                        </div>
                         <div class="input-group">
                             <input type="number" min="1" wire:model.live="tool_quantity" class="form-control font-mono" />
                             <span class="input-group-text font-mono text-secondary small">unit</span>

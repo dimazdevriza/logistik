@@ -258,27 +258,54 @@
                             </select>
                             @error('category_id') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
-                        <div class="col-md-6" x-data="{ isNew: false }">
+                        <div class="col-md-6" x-data="{ supPickerOpen: false, supSearch: '' }">
                             <label class="form-label font-semibold small text-secondary">Mitra Supplier</label>
-                            <template x-if="!isNew">
-                                <select 
-                                    wire:model="supplier_name" 
-                                    class="form-select"
-                                    @change="if ($el.value === '__NEW__') { isNew = true; $wire.set('supplier_name', ''); }"
-                                >
-                                    <option value="">-- Pilih Supplier --</option>
-                                    @foreach ($suppliers as $sup)
-                                        <option value="{{ $sup->name }}">{{ $sup->name }}</option>
-                                    @endforeach
-                                    <option value="__NEW__">+ Tambah Supplier Baru...</option>
-                                </select>
-                            </template>
-                            <template x-if="isNew">
-                                <div class="input-group">
-                                    <input type="text" wire:model="supplier_name" class="form-control" placeholder="Ketik nama supplier baru..." autofocus />
-                                    <button type="button" class="btn btn-outline-secondary" @click="isNew = false; $wire.set('supplier_name', '');" title="Kembali ke daftar">✕</button>
+                            <div class="position-relative" @click.outside="supPickerOpen = false">
+                                <div class="position-relative d-flex align-items-center">
+                                    <input
+                                        type="text"
+                                        wire:model="supplier_name"
+                                        class="form-control pe-5"
+                                        placeholder="Pilih atau ketik nama supplier..."
+                                        @focus="supPickerOpen = true; supSearch = $wire.supplier_name || ''"
+                                        @input="supPickerOpen = true; supSearch = $el.value"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="btn btn-link text-secondary text-decoration-none position-absolute end-0 me-2 p-1 d-flex align-items-center"
+                                        @click="supPickerOpen = !supPickerOpen; supSearch = $wire.supplier_name || ''"
+                                        aria-label="Tampilkan pilihan supplier"
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="transition-transform" :class="supPickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </button>
                                 </div>
-                            </template>
+
+                                <div
+                                    x-show="supPickerOpen"
+                                    x-cloak
+                                    class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden"
+                                    style="max-height: 200px; z-index: 1050;"
+                                >
+                                    <div class="p-1.5" style="max-height: 190px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                        @foreach ($suppliers as $sup)
+                                            <button
+                                                type="button"
+                                                class="dropdown-item rounded-2 py-2 px-3 text-start w-100 font-semibold"
+                                                :class="$wire.supplier_name === @js($sup->name) ? 'active bg-success text-white' : ''"
+                                                x-show="supSearch === '' || @js(strtolower($sup->name)).includes(supSearch.toLowerCase())"
+                                                @click="$wire.supplier_name = @js($sup->name); supPickerOpen = false; supSearch = @js($sup->name);"
+                                            >
+                                                {{ $sup->name }}
+                                            </button>
+                                        @endforeach
+                                        <div x-show="supSearch !== '' && !@js($suppliers->pluck('name')->map(fn($n) => strtolower($n))->all()).includes(supSearch.toLowerCase())" class="p-2 border-top extra-small text-secondary bg-body-tertiary">
+                                            <span>Ketik <strong>&quot;<span x-text="supSearch"></span>&quot;</strong> untuk menambahkan supplier baru secara otomatis saat disimpan.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             @error('supplier_name') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>
@@ -445,27 +472,54 @@
                             @error('restockUnitPrice') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div class="mb-3" x-data="{ isNew: false }">
+                    <div class="mb-3" x-data="{ supPickerOpen: false, supSearch: '' }">
                         <label class="form-label font-semibold">Supplier</label>
-                        <template x-if="!isNew">
-                            <select 
-                                wire:model="restockSupplierName" 
-                                class="form-select"
-                                @change="if ($el.value === '__NEW__') { isNew = true; $wire.set('restockSupplierName', ''); }"
-                            >
-                                <option value="">-- Pilih Supplier --</option>
-                                @foreach ($suppliers as $sup)
-                                    <option value="{{ $sup->name }}">{{ $sup->name }}</option>
-                                @endforeach
-                                <option value="__NEW__">+ Tambah Supplier Baru...</option>
-                            </select>
-                        </template>
-                        <template x-if="isNew">
-                            <div class="input-group">
-                                <input type="text" wire:model="restockSupplierName" class="form-control" placeholder="Ketik nama supplier baru..." autofocus />
-                                <button type="button" class="btn btn-outline-secondary" @click="isNew = false; $wire.set('restockSupplierName', '');" title="Kembali ke daftar">✕</button>
+                        <div class="position-relative" @click.outside="supPickerOpen = false">
+                            <div class="position-relative d-flex align-items-center">
+                                <input
+                                    type="text"
+                                    wire:model="restockSupplierName"
+                                    class="form-control pe-5"
+                                    placeholder="Pilih atau ketik nama supplier..."
+                                    @focus="supPickerOpen = true; supSearch = $wire.restockSupplierName || ''"
+                                    @input="supPickerOpen = true; supSearch = $el.value"
+                                />
+                                <button
+                                    type="button"
+                                    class="btn btn-link text-secondary text-decoration-none position-absolute end-0 me-2 p-1 d-flex align-items-center"
+                                    @click="supPickerOpen = !supPickerOpen; supSearch = $wire.restockSupplierName || ''"
+                                    aria-label="Tampilkan pilihan supplier"
+                                >
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="transition-transform" :class="supPickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                    </svg>
+                                </button>
                             </div>
-                        </template>
+
+                            <div
+                                x-show="supPickerOpen"
+                                x-cloak
+                                class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden"
+                                style="max-height: 200px; z-index: 1050;"
+                            >
+                                <div class="p-1.5" style="max-height: 190px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                    @foreach ($suppliers as $sup)
+                                        <button
+                                            type="button"
+                                            class="dropdown-item rounded-2 py-2 px-3 text-start w-100 font-semibold"
+                                            :class="$wire.restockSupplierName === @js($sup->name) ? 'active bg-success text-white' : ''"
+                                            x-show="supSearch === '' || @js(strtolower($sup->name)).includes(supSearch.toLowerCase())"
+                                            @click="$wire.restockSupplierName = @js($sup->name); supPickerOpen = false; supSearch = @js($sup->name);"
+                                        >
+                                            {{ $sup->name }}
+                                        </button>
+                                    @endforeach
+                                    <div x-show="supSearch !== '' && !@js($suppliers->pluck('name')->map(fn($n) => strtolower($n))->all()).includes(supSearch.toLowerCase())" class="p-2 border-top extra-small text-secondary bg-body-tertiary">
+                                        <span>Ketik <strong>&quot;<span x-text="supSearch"></span>&quot;</strong> untuk menambahkan supplier baru secara otomatis saat disimpan.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         @error('restockSupplierName') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
                     </div>
                     <div class="row g-3 mb-3">
