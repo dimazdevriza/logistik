@@ -72,19 +72,19 @@
                         <tr wire:key="cat-{{ $category->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $category->id }}) }">
                             <td class="text-center text-secondary small font-mono">{{ ($categories->currentPage() - 1) * $categories->perPage() + $loop->iteration }}</td>
                             <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="p-2 rounded-3 {{ $category->type === 'material' ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-warning' }} d-flex align-items-center justify-content-center">
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <div class="d-inline-flex align-items-center justify-content-center rounded-3 {{ $category->type === 'material' ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary' }}" style="width: 32px; height: 32px; flex-shrink: 0;">
                                         @if($category->type === 'material')
-                                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l6.154 2.38 6.154-2.38zM15 4.239l-6.5 2.515v7.182l6.5-2.6v-7.097zM7.5 13.936V6.754L1 4.239v7.097z"/></svg>
+                                            <svg width="16" height="16" fill="currentColor"><use href="#i-box"/></svg>
                                         @else
-                                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M1 0 0 1l2.2 3.081a1 1 0 0 0 .815.419h.07a1 1 0 0 1 .708.293l2.675 2.675-2.617 2.654A3.003 3.003 0 0 0 0 13a3 3 0 1 0 5.878-.851l2.654-2.617.968.968-.305.914a1 1 0 0 0 .242 1.023l3.27 3.27a.997.997 0 0 0 1.414 0l1.586-1.586a.997.997 0 0 0 0-1.414l-3.27-3.27a1 1 0 0 0-1.023-.242L10.5 9.5l-.96-.96 2.68-2.643A3.005 3.005 0 0 0 16 3c0-.269-.035-.53-.102-.777l-3.04 3.04a1 1 0 0 1-1.414 0l-1.414-1.414a1 1 0 0 1 0-1.414l3.04-3.04A3.02 3.02 0 0 0 13 0c-1.398 0-2.582.955-2.919 2.25L7.427 4.904l-2.676-2.676A1 1 0 0 1 4.459 1.52l-.004-.052A1 1 0 0 0 4.037.653z"/></svg>
+                                            <svg width="16" height="16" fill="currentColor"><use href="#i-wrench"/></svg>
                                         @endif
                                     </div>
                                     <span class="fw-bold text-body font-outfit fs-6">{{ $category->name }}</span>
                                 </div>
                             </td>
                             <td class="text-center">
-                                <span class="badge {{ $category->type === 'material' ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle' }} rounded-pill px-3 py-2 font-mono extra-small text-uppercase">
+                                <span class="badge {{ $category->type === 'material' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' }} rounded-pill px-3 py-1.5 font-mono extra-small text-uppercase">
                                     {{ $category->type === 'material' ? 'Material' : 'Alat Kerja' }}
                                 </span>
                             </td>
