@@ -77,6 +77,7 @@
                             <th class="text-center" style="width: 50px;">No.</th>
                             <th>Tanggal</th>
                             @if ($filterType === '') <th>Tipe</th> @endif
+                            <th>Kode</th>
                             <th>
                                 @if ($filterType === 'masuk') Supplier
                                 @elseif ($filterType === 'keluar') Rumah
@@ -105,6 +106,7 @@
                                         <span class="badge bg-warning-subtle text-warning">▲ Keluar</span>
                                     @endif
                                 </td>
+                                <td class="font-mono text-secondary small">{{ $record->material_code ?? '-' }}</td>
                                 <td class="fw-bold text-body">{{ $record->reference }}</td>
                                 <td class="fw-bold text-body">{{ $record->material_name }}</td>
                                 <td class="text-end fw-bold">{{ number_format($record->quantity, 0, ',', '.') }} <span class="text-secondary small font-normal">{{ $record->material_unit }}</span></td>
@@ -131,7 +133,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="9" class="text-center py-4 text-secondary">Belum ada catatan material.</td>
+                                <td colspan="10" class="text-center py-4 text-secondary">Belum ada catatan material.</td>
                             </tr>
                             @endforelse
                         @elseif ($filterType === 'masuk')
@@ -139,10 +141,12 @@
                             <tr wire:key="m-in-log-{{ $loop->index }}">
                                 <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
                                 <td class="font-mono text-secondary small">{{ ($record->created_at ?? $record->date)->format('d/m/Y H:i') }}</td>
+                                <td class="font-mono text-secondary small">{{ $record->material->code ?? '-' }}</td>
                                 <td class="fw-bold text-body">{{ $record->supplier->name ?? '-' }}</td>
                                 <td class="fw-bold text-body">{{ $record->material->name ?? '-' }}</td>
                                 <td class="text-end fw-bold">{{ number_format($record->quantity, 0, ',', '.') }} <span class="text-secondary small font-normal">{{ $record->material->unit ?? '' }}</span></td>
                                 <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>
+                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
                                 <td class="text-secondary small">
                                     {{ $record->user->name ?? '-' }}
                                     @if($record->proof_image)
@@ -154,7 +158,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4 text-secondary">Belum ada data barang masuk.</td>
+                                <td colspan="9" class="text-center py-4 text-secondary">Belum ada data barang masuk.</td>
                             </tr>
                             @endforelse
                         @else
@@ -162,6 +166,7 @@
                             <tr wire:key="m-out-log-{{ $loop->index }}">
                                 <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
                                 <td class="font-mono text-secondary small">{{ ($record->created_at ?? $record->usage_date)->format('d/m/Y H:i') }}</td>
+                                <td class="font-mono text-secondary small">{{ $record->material->code ?? '-' }}</td>
                                 <td class="fw-bold text-body">{{ $record->house->name }}</td>
                                 <td class="fw-bold text-body">{{ $record->material->name }}</td>
                                 <td class="text-end fw-bold">{{ str_replace('.', ',', (float) $record->quantity) }} <span class="text-secondary small font-normal">{{ $record->material->unit }}</span></td>
@@ -193,7 +198,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4 text-secondary">Belum ada data barang keluar.</td>
+                                <td colspan="9" class="text-center py-4 text-secondary">Belum ada data barang keluar.</td>
                             </tr>
                             @endforelse
                         @endif

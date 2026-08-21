@@ -56,13 +56,14 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
             [
                 'No',
                 'Tanggal',
+                'Keterangan Pekerjaan',
+                'Kode Material',
                 'Nama Material',
-                'Jumlah',
+                'Volume',
                 'Satuan',
-                'Harga Satuan (Snapshot)',
+                'Harga Satuan',
                 'Total Biaya',
                 'Pencatat',
-                'Catatan',
             ]
         ];
     }
@@ -74,6 +75,8 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
         return [
             $this->rowNumber,
             $usage->usage_date->format('d/m/Y H:i'),
+            $usage->notes ?? '-',
+            $usage->material->code ?? '-',
             $usage->material->name,
             // Rule 4: Zero substitution
             (float) ($usage->quantity ?? 0),
@@ -81,16 +84,15 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
             (float) ($usage->unit_price_at_usage ?? 0),
             (float) ($usage->total_cost ?? 0),
             $usage->user->name,
-            $usage->notes ?? '-',
         ];
     }
 
     public function columnFormats(): array
     {
         return [
-            'D' => '#,##0.00',
-            'F' => '"Rp "#,##0',
-            'G' => '"Rp "#,##0',
+            'F' => '#,##0.00',
+            'H' => '"Rp "#,##0',
+            'I' => '"Rp "#,##0',
         ];
     }
 
@@ -120,12 +122,14 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
             ],
         ];
 
-        $sheet->getStyle('A5:I5')->applyFromArray($headerStyle);
+        $sheet->getStyle('A5:J5')->applyFromArray($headerStyle);
         
         // Alignment
         $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle('F:G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('F')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('H:I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
         return [];
     }
@@ -143,20 +147,20 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
                 // Add Footer Row
                 $event->sheet->append([
                     [], // Blank Row
-                    ['', '', '', '', '', 'Total Biaya Proyek', $totalCost]
+                    ['', '', '', '', '', '', '', 'Total Biaya Proyek', $totalCost]
                 ]);
 
                 $finalRow = $event->sheet->getHighestRow();
-                
+
                 // Styling the total row
-                $event->sheet->getStyle('F' . $finalRow . ':G' . $finalRow)->applyFromArray([
+                $event->sheet->getStyle('H' . $finalRow . ':I' . $finalRow)->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'color' => ['rgb' => 'FFFFFF'],
                     ],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => '10B981'], // Emerald-500
+                        'startColor' => ['rgb' => '10B981'],
                     ],
                     'borders' => [
                         'allBorders' => [
@@ -166,7 +170,7 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
                 ]);
 
                 // Format the total cell
-                $event->sheet->getStyle('G' . $finalRow)->getNumberFormat()->setFormatCode('"Rp "#,##0');
+                $event->sheet->getStyle('I' . $finalRow)->getNumberFormat()->setFormatCode('"Rp "#,##0');
             },
         ];
     }

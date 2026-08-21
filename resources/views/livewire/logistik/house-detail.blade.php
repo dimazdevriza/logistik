@@ -94,8 +94,12 @@
                             <tr>
                                 <th class="text-center" style="width: 50px;">No.</th>
                                 <th>Tanggal</th>
+                                <th>Pekerjaan</th>
+                                <th>Kode</th>
                                 <th>Material</th>
-                                <th class="text-end">Jumlah</th>
+                                <th class="text-end">Volume</th>
+                                <th>Satuan</th>
+                                <th class="text-end">Harga Satuan</th>
                                 <th class="text-end">Total Biaya</th>
                                 <th>Pencatat</th>
                             </tr>
@@ -105,19 +109,18 @@
                             <tr wire:key="m-usage-{{ $usage->id }}">
                                 <td class="text-center text-secondary small">{{ ($materialUsages->currentPage() - 1) * $materialUsages->perPage() + $loop->iteration }}</td>
                                 <td class="font-mono text-secondary small">{{ $usage->usage_date->format('d/m/Y H:i') }}</td>
-                                <td>
-                                    <div class="fw-bold">{{ $usage->material->name }}</div>
-                                    @if($usage->notes)
-                                        <div class="extra-small text-secondary">{{ Str::limit($usage->notes, 40) }}</div>
-                                    @endif
-                                </td>
-                                <td class="text-end fw-bold">{{ str_replace('.', ',', (float) $usage->quantity) }} <span class="text-secondary small font-normal">{{ $usage->material->unit }}</span></td>
-                                <td class="text-end font-mono fw-bold text-warning">Rp {{ number_format($usage->total_cost, 0, ',', '.') }}</td>
+                                <td class="fw-semibold text-body">{{ $usage->notes ?: '-' }}</td>
+                                <td class="font-mono text-secondary small">{{ $usage->material->code ?? '-' }}</td>
+                                <td class="fw-bold text-body">{{ $usage->material->name }}</td>
+                                <td class="text-end fw-bold">{{ str_replace('.', ',', (float) $usage->quantity) }}</td>
+                                <td class="text-secondary small">{{ $usage->material->unit }}</td>
+                                <td class="text-end font-mono text-secondary">Rp {{ number_format($usage->unit_price_at_usage, 0, ',', '.') }}</td>
+                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($usage->total_cost, 0, ',', '.') }}</td>
                                 <td class="text-secondary small">{{ $usage->user->name }}</td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4 text-secondary">Belum ada data penggunaan material untuk rumah ini.</td>
+                                <td colspan="10" class="text-center py-4 text-secondary">Belum ada data penggunaan material untuk rumah ini.</td>
                             </tr>
                             @endforelse
                         </tbody>

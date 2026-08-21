@@ -64,6 +64,7 @@
                         <tr>
                             <th class="text-center" style="width: 50px;">No.</th>
                             <th>Tgl Pinjam</th>
+                            <th>Kode</th>
                             <th>Rumah</th>
                             <th>Alat</th>
                             <th class="text-center">Qty</th>
@@ -77,11 +78,9 @@
                         <tr wire:key="t-log-{{ $usage->id }}">
                             <td class="text-center text-secondary small">{{ ($usages->currentPage() - 1) * $usages->perPage() + $loop->iteration }}</td>
                             <td class="font-mono text-secondary small">{{ $usage->checkout_date->format('d/m/Y') }}</td>
+                            <td class="font-mono text-secondary small">{{ $usage->tool->code ?? '-' }}</td>
                             <td class="fw-bold text-body">{{ $usage->house->name }}</td>
-                            <td>
-                                <div class="fw-bold text-body">{{ $usage->tool->name }}</div>
-                                <span class="font-mono extra-small text-secondary">Kode: {{ $usage->tool->code }}</span>
-                            </td>
+                            <td class="fw-bold text-body">{{ $usage->tool->name }}</td>
                             <td class="text-center font-mono fw-bold">{{ $usage->quantity }}</td>
                             <td class="font-mono text-secondary small">{{ $usage->return_date?->format('d/m/Y') ?? '-' }}</td>
                             <td>
@@ -117,7 +116,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-secondary">Belum ada data penggunaan alat.</td>
+                            <td colspan="9" class="text-center py-4 text-secondary">Belum ada data penggunaan alat.</td>
                         </tr>
                         @endforelse
                     </tbody>
