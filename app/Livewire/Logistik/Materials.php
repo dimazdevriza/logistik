@@ -31,6 +31,7 @@ class Materials extends Component
 
     // Form: Create/Edit Material
     public $name = '';
+    public $code = '';
     public $supplier_name = '';
     public $category_id = '';
     public $unit = '';
@@ -119,10 +120,46 @@ class Materials extends Component
         $this->resetPage();
     }
 
+    public function updatedCategoryId($value)
+    {
+        if (!$this->editMode && $value) {
+            $this->code = $this->generateCode($value);
+        }
+    }
+
+    private function generateCode($categoryId)
+    {
+        $category = Category::find($categoryId);
+        if (!$category) return '';
+
+        $words = explode(' ', trim($category->name));
+        $prefix = (count($words) > 1)
+            ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1))
+            : strtoupper(substr($category->name, 0, 2));
+
+        $prefix .= '-';
+
+        $lastMaterial = Material::where('code', 'LIKE', $prefix . '%')
+            ->orderByRaw('LENGTH(code) DESC')
+            ->orderBy('code', 'DESC')
+            ->first();
+
+        if (!$lastMaterial) {
+            return $prefix . '001';
+        }
+
+        $parts = explode('-', $lastMaterial->code);
+        $lastNumber = isset($parts[1]) ? (int) $parts[1] : 0;
+        $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+
+        return $prefix . $nextNumber;
+    }
+
     protected function rules()
     {
         return [
             'name' => 'required|string|max:255',
+            'code' => 'nullable|string|max:50|unique:materials,code,' . ($this->materialId ?? 'NULL'),
             'supplier_name' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'unit' => 'required|string|max:50',
@@ -154,6 +191,7 @@ class Materials extends Component
         $material = Material::findOrFail($id);
         $this->materialId = $material->id;
         $this->name = $material->name;
+        $this->code = $material->code ?? '';
         $this->supplier_name = $material->supplier?->name ?? '';
         $this->category_id = $material->category_id ?? '';
         $this->unit = $material->unit;
@@ -175,8 +213,14 @@ class Materials extends Component
             $final_supplier_id = $supplier->id;
         }
 
+        $code = $this->code;
+        if (empty($code) && $this->category_id) {
+            $code = $this->generateCode($this->category_id);
+        }
+
         $data = [
             'name' => $this->name,
+            'code' => $code ?: null,
             'supplier_id' => $final_supplier_id,
             'category_id' => $this->category_id ?: null,
             'unit' => $this->unit,
@@ -230,6 +274,7 @@ class Materials extends Component
     {
         $this->materialId = null;
         $this->name = '';
+        $this->code = '';
         $this->supplier_name = '';
         $this->category_id = '';
         $this->unit = '';

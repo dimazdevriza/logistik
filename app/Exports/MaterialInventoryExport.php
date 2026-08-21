@@ -47,8 +47,10 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
             [], // Empty row
             [
                 'No',
+                'Kode',
                 'Nama Material',
                 'Kategori',
+                'Supplier',
                 'Sisa Stok',
                 'Satuan',
                 'Harga Satuan',
@@ -64,8 +66,10 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
         
         return [
             $this->rowNumber,
+            $material->code ?? '-',
             $material->name,
             $material->category?->name ?? 'Tanpa Kategori',
+            $material->supplier?->name ?? '-',
             // Rule 4: Zero substitution
             (float) ($material->stock ?? 0),
             $material->unit,
@@ -77,9 +81,9 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
     public function columnFormats(): array
     {
         return [
-            'D' => '#,##0.00',
-            'F' => '"Rp "#,##0',
-            'G' => '"Rp "#,##0',
+            'F' => '#,##0.00',
+            'H' => '"Rp "#,##0',
+            'I' => '"Rp "#,##0',
         ];
     }
 
@@ -109,12 +113,12 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
             ],
         ];
 
-        $sheet->getStyle('A5:G5')->applyFromArray($headerStyle);
+        $sheet->getStyle('A5:I5')->applyFromArray($headerStyle);
         
         // Alignment for data
-        $sheet->getStyle('A')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle('F:G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('F')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('H:I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
         return [];
     }

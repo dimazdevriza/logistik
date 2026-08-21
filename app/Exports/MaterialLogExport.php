@@ -40,8 +40,13 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
             ->select(
                 DB::raw("'keluar' as type"),
                 'material_usages.usage_date as date',
+                'materials.code as material_code',
                 'materials.name as material_name',
                 'materials.unit as material_unit',
+                'houses.name as blok_rumah',
+                'houses.type as cluster',
+                'material_usages.notes as keterangan_pekerjaan',
+                'suppliers.name as supplier_name',
                 'houses.name as reference',
                 'material_usages.quantity',
                 'material_usages.unit_price_at_usage as unit_price',
@@ -50,6 +55,7 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                 'material_usages.created_at as created_at'
             )
             ->join('materials', 'material_usages.material_id', '=', 'materials.id')
+            ->leftJoin('suppliers', 'materials.supplier_id', '=', 'suppliers.id')
             ->join('houses', 'material_usages.house_id', '=', 'houses.id')
             ->join('users', 'material_usages.user_id', '=', 'users.id')
             ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
@@ -60,8 +66,13 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
             ->select(
                 DB::raw("'masuk' as type"),
                 'stock_ins.date',
+                'materials.code as material_code',
                 'materials.name as material_name',
                 'materials.unit as material_unit',
+                DB::raw("'-' as blok_rumah"),
+                DB::raw("'-' as cluster"),
+                'stock_ins.notes as keterangan_pekerjaan',
+                'suppliers.name as supplier_name',
                 'suppliers.name as reference',
                 'stock_ins.quantity',
                 'stock_ins.unit_price',
@@ -101,6 +112,29 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function headings(): array
     {
+        if ($this->filterType === 'keluar') {
+            return [
+                [
+                    'TANGGAL',
+                    'BULAN',
+                    'MINGGU KE',
+                    'TAHUN',
+                    'ADMIN',
+                    'PENGAMBIL',
+                    'BLOK RUMAH',
+                    'CLUSTER',
+                    'KETERANGAN PEKERJAAN',
+                    'KODE BARANG',
+                    'NAMA BARANG',
+                    'VOLUME',
+                    'SATUAN',
+                    'HARGA SATUAN',
+                    'JUMLAH',
+                    'TOKO/SUPPLIER',
+                ]
+            ];
+        }
+
         return [
             ['Catatan Material - Sistem Logistik'],
             ['Diekspor pada: ' . now()->format('d F Y H:i')],
@@ -109,6 +143,7 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                 'No',
                 'Tanggal',
                 'Tipe',
+                'Kode Barang',
                 'Nama Material',
                 'Satuan',
                 'Referensi (Rumah/Supplier)',
@@ -122,12 +157,44 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function map($record): array
     {
+        $dt = \Carbon\Carbon::parse($record->date);
+
+        if ($this->filterType === 'keluar') {
+            $monthNames = [
+                1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL',
+                5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
+                9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER'
+            ];
+            $romans = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V'];
+            $weekNum = $romans[$dt->weekOfMonth] ?? (string) $dt->weekOfMonth;
+
+            return [
+                $dt->format('d/m/Y'),
+                $monthNames[$dt->month] ?? strtoupper($dt->format('F')),
+                $weekNum,
+                $dt->year,
+                $record->user_name,
+                $record->user_name, // Pengambil / Admin dicatat oleh
+                $record->blok_rumah ?? '-',
+                $record->cluster ?? '-',
+                $record->keterangan_pekerjaan ?? '-',
+                $record->material_code ?? '-',
+                $record->material_name,
+                (float) ($record->quantity ?? 0),
+                $record->material_unit,
+                (float) ($record->unit_price ?? 0),
+                (float) ($record->total_cost ?? 0),
+                $record->supplier_name ?? '-',
+            ];
+        }
+
         $this->rowNumber++;
 
         return [
             $this->rowNumber,
-            \Carbon\Carbon::parse($record->date)->format('d/m/Y'),
+            $dt->format('d/m/Y'),
             $record->type === 'masuk' ? 'Barang Masuk' : 'Barang Keluar',
+            $record->material_code ?? '-',
             $record->material_name,
             $record->material_unit,
             $record->reference,
@@ -140,15 +207,64 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function columnFormats(): array
     {
+        if ($this->filterType === 'keluar') {
+            return [
+                'A' => '@',
+                'L' => '#,##0.00',
+                'N' => '"Rp "#,##0',
+                'O' => '"Rp "#,##0',
+            ];
+        }
+
         return [
-            'G' => '#,##0',
-            'H' => '"Rp "#,##0',
+            'H' => '#,##0.00',
             'I' => '"Rp "#,##0',
+            'J' => '"Rp "#,##0',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
+        if ($this->filterType === 'keluar') {
+            // Header Styling (Company Style Soft Steel Blue #8EAADB or #6C8EBF)
+            $headerStyle = [
+                'font' => [
+                    'bold' => true,
+                    'color' => ['rgb' => '000000'],
+                    'size' => 10,
+                ],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '8EAADB'],
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER,
+                    'wrapText' => true,
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                    ],
+                ],
+            ];
+
+            $sheet->getStyle('A1:P1')->applyFromArray($headerStyle);
+            $sheet->getRowDimension(1)->setRowHeight(28);
+
+            // Alignment
+            $sheet->getStyle('A:F')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('G:I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle('J')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('K')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle('L')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('M')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('N:O')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('P')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+            return [];
+        }
+
         // Styling metadata rows
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(10);
@@ -173,12 +289,13 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
             ],
         ];
 
-        $sheet->getStyle('A4:J4')->applyFromArray($headerStyle);
+        $sheet->getStyle('A4:K4')->applyFromArray($headerStyle);
 
         // Alignment
-        $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle('H:I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('A:C')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('H')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('I:J')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
         return [];
     }
@@ -188,9 +305,53 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 $lastRow = $event->sheet->getHighestRow();
-                $footerRow = $lastRow + 1;
 
-                // Calculate Total from DB directly (avoid re-running collection())
+                if ($this->filterType === 'keluar') {
+                    // Auto grid borders for all data rows
+                    $event->sheet->getStyle('A1:P' . $lastRow)->applyFromArray([
+                        'borders' => [
+                            'allBorders' => [
+                                'borderStyle' => Border::BORDER_THIN,
+                                'color' => ['rgb' => 'D1D5DB'],
+                            ],
+                        ],
+                    ]);
+
+                    // Calculate Total
+                    $totalCost = MaterialUsage::query()
+                        ->join('materials', 'material_usages.material_id', '=', 'materials.id')
+                        ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
+                        ->when($this->filterHouse, fn ($q) => $q->where('material_usages.house_id', $this->filterHouse))
+                        ->whereNull('material_usages.voided_at')
+                        ->sum('material_usages.total_cost');
+
+                    $event->sheet->append([
+                        ['', '', '', '', '', '', '', '', '', '', '', '', '', 'TOTAL', $totalCost, '']
+                    ]);
+
+                    $finalRow = $event->sheet->getHighestRow();
+
+                    $event->sheet->getStyle('N' . $finalRow . ':O' . $finalRow)->applyFromArray([
+                        'font' => [
+                            'bold' => true,
+                            'color' => ['rgb' => 'FFFFFF'],
+                        ],
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => '10B981'],
+                        ],
+                        'borders' => [
+                            'allBorders' => [
+                                'borderStyle' => Border::BORDER_THIN,
+                            ],
+                        ],
+                    ]);
+
+                    $event->sheet->getStyle('O' . $finalRow)->getNumberFormat()->setFormatCode('"Rp "#,##0');
+                    return;
+                }
+
+                // Calculate Total from DB directly
                 $keluarTotal = MaterialUsage::query()
                     ->join('materials', 'material_usages.material_id', '=', 'materials.id')
                     ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
@@ -212,13 +373,13 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                 // Add Footer Row
                 $event->sheet->append([
                     [],
-                    ['', '', '', '', '', '', '', 'Total Biaya', $totalCost]
+                    ['', '', '', '', '', '', '', '', 'Total Biaya', $totalCost]
                 ]);
 
                 $finalRow = $event->sheet->getHighestRow();
 
                 // Styling the total row
-                $event->sheet->getStyle('H' . $finalRow . ':I' . $finalRow)->applyFromArray([
+                $event->sheet->getStyle('I' . $finalRow . ':J' . $finalRow)->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'color' => ['rgb' => 'FFFFFF'],
@@ -235,7 +396,7 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                 ]);
 
                 // Format the total cell
-                $event->sheet->getStyle('I' . $finalRow)->getNumberFormat()->setFormatCode('"Rp "#,##0');
+                $event->sheet->getStyle('J' . $finalRow)->getNumberFormat()->setFormatCode('"Rp "#,##0');
             },
         ];
     }

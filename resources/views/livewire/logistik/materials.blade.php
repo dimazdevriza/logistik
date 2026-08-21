@@ -157,6 +157,7 @@
                         <tr>
                             <th class="text-center" style="width: 50px;">No.</th>
                             <th class="text-center" style="width: 60px;">Foto</th>
+                            <th>Kode</th>
                             <th>Nama</th>
                             <th>Kategori</th>
                             <th>Supplier</th>
@@ -180,6 +181,7 @@
                                     <span class="badge bg-body-secondary text-secondary font-mono small" title="Belum ada foto">—</span>
                                 @endif
                             </td>
+                            <td class="font-mono text-secondary small">{{ $material->code ?? '-' }}</td>
                             <td class="fw-bold text-body">{{ $material->name }}</td>
                             <td class="text-secondary small">{{ $material->category?->name ?? '-' }}</td>
                             <td class="text-secondary small">{{ $material->supplier?->name ?? '-' }}</td>
@@ -242,15 +244,25 @@
                     <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label font-semibold small text-secondary">Nama Material <span class="text-danger">*</span></label>
-                        <input type="text" wire:model="name" class="form-control" placeholder="Contoh: Semen Portland 50kg" />
-                        @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold small text-secondary">Nama Material <span class="text-danger">*</span></label>
+                            <input type="text" wire:model="name" class="form-control" placeholder="Contoh: Semen Portland 50kg" />
+                            @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-semibold small text-secondary">Kode Material</label>
+                            <div class="input-group">
+                                <input type="text" wire:model="code" class="form-control bg-body-secondary font-mono" readonly placeholder="Pilih kategori..." />
+                                <span class="input-group-text small fw-bold text-success font-geist bg-body-secondary">Otomatis</span>
+                            </div>
+                            @error('code') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label font-semibold small text-secondary">Kategori <span class="text-danger">*</span></label>
-                            <select wire:model="category_id" class="form-select">
+                            <select wire:model.live="category_id" class="form-select">
                                 <option value="">-- Pilih Kategori --</option>
                                 @foreach ($categories as $cat)
                                     <option value="{{ $cat->id }}">{{ $cat->name }}</option>
