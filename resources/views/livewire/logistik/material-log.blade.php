@@ -122,18 +122,8 @@
                                 <td class="text-secondary small">
                                     <div class="d-inline-flex align-items-center gap-1 flex-wrap">
                                         <span>{{ $record->user_name }}</span>
-                                        @if ($record->type === 'keluar' && in_array(auth()->user()->role, ['admin', 'logistik']))
-                                            @if (($record->voided_at ?? null) !== null)
-                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small text-uppercase tracking-wider">VOIDED</span>
-                                            @else
-                                                <button type="button" wire:confirm="Yakin membatalkan alokasi material ini? Stok akan dikembalikan."
-                                                    wire:click="voidMaterial({{ $record->id }})"
-                                                    class="btn btn-outline-danger btn-xs py-0 px-1.5 ms-1 extra-small font-semibold rounded-2 d-inline-flex align-items-center gap-1"
-                                                    title="Batalkan Alokasi">
-                                                    <svg width="10" height="10" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
-                                                    Batalkan
-                                                </button>
-                                            @endif
+                                        @if (($record->voided_at ?? null) !== null)
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small text-uppercase tracking-wider">VOIDED</span>
                                         @endif
                                     </div>
                                 </td>
@@ -187,18 +177,8 @@
                                                 <svg width="12" height="12" fill="currentColor"><use href="#i-camera"/></svg> Bukti
                                             </a>
                                         @endif
-                                        @if (in_array(auth()->user()->role, ['admin', 'logistik']))
-                                            @if ($record->voided_at !== null)
-                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small text-uppercase tracking-wider">VOIDED</span>
-                                            @else
-                                                <button type="button" wire:confirm="Yakin membatalkan alokasi material ini? Stok akan dikembalikan."
-                                                    wire:click="voidMaterial({{ $record->id }})"
-                                                    class="btn btn-outline-danger btn-xs py-0 px-1.5 ms-1 extra-small font-semibold rounded-2 d-inline-flex align-items-center gap-1"
-                                                    title="Batalkan Alokasi">
-                                                    <svg width="10" height="10" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
-                                                    Batalkan
-                                                </button>
-                                            @endif
+                                        @if ($record->voided_at !== null)
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small text-uppercase tracking-wider">VOIDED</span>
                                         @endif
                                     </div>
                                 </td>
