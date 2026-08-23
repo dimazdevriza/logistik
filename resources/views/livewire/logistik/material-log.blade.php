@@ -79,9 +79,9 @@
                             @if ($filterType === '') <th>Tipe</th> @endif
                             <th>Kode</th>
                             <th>
-                                @if ($filterType === 'masuk') Supplier
-                                @elseif ($filterType === 'keluar') Rumah
-                                @else Referensi
+                                @if ($filterType === 'masuk') Toko / Supplier
+                                @elseif ($filterType === 'keluar') Unit Rumah
+                                @else Tujuan / Supplier
                                 @endif
                             </th>
                             <th>Material</th>
@@ -107,7 +107,14 @@
                                     @endif
                                 </td>
                                 <td class="font-mono text-secondary small">{{ $record->material_code ?? '-' }}</td>
-                                <td class="fw-bold text-body">{{ $record->reference }}</td>
+                                <td>
+                                    @if ($record->type === 'masuk')
+                                        <div class="extra-small text-success fw-bold text-uppercase font-geist">Supplier</div>
+                                    @else
+                                        <div class="extra-small text-warning fw-bold text-uppercase font-geist">Rumah</div>
+                                    @endif
+                                    <div class="fw-bold text-body">{{ $record->reference }}</div>
+                                </td>
                                 <td class="fw-bold text-body">{{ $record->material_name }}</td>
                                 <td class="text-end fw-bold">{{ number_format($record->quantity, 0, ',', '.') }} <span class="text-secondary small font-normal">{{ $record->material_unit }}</span></td>
                                 <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>

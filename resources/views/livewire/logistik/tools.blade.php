@@ -15,17 +15,17 @@
                 <div class="d-flex flex-column gap-2" style="min-width: 260px;">
                     @if(in_array(auth()->user()->role, ['admin', 'logistik']))
                         <div class="d-flex gap-2">
-                            <button type="button" wire:click="openImportModal" class="btn btn-outline-secondary flex-fill d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3 py-2 rounded-3 shadow-xs">
-                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
+                            <button type="button" wire:click="openImportModal" class="btn btn-hero-action flex-fill">
+                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
                                 <span>Import</span>
                             </button>
-                            <button type="button" wire:click="exportExcel" class="btn btn-outline-secondary flex-fill d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3 py-2 rounded-3 shadow-xs">
-                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
+                            <button type="button" wire:click="exportExcel" class="btn btn-hero-action flex-fill">
+                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
                                 <span>Export</span>
                             </button>
                         </div>
                     @endif
-                    <button type="button" wire:click="create" class="btn btn-success w-100 d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3 py-2 rounded-3 shadow-xs">
+                    <button type="button" wire:click="create" class="btn btn-hero-primary w-100">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/></svg>
                         <span>Tambah Alat</span>
                     </button>
@@ -320,29 +320,49 @@
                     </div>
 
                     <div class="card bg-body-tertiary border p-3 rounded-3 mb-3">
-                        <h6 class="fw-bold font-outfit text-body mb-3 small text-uppercase font-geist">Kuantitas Stok Alat</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold font-outfit text-body mb-0 small text-uppercase font-geist">
+                                {{ $editMode ? 'Koreksi Kuantitas & Kondisi Alat' : 'Kuantitas Stok Alat Awal' }}
+                            </h6>
+                            @if($editMode)
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle extra-small">
+                                Koreksi Data
+                            </span>
+                            @endif
+                        </div>
                         <div class="row g-3">
                             <div class="col-4">
-                                <label class="form-label font-semibold extra-small text-secondary">Total Qty</label>
-                                <input type="number" wire:model="total_qty" class="form-control font-mono fw-bold" min="0" />
+                                <label class="form-label font-semibold extra-small text-secondary">Total Aset <span class="text-danger">*</span></label>
+                                <input type="number" wire:model="total_qty" class="form-control font-mono fw-bold" min="1" />
                                 @error('total_qty') <span class="text-danger extra-small">{{ $message }}</span> @enderror
                             </div>
                             <div class="col-4">
-                                <label class="form-label font-semibold extra-small text-success">Tersedia</label>
+                                <label class="form-label font-semibold extra-small text-success">Siap Pakai <span class="text-danger">*</span></label>
                                 <input type="number" wire:model="available_qty" class="form-control font-mono fw-bold text-success" min="0" />
                                 @error('available_qty') <span class="text-danger extra-small">{{ $message }}</span> @enderror
                             </div>
                             <div class="col-4">
-                                <label class="form-label font-semibold extra-small text-danger">Rusak</label>
+                                <label class="form-label font-semibold extra-small text-danger">Rusak <span class="text-danger">*</span></label>
                                 <input type="number" wire:model="qty_broken" class="form-control font-mono fw-bold text-danger" min="0" />
                                 @error('qty_broken') <span class="text-danger extra-small">{{ $message }}</span> @enderror
                             </div>
                         </div>
+                        @if($editMode)
+                        @php
+                            $loanedCount = max(0, (int)$total_qty - (int)$available_qty - (int)$qty_broken);
+                        @endphp
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top extra-small text-secondary">
+                            <span>Status Pinjaman Lapangan:</span>
+                            <span class="badge {{ $loanedCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-body-secondary text-secondary' }} font-mono">
+                                {{ $loanedCount }} unit sedang dipinjam
+                            </span>
+                        </div>
+                        @endif
                     </div>
 
                     <div>
                         <label class="form-label font-semibold small text-secondary d-inline-flex align-items-center gap-1">
-                            <svg width="14" height="14" fill="currentColor" aria-hidden="true"><use href="#i-camera"/></svg> Foto Alat Kerja @if(!$editMode || !$existingImage)<span class="text-danger">*</span>@endif
+                            <svg width="14" height="14" fill="currentColor" aria-hidden="true"><use href="#i-camera"/></svg> Foto Alat Kerja <span class="extra-small text-secondary fw-normal">(Opsional)</span>
                         </label>
 
                         @if ($existingImage && !$image)
@@ -425,7 +445,13 @@
                         </p>
 
                         <div class="bg-body-tertiary p-3 rounded-3 mb-3 border">
-                            <h6 class="fw-bold extra-small text-uppercase text-secondary mb-2">Panduan Kolom Excel</h6>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="fw-bold extra-small text-uppercase text-secondary mb-0">Panduan Kolom Excel</h6>
+                                <a href="{{ asset('sample_tool_import.xlsx') }}" download class="btn btn-outline-success btn-sm py-1 px-2.5 extra-small fw-semibold d-inline-flex align-items-center gap-1">
+                                    <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
+                                    <span>Unduh Format Contoh (.xlsx)</span>
+                                </a>
+                            </div>
                             <ul class="extra-small text-secondary mb-0 ps-3">
                                 <li><strong>Stok Alat:</strong> <code>Kode</code>, <code>Nama Alat</code>, <code>Kategori</code>, <code>Kondisi</code> (baik/rusak), <code>Total Qty</code>, <code>Harga Beli</code></li>
                                 <li><strong>Catatan Peminjaman:</strong> Tambahkan kolom <code>Jenis</code> (pinjam/kembali), <code>Unit Rumah</code> (mis. Blok B-04), <code>Tanggal</code>, <code>Catatan</code></li>

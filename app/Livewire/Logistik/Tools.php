@@ -155,9 +155,7 @@ class Tools extends Component
             'total_qty' => 'required|integer|min:1',
             'available_qty' => 'required|integer|min:0',
             'qty_broken' => 'required|integer|min:0',
-            'image' => ($this->editMode && $this->existingImage)
-                ? 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120'
-                : 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
     }
 
@@ -190,6 +188,11 @@ class Tools extends Component
     {
         $this->validate();
 
+        if (($this->available_qty + $this->qty_broken) > $this->total_qty) {
+            $this->addError('available_qty', 'Jumlah unit tersedia (' . $this->available_qty . ') dan rusak (' . $this->qty_broken . ') tidak boleh melebihi Total Qty (' . $this->total_qty . ').');
+            return;
+        }
+
         $data = [
             'name' => $this->name,
             'category_id' => $this->category_id ?: null,
@@ -206,11 +209,17 @@ class Tools extends Component
         }
 
         if ($this->editMode) {
-            Tool::findOrFail($this->toolId)->update($data);
-            session()->flash('success', 'Alat berhasil diperbarui.');
+            $existing = Tool::findOrFail($this->toolId);
+            if ($existing->image && isset($data['image'])) {
+                // If new image uploaded, replace
+            }
+            $existing->update($data);
+            cache()->forget('dashboard_tools_on_loan');
+            session()->flash('success', 'Data alat kerja dan kuantitas inventaris berhasil diperbarui.');
         } else {
             Tool::create($data);
-            session()->flash('success', 'Alat berhasil ditambahkan.');
+            cache()->forget('dashboard_tools_on_loan');
+            session()->flash('success', 'Alat kerja baru berhasil ditambahkan.');
         }
 
         $this->showModal = false;

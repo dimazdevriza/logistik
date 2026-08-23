@@ -4,17 +4,25 @@ namespace App\Livewire\Logistik;
 
 use App\Models\House;
 use App\Exports\HouseExport;
+use App\Exports\HouseListExport;
+use App\Imports\HouseImport;
 use App\Traits\WithFilterModal;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class Houses extends Component
 {
-    use WithPagination, WithFilterModal;
+    use WithPagination, WithFilterModal, WithFileUploads;
 
     public $search = '';
     public $filterStatus = '';
+
+    // Import Modal State
+    public $showImportModal = false;
+    public $importFile = null;
+    public $importResultSummary = null;
 
     public function updatingSearch() { $this->resetPage(); }
 
@@ -150,6 +158,48 @@ class Houses extends Component
         session()->flash('success', 'Rumah berhasil dihapus.');
     }
 
+    public function openImportModal()
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+        $this->importFile = null;
+        $this->importResultSummary = null;
+        $this->resetValidation();
+        $this->showImportModal = true;
+    }
+
+    public function importExcel()
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+
+        $this->validate([
+            'importFile' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ], [
+            'importFile.required' => 'Pilih berkas Excel (.xlsx / .xls) terlebih dahulu.',
+            'importFile.mimes' => 'Berkas harus berupa format Excel (.xlsx, .xls) atau CSV.',
+            'importFile.max' => 'Ukuran berkas maksimal 10MB.',
+        ]);
+
+        try {
+            $import = new HouseImport();
+            Excel::import($import, $this->importFile->getRealPath());
+
+            $this->importResultSummary = [
+                'totalRows' => $import->totalRows,
+                'successfulRows' => $import->successfulRows,
+                'skippedRows' => $import->skippedRows,
+                'housesImported' => $import->housesImported,
+                'materialsImported' => $import->materialsImported,
+                'toolsImported' => $import->toolsImported,
+                'logs' => $import->rowLogs,
+            ];
+
+            session()->flash('success', "Proses validasi & impor selesai: {$import->successfulRows} dari {$import->totalRows} baris data unit rumah berhasil diproses.");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            $this->addError('importFile', 'Gagal memproses berkas Excel: ' . $e->getMessage());
+        }
+    }
+
     public function exportExcel()
     {
         // Only admin or logistik can export
@@ -157,7 +207,7 @@ class Houses extends Component
             return;
         }
 
-        $export = new HouseExport($this->search, $this->filterStatus);
+        $export = new HouseListExport($this->search, $this->filterStatus);
         $filename = 'daftar-rumah-' . now()->format('Ymd-His') . '.xlsx';
 
         return response()->streamDownload(function () use ($export) {

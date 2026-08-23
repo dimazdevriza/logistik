@@ -165,9 +165,7 @@ class Materials extends Component
             'unit' => 'required|string|max:50',
             'unit_price' => 'required|numeric|min:0',
             'stock' => 'required|numeric|min:0',
-            'image' => ($this->editMode && $this->existingImage)
-                ? 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120'
-                : 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
     }
 
@@ -234,12 +232,52 @@ class Materials extends Component
 
         if ($this->editMode) {
             $existing = Material::findOrFail($this->materialId);
+            $oldPrice = (float) $existing->unit_price;
+            $newPrice = (float) $this->unit_price;
+            $newStock = (float) $this->stock;
+
             // Protect existing proof image from being overwritten once recorded
             if ($existing->image && isset($data['image'])) {
                 unset($data['image']);
             }
-            $existing->update($data);
-            session()->flash('success', 'Material berhasil diperbarui.');
+
+            DB::transaction(function () use ($existing, $data, $oldPrice, $newPrice, $newStock, $final_supplier_id) {
+                $existing->update($data);
+
+                // Rekonsiliasi harga: jika harga satuan dikoreksi, perbarui seluruh catatan pemakaian material aktif
+                if ($oldPrice !== $newPrice) {
+                    $usages = MaterialUsage::where('material_id', $existing->id)
+                        ->whereNull('voided_at')
+                        ->get();
+
+                    foreach ($usages as $usage) {
+                        $usage->unit_price_at_usage = $newPrice;
+                        $usage->total_cost = round($usage->quantity * $newPrice, 2);
+                        $usage->save();
+                    }
+                }
+
+                // Perbarui log stok awal jika ada
+                $initialStockIn = StockIn::where('material_id', $existing->id)
+                    ->where('notes', 'Stok awal')
+                    ->first();
+
+                if ($initialStockIn) {
+                    $initialStockIn->update([
+                        'quantity' => $newStock,
+                        'unit_price' => $newPrice,
+                        'total_cost' => round($newStock * $newPrice, 2),
+                        'supplier_id' => $final_supplier_id,
+                    ]);
+                }
+            });
+
+            // Bersihkan cache agregasi biaya agar dashboard & laporan langsung terperbarui
+            cache()->forget('total_material_spent');
+            cache()->forget('dashboard_total_cost');
+            cache()->forget('dashboard_low_stock_count');
+
+            session()->flash('success', 'Data material dan seluruh perhitungan biaya terkait berhasil diperbarui.');
         } else {
             $material = Material::create($data);
 
@@ -256,6 +294,9 @@ class Materials extends Component
                     'notes' => 'Stok awal',
                 ]);
             }
+
+            // Bersihkan cache
+            cache()->forget('dashboard_low_stock_count');
 
             session()->flash('success', 'Material berhasil ditambahkan.');
         }

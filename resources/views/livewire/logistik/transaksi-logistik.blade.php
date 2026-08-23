@@ -22,6 +22,11 @@
         peruntukkanOpts: @js(array_values(array_unique(array_merge(['Pemasangan Pondasi', 'Pekerjaan Dinding', 'Pekerjaan Atap', 'Pengecoran Sloof / Kolom', 'Pemasangan Keramik', 'Instalasi Listrik'], $peruntukkanOptions)))),
         materials: @js($materials->keyBy('id')->map(fn($m) => ['id' => $m->id, 'name' => $m->name, 'unit_price' => $m->unit_price, 'unit' => $m->unit, 'stock' => $m->stock])),
         tools: @js($tools->keyBy('id')->map(fn($t) => ['id' => $t->id, 'name' => $t->name, 'available_qty' => $t->available_qty, 'code' => $t->code])),
+        allHouses: @js($houses->map(fn($h) => ['id' => (int) $h->id, 'name' => $h->name, 'type' => $h->type])->values()),
+        get selectedHousesList() {
+            const ids = ($wire.house_ids || []).map(Number);
+            return this.allHouses.filter(h => ids.includes(h.id));
+        },
         get houseCount() { return $wire.house_ids.length },
         get mat() { return this.materials[$wire.material_id] ?? null },
         get tool() { return this.tools[$wire.tool_id] ?? null },
@@ -69,33 +74,38 @@
             </div>
         @endif
 
-        <!-- ===== Mode selector ===== -->
-        <div class="mb-2">
-            <span class="extra-small fw-bold text-uppercase tracking-wider text-secondary font-geist">Pilih Jenis Transaksi</span>
-        </div>
-        <div class="row g-3 mb-4">
-            @foreach ([
-                ['key' => 'material', 'title' => 'Pakai Material', 'desc' => 'Catat konsumsi material per unit'],
-                ['key' => 'tool', 'title' => 'Pinjam Alat', 'desc' => 'Keluarkan alat ke unit rumah'],
-                ['key' => 'return', 'title' => 'Kembalikan Alat', 'desc' => 'Terima alat kembali ke gudang'],
-            ] as $mode)
-                <div class="col-md-4">
-                    <button
-                        type="button"
-                        @click="activeTab = '{{ $mode['key'] }}'"
-                        class="btn w-100 h-100 text-start p-3 rounded-4 border transition-all"
-                        :class="activeTab === '{{ $mode['key'] }}'
-                            ? 'btn-success shadow-sm'
-                            : 'bg-body-tertiary border-secondary-subtle text-body'"
-                    >
-                        <span class="d-block fw-bold font-outfit" :class="activeTab === '{{ $mode['key'] }}' ? 'text-white' : 'text-body'">{{ $mode['title'] }}</span>
-                        <span class="d-block extra-small" :class="activeTab === '{{ $mode['key'] }}' ? 'text-white-50' : 'text-secondary'">{{ $mode['desc'] }}</span>
-                    </button>
-                </div>
-            @endforeach
-        </div>
+        <!-- Main 2-Column Workspace Grid -->
+        <div class="row g-4 align-items-start">
+            <!-- Left Form Column (col-lg-7 col-xl-8) -->
+            <div class="col-lg-7 col-xl-8">
 
-        <!-- ===== House selection ===== -->
+                <!-- ===== Mode selector ===== -->
+                <div class="mb-2">
+                    <span class="extra-small fw-bold text-uppercase tracking-wider text-secondary font-geist">Pilih Jenis Transaksi</span>
+                </div>
+                <div class="row g-3 mb-4">
+                    @foreach ([
+                        ['key' => 'material', 'title' => 'Pakai Material', 'desc' => 'Catat konsumsi material per unit'],
+                        ['key' => 'tool', 'title' => 'Pinjam Alat', 'desc' => 'Keluarkan alat ke unit rumah'],
+                        ['key' => 'return', 'title' => 'Kembalikan Alat', 'desc' => 'Terima alat kembali ke gudang'],
+                    ] as $mode)
+                        <div class="col-md-4">
+                            <button
+                                type="button"
+                                @click="activeTab = '{{ $mode['key'] }}'"
+                                class="btn w-100 h-100 text-start p-3 rounded-4 border transition-all"
+                                :class="activeTab === '{{ $mode['key'] }}'
+                                    ? 'btn-success shadow-sm'
+                                    : 'bg-body-tertiary border-secondary-subtle text-body'"
+                            >
+                                <span class="d-block fw-bold font-outfit" :class="activeTab === '{{ $mode['key'] }}' ? 'text-white' : 'text-body'">{{ $mode['title'] }}</span>
+                                <span class="d-block extra-small" :class="activeTab === '{{ $mode['key'] }}' ? 'text-white-50' : 'text-secondary'">{{ $mode['desc'] }}</span>
+                            </button>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- ===== House selection ===== -->
         <div class="mb-2">
             <span class="extra-small fw-bold text-uppercase tracking-wider text-secondary font-geist">Pilih Unit Rumah</span>
         </div>
@@ -198,9 +208,9 @@
             <div x-show="activeTab === 'material'" x-cloak>
                 <h6 class="fw-bold font-outfit text-body mb-3">Detail Pemakaian Material</h6>
 
-                <div class="row g-3">
+                <div class="row g-3 align-items-start">
                     <div class="col-lg-6">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
                             <label class="form-label fw-semibold mb-0">Material</label>
                             <template x-if="mat">
                                 <span class="extra-small font-mono text-secondary">
@@ -268,7 +278,7 @@
                     </div>
 
                     <div class="col-lg-3 col-6">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
                             <label class="form-label fw-semibold mb-0">Qty / unit</label>
                             <template x-if="mat">
                                 <span class="extra-small font-mono text-secondary" :class="mat.stock < totalQty ? 'text-danger fw-bold' : ''">
@@ -284,7 +294,9 @@
                     </div>
 
                     <div class="col-lg-3 col-6">
-                        <label class="form-label fw-semibold">Waktu</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
+                            <label class="form-label fw-semibold mb-0">Waktu</label>
+                        </div>
                         <input type="datetime-local" wire:model="usage_date" class="form-control" />
                         @error('usage_date') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
@@ -357,13 +369,13 @@
             <!-- ---- Tool checkout ---- -->
             <div x-show="activeTab === 'tool'" x-cloak>
                 <h6 class="fw-bold font-outfit text-body mb-3">Detail Peminjaman Alat</h6>
-                <div class="row g-3">
+                <div class="row g-3 align-items-start">
                     <div class="col-lg-6">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
                             <label class="form-label fw-semibold mb-0">Alat Kerja</label>
-                            <template x-if="selectedTool">
+                            <template x-if="tool">
                                 <span class="extra-small font-mono text-secondary">
-                                    Tersedia: <strong class="text-body" x-text="selectedTool.available_qty + ' unit'"></strong>
+                                    Tersedia: <strong class="text-body" x-text="tool.available_qty + ' unit'"></strong>
                                 </span>
                             </template>
                         </div>
@@ -373,11 +385,11 @@
                                 class="form-select text-start d-flex align-items-center justify-content-between pe-3"
                                 @click="toolPickerOpen = !toolPickerOpen"
                             >
-                                <span class="text-truncate me-2" :class="selectedTool ? 'text-body fw-semibold' : 'text-secondary'">
-                                    <template x-if="selectedTool">
-                                        <span x-text="selectedTool.name + ' (' + selectedTool.code + ')'"></span>
+                                <span class="text-truncate me-2" :class="tool ? 'text-body fw-semibold' : 'text-secondary'">
+                                    <template x-if="tool">
+                                        <span x-text="tool.name + ' (' + tool.code + ')'"></span>
                                     </template>
-                                    <template x-if="!selectedTool">
+                                    <template x-if="!tool">
                                         <span>— Pilih alat —</span>
                                     </template>
                                 </span>
@@ -427,11 +439,11 @@
                     </div>
 
                     <div class="col-lg-3 col-6">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
                             <label class="form-label fw-semibold mb-0">Qty / unit</label>
-                            <template x-if="selectedTool">
-                                <span class="extra-small font-mono text-secondary" :class="selectedTool.available_qty < toolTotalQty ? 'text-danger fw-bold' : ''">
-                                    Maks: <span x-text="selectedTool.available_qty"></span>
+                            <template x-if="tool">
+                                <span class="extra-small font-mono text-secondary" :class="tool.available_qty < totalTools ? 'text-danger fw-bold' : ''">
+                                    Maks: <span x-text="tool.available_qty"></span>
                                 </span>
                             </template>
                         </div>
@@ -443,7 +455,9 @@
                     </div>
 
                     <div class="col-lg-3 col-6">
-                        <label class="form-label fw-semibold">Waktu</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
+                            <label class="form-label fw-semibold mb-0">Waktu</label>
+                        </div>
                         <input type="datetime-local" wire:model="checkout_date" class="form-control" />
                         @error('checkout_date') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
@@ -607,69 +621,176 @@
                 @endif
             </div>
         </div>
-    </div>
+    </div> <!-- /col-lg-7 col-xl-8 (Left Form Column) -->
 
-    <!-- ===== Sticky bottom receipt bar ===== -->
-    <div class="sticky-receipt-bar sticky-bottom pt-3 mt-auto z-3">
-        <div class="card border-0 shadow-lg rounded-4 bg-dark text-white">
-            <div class="card-body p-3">
-                <div class="extra-small fw-bold text-uppercase tracking-wider text-secondary font-geist mb-2 pb-1 border-bottom border-secondary border-opacity-25">
-                    Ringkasan Transaksi
-                </div>
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <!-- Right Receipt Column (col-lg-5 col-xl-4) -->
+    <div class="col-lg-5 col-xl-4">
+        <!-- Section label aligned with Pilih Jenis Transaksi -->
+        <div class="mb-2">
+            <span class="extra-small fw-bold text-uppercase tracking-wider text-secondary font-geist">Detail Transaksi</span>
+        </div>
 
-                    <div class="d-flex align-items-center gap-4">
-                        <div>
-                            <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Unit</div>
-                            <div class="fw-black font-mono lh-1" x-text="houseCount"></div>
+        <div class="sticky-top" style="top: 1.5rem; z-index: 1020;">
+            <!-- Authentic Thermal POS Receipt Card -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden position-relative" style="background-color: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color) !important;">
+                
+                <!-- Receipt top saw-tooth / dashed border header -->
+                <div class="w-100 py-1" style="background: repeating-linear-gradient(90deg, var(--bs-border-color), var(--bs-border-color) 6px, transparent 6px, transparent 12px); height: 2px;"></div>
+
+                <div class="card-body p-4 font-mono">
+                    <!-- Receipt Header -->
+                    <div class="text-center pb-3 mb-3 border-bottom border-dashed" style="border-color: var(--bs-border-color) !important;">
+                        <h5 class="font-outfit fw-black text-body mb-0 tracking-wider">D'ROYAL VILLAGE</h5>
+                        <div class="extra-small text-secondary mt-1.5 d-flex align-items-center justify-content-center gap-2">
+                            <span>{{ now()->format('d/m/Y H:i') }}</span>
+                            <span>&bull;</span>
+                            <span class="fw-bold" :class="activeTab === 'material' ? 'text-success' : (activeTab === 'tool' ? 'text-primary' : 'text-warning')" x-text="activeTab === 'material' ? 'MATERIAL' : (activeTab === 'tool' ? 'ALAT' : 'PENGEMBALIAN')"></span>
                         </div>
+                    </div>
 
-                        <template x-if="activeTab === 'material'">
-                            <div>
-                                <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Total biaya</div>
-                                <div class="fs-5 fw-black font-mono text-success lh-1" x-text="matReady ? rp(totalCost) : '—'"></div>
+                    <!-- Selected Item Info Section -->
+                    <div class="pb-2.5 mb-2.5 border-bottom border-dashed extra-small" style="border-color: var(--bs-border-color) !important;">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="text-secondary text-uppercase">ITEM</span>
+                            <span class="fw-bold text-body text-truncate" style="max-width: 180px;" x-text="activeTab === 'material' ? (mat ? mat.name : '— Belum dipilih —') : (activeTab === 'tool' ? (tool ? tool.name : '— Belum dipilih —') : 'Pengembalian Alat')"></span>
+                        </div>
+                        <template x-if="activeTab === 'material' && mat">
+                            <div class="d-flex align-items-center justify-content-between mb-1 text-secondary">
+                                <span>HARGA SATUAN</span>
+                                <span class="text-body fw-semibold" x-text="rp(mat.unit_price) + ' / ' + mat.unit"></span>
                             </div>
                         </template>
-
-                        <template x-if="activeTab === 'tool'">
-                            <div>
-                                <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Total alat</div>
-                                <div class="fs-5 fw-black font-mono lh-1" :class="toolShortfall < 0 ? 'text-danger' : 'text-success'" x-text="toolReady ? totalTools + ' unit' : '—'"></div>
+                        <template x-if="activeTab === 'material' && mat">
+                            <div class="d-flex align-items-center justify-content-between text-secondary">
+                                <span>STOK GUDANG</span>
+                                <span :class="(mat.stock - totalQty) < 0 ? 'text-danger fw-bold' : 'text-success fw-bold'" x-text="(mat.stock - totalQty) + ' ' + mat.unit"></span>
                             </div>
                         </template>
-
-                        <template x-if="activeTab === 'return'">
-                            <div>
-                                <div class="extra-small text-uppercase text-secondary fw-bold tracking-wider">Dipilih</div>
-                                <div class="fs-5 fw-black font-mono text-success lh-1" x-text="returnCount + ' alat'"></div>
+                        <template x-if="activeTab === 'tool' && tool">
+                            <div class="d-flex align-items-center justify-content-between mb-1 text-secondary">
+                                <span>KODE ALAT</span>
+                                <span class="text-body fw-semibold" x-text="tool.code"></span>
+                            </div>
+                        </template>
+                        <template x-if="activeTab === 'tool' && tool">
+                            <div class="d-flex align-items-center justify-content-between text-secondary">
+                                <span>SISA ALAT</span>
+                                <span :class="toolShortfall < 0 ? 'text-danger fw-bold' : 'text-success fw-bold'" x-text="(tool.available_qty - totalTools) + ' unit'"></span>
                             </div>
                         </template>
                     </div>
 
-                    <div class="d-flex gap-2 ms-auto">
+                    <!-- Column Header -->
+                    <div class="d-flex align-items-center justify-content-between extra-small text-secondary fw-bold text-uppercase pb-1.5 mb-1.5 border-bottom border-dashed" style="border-color: var(--bs-border-color) !important;">
+                        <span>QTY // TUJUAN</span>
+                        <span>SUBTOTAL</span>
+                    </div>
+
+                    <!-- Itemized Stacked List (The Receipt Body) -->
+                    <div class="mb-3" style="min-height: 90px;">
+                        @if ($selectedHouses->isEmpty())
+                            <div class="py-4 text-center text-secondary extra-small fst-italic">
+                                [ Pilih unit rumah di formulir kiri ]
+                            </div>
+                        @else
+                            <!-- MATERIAL STACKED LIST -->
+                            <div x-show="activeTab === 'material'" class="vstack gap-2" style="max-height: 220px; overflow-y: auto; overscroll-behavior: contain;">
+                                @foreach ($selectedHouses as $h)
+                                    <div class="d-flex align-items-center justify-content-between extra-small">
+                                        <div class="d-flex align-items-center gap-2 text-truncate me-2">
+                                            <span class="fw-bold text-warning" x-text="matQty + (mat ? (' ' + mat.unit) : 'x')"></span>
+                                            <span class="text-body fw-semibold text-truncate">{{ $h->name }}</span>
+                                        </div>
+                                        <div class="text-end fw-bold text-body flex-shrink-0" x-text="mat ? rp(matQty * parseFloat(mat.unit_price)) : '—'"></div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <!-- TOOL STACKED LIST -->
+                            <div x-show="activeTab === 'tool'" class="vstack gap-2" style="max-height: 220px; overflow-y: auto; overscroll-behavior: contain;" x-cloak>
+                                @foreach ($selectedHouses as $h)
+                                    <div class="d-flex align-items-center justify-content-between extra-small">
+                                        <div class="d-flex align-items-center gap-2 text-truncate me-2">
+                                            <span class="fw-bold text-warning" x-text="toolQty + ' unit'"></span>
+                                            <span class="text-body fw-semibold text-truncate">{{ $h->name }}</span>
+                                        </div>
+                                        <div class="text-end text-secondary fw-semibold flex-shrink-0" x-text="tool ? tool.code : '—'"></div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <!-- RETURN STACKED LIST -->
+                            <div x-show="activeTab === 'return'" class="text-center py-3 extra-small" x-cloak>
+                                <div class="fs-4 fw-black text-success" x-text="returnCount"></div>
+                                <div class="text-secondary mt-1">Transaksi alat dikembalikan</div>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Receipt Summary Calculations -->
+                    <div class="pt-2 border-top border-dashed extra-small" style="border-color: var(--bs-border-color) !important;">
+                        <div class="d-flex align-items-center justify-content-between text-secondary mb-1">
+                            <span>TOTAL TARGET</span>
+                            <span class="fw-bold text-body" x-text="houseCount + ' Unit'"></span>
+                        </div>
                         <template x-if="activeTab === 'material'">
-                            <div class="d-flex gap-2">
-                                <button type="button" wire:click="resetMaterialForm" class="btn btn-outline-light fw-semibold px-3">Reset</button>
-                                <button type="button" wire:click="showMaterialConfirmationModal" class="btn btn-success fw-semibold px-4" :disabled="!matReady">Simpan Alokasi</button>
+                            <div class="d-flex align-items-center justify-content-between text-secondary mb-2">
+                                <span>TOTAL KUANTITAS</span>
+                                <span class="fw-bold text-warning" x-text="totalQty + (mat ? (' ' + mat.unit) : '')"></span>
                             </div>
                         </template>
                         <template x-if="activeTab === 'tool'">
-                            <div class="d-flex gap-2">
-                                <button type="button" wire:click="resetToolForm" class="btn btn-outline-light fw-semibold px-3">Reset</button>
-                                <button type="button" wire:click="showToolConfirmationModal" class="btn btn-success fw-semibold px-4" :disabled="!toolReady || toolShortfall < 0">Simpan Peminjaman</button>
+                            <div class="d-flex align-items-center justify-content-between text-secondary mb-2">
+                                <span>TOTAL PINJAM</span>
+                                <span class="fw-bold text-warning" x-text="totalTools + ' Unit'"></span>
+                            </div>
+                        </template>
+
+                        <!-- Total Amount Line -->
+                        <div class="d-flex align-items-baseline justify-content-between pt-2.5 pb-1 border-top border-dashed" style="border-color: var(--bs-border-color) !important;">
+                            <span class="fw-black text-uppercase text-body small tracking-wider">TOTAL AMOUNT</span>
+                            <template x-if="activeTab === 'material'">
+                                <span class="fs-4 fw-black text-success lh-1" x-text="matReady ? rp(totalCost) : 'Rp 0'"></span>
+                            </template>
+                            <template x-if="activeTab === 'tool'">
+                                <span class="fs-4 fw-black lh-1" :class="toolShortfall < 0 ? 'text-danger' : 'text-success'" x-text="toolReady ? totalTools + ' Unit' : '0 Unit'"></span>
+                            </template>
+                            <template x-if="activeTab === 'return'">
+                                <span class="fs-4 fw-black text-success lh-1" x-text="returnCount + ' Alat'"></span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Receipt Actions -->
+                    <div class="d-flex gap-2 pt-3 mt-2 border-top border-dashed" style="border-color: var(--bs-border-color) !important;">
+                        <template x-if="activeTab === 'material'">
+                            <div class="d-flex gap-2 w-100">
+                                <button type="button" wire:click="resetMaterialForm" class="btn btn-outline-secondary btn-sm px-3 fw-semibold font-mono">Reset</button>
+                                <button type="button" wire:click="showMaterialConfirmationModal" class="btn btn-success btn-sm fw-bold px-3 shadow-sm flex-grow-1 font-mono" :disabled="!matReady">Simpan Alokasi &raquo;</button>
+                            </div>
+                        </template>
+                        <template x-if="activeTab === 'tool'">
+                            <div class="d-flex gap-2 w-100">
+                                <button type="button" wire:click="resetToolForm" class="btn btn-outline-secondary btn-sm px-3 fw-semibold font-mono">Reset</button>
+                                <button type="button" wire:click="showToolConfirmationModal" class="btn btn-success btn-sm fw-bold px-3 shadow-sm flex-grow-1 font-mono" :disabled="!toolReady || toolShortfall < 0">Simpan Peminjaman &raquo;</button>
                             </div>
                         </template>
                         <template x-if="activeTab === 'return'">
-                            <div class="d-flex gap-2">
-                                <button type="button" wire:click="resetReturnForm" class="btn btn-outline-light fw-semibold px-3">Reset</button>
-                                <button type="button" wire:click="showReturnConfirmationModal" class="btn btn-success fw-semibold px-4" :disabled="returnCount === 0">Simpan Pengembalian</button>
+                            <div class="d-flex gap-2 w-100">
+                                <button type="button" wire:click="resetReturnForm" class="btn btn-outline-secondary btn-sm px-3 fw-semibold font-mono">Reset</button>
+                                <button type="button" wire:click="showReturnConfirmationModal" class="btn btn-success btn-sm fw-bold px-3 shadow-sm flex-grow-1 font-mono" :disabled="returnCount === 0">Simpan Pengembalian &raquo;</button>
                             </div>
                         </template>
                     </div>
+
                 </div>
+
+                <!-- Receipt bottom saw-tooth / dashed border footer -->
+                <div class="w-100 py-1" style="background: repeating-linear-gradient(90deg, var(--bs-border-color), var(--bs-border-color) 6px, transparent 6px, transparent 12px); height: 2px;"></div>
             </div>
         </div>
-    </div>
+    </div> <!-- /col-lg-5 col-xl-4 (Right Receipt Column) -->
+</div> <!-- /row g-4 align-items-start -->
 
     <!-- ===== Confirmation modals ===== -->
     @if($showMaterialConfirmation)
