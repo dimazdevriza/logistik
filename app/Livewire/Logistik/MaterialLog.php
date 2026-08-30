@@ -105,36 +105,43 @@ class MaterialLog extends Component
                 'material_usages.id as id',
                 'material_usages.voided_at as voided_at',
                 'material_usages.usage_date as date',
-                'materials.code as material_code',
-                'materials.name as material_name',
-                'materials.unit as material_unit',
-                'houses.name as reference',
-                'material_usages.quantity',
+                'users.name as admin_name',
+                'users.name as taker_name',
+                'houses.name as house_name',
+                'material_usages.notes as job_notes',
+                'materials.code as item_code',
+                'materials.name as item_name',
+                'material_usages.quantity as volume',
+                'materials.unit as unit',
                 'material_usages.unit_price_at_usage as unit_price',
-                'material_usages.total_cost',
-                'users.name as user_name',
+                'material_usages.total_cost as total_cost',
+                'suppliers.name as supplier_name',
                 'material_usages.created_at as created_at'
             )
             ->join('materials', 'material_usages.material_id', '=', 'materials.id')
             ->join('houses', 'material_usages.house_id', '=', 'houses.id')
             ->join('users', 'material_usages.user_id', '=', 'users.id')
+            ->leftJoin('suppliers', 'materials.supplier_id', '=', 'suppliers.id')
             ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
             ->when($this->filterHouse, fn ($q) => $q->where('material_usages.house_id', $this->filterHouse));
 
         $masukQuery = StockIn::query()
             ->select(
                 DB::raw("'masuk' as type"),
-                DB::raw('NULL as id'),
+                'stock_ins.id as id',
                 DB::raw('NULL as voided_at'),
                 'stock_ins.date',
-                'materials.code as material_code',
-                'materials.name as material_name',
-                'materials.unit as material_unit',
-                'suppliers.name as reference',
-                'stock_ins.quantity',
-                'stock_ins.unit_price',
-                'stock_ins.total_cost',
-                'users.name as user_name',
+                'users.name as admin_name',
+                DB::raw("'-' as taker_name"),
+                DB::raw("'-' as house_name"),
+                'stock_ins.notes as job_notes',
+                'materials.code as item_code',
+                'materials.name as item_name',
+                'stock_ins.quantity as volume',
+                'materials.unit as unit',
+                'stock_ins.unit_price as unit_price',
+                'stock_ins.total_cost as total_cost',
+                'suppliers.name as supplier_name',
                 'stock_ins.created_at as created_at'
             )
             ->join('materials', 'stock_ins.material_id', '=', 'materials.id')
@@ -143,7 +150,13 @@ class MaterialLog extends Component
             ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
             ->when($this->filterSupplier, fn ($q) => $q->where('stock_ins.supplier_id', $this->filterSupplier));
 
-        $unionQuery = $keluarQuery->unionAll($masukQuery);
+        if ($this->filterType === 'masuk') {
+            $unionQuery = $masukQuery;
+        } elseif ($this->filterType === 'keluar') {
+            $unionQuery = $keluarQuery;
+        } else {
+            $unionQuery = $keluarQuery->unionAll($masukQuery);
+        }
 
         return DB::table(DB::raw("({$unionQuery->toSql()}) as combined"))
              ->mergeBindings($unionQuery->getQuery())
@@ -175,13 +188,7 @@ class MaterialLog extends Component
         $houses = House::orderBy('name')->get();
         $suppliers = Supplier::orderBy('name')->get();
 
-        if ($this->filterType === 'masuk') {
-            $records = $this->getMasukQuery()->orderBy('date', $this->sortDirection)->orderBy('id', $this->sortDirection)->paginate(10);
-        } elseif ($this->filterType === 'keluar') {
-            $records = $this->getKeluarQuery()->orderBy('usage_date', $this->sortDirection)->orderBy('id', $this->sortDirection)->paginate(10);
-        } else {
-            $records = $this->buildCombinedRecords();
-        }
+        $records = $this->buildCombinedRecords();
 
         return view('livewire.logistik.material-log', compact('records', 'houses', 'suppliers'))
             ->layout('layouts.app', ['title' => 'Catatan Material']);

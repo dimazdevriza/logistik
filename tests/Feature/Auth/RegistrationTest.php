@@ -1,9 +1,9 @@
 <?php
 
-test('registration screen redirects to home', function () {
+test('registration screen redirects to login because registration is disabled', function () {
     $response = $this->get('/register');
 
-    $response->assertRedirect(route('home'));
+    $response->assertRedirect(route('login'));
 });
 
 test('new users cannot register via post request', function () {

@@ -44,7 +44,6 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                 'materials.name as material_name',
                 'materials.unit as material_unit',
                 'houses.name as blok_rumah',
-                'houses.type as cluster',
                 'material_usages.notes as keterangan_pekerjaan',
                 'suppliers.name as supplier_name',
                 'houses.name as reference',
@@ -70,7 +69,6 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                 'materials.name as material_name',
                 'materials.unit as material_unit',
                 DB::raw("'-' as blok_rumah"),
-                DB::raw("'-' as cluster"),
                 'stock_ins.notes as keterangan_pekerjaan',
                 'suppliers.name as supplier_name',
                 'suppliers.name as reference',
@@ -117,12 +115,10 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                 [
                     'TANGGAL',
                     'BULAN',
-                    'MINGGU KE',
                     'TAHUN',
                     'ADMIN',
                     'PENGAMBIL',
                     'BLOK RUMAH',
-                    'CLUSTER',
                     'KETERANGAN PEKERJAAN',
                     'KODE BARANG',
                     'NAMA BARANG',
@@ -165,19 +161,14 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                 5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
                 9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER'
             ];
-            $romans = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V'];
-            $weekNum = $romans[$dt->weekOfMonth] ?? (string) $dt->weekOfMonth;
-
             return [
                 $dt->format('d/m/Y'),
                 $monthNames[$dt->month] ?? strtoupper($dt->format('F')),
-                $weekNum,
                 $dt->year,
                 $record->user_name,
-                $record->user_name, // Pengambil / Admin dicatat oleh
-                $record->blok_rumah ?? '-',
-                $record->cluster ?? '-',
-                $record->keterangan_pekerjaan ?? '-',
+                 $record->user_name, // Pengambil / Admin dicatat oleh
+                 $record->blok_rumah ?? '-',
+                 $record->keterangan_pekerjaan ?? '-',
                 $record->material_code ?? '-',
                 $record->material_name,
                 (float) ($record->quantity ?? 0),
@@ -210,9 +201,9 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
         if ($this->filterType === 'keluar') {
             return [
                 'A' => '@',
-                'L' => '#,##0.00',
-                'N' => '"Rp "#,##0',
-                'O' => '"Rp "#,##0',
+                'J' => '#,##0.00',
+                'L' => '"Rp "#,##0',
+                'M' => '"Rp "#,##0',
             ];
         }
 
@@ -249,18 +240,18 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                 ],
             ];
 
-            $sheet->getStyle('A1:P1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:N1')->applyFromArray($headerStyle);
             $sheet->getRowDimension(1)->setRowHeight(28);
 
             // Alignment
-            $sheet->getStyle('A:F')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('G:I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-            $sheet->getStyle('J')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('K')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-            $sheet->getStyle('L')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-            $sheet->getStyle('M')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('N:O')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-            $sheet->getStyle('P')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle('A:E')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('F:G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle('H')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle('J')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('K')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('L:M')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('N')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
 
             return [];
         }
@@ -308,7 +299,7 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
 
                 if ($this->filterType === 'keluar') {
                     // Auto grid borders for all data rows
-                    $event->sheet->getStyle('A1:P' . $lastRow)->applyFromArray([
+                    $event->sheet->getStyle('A1:N' . $lastRow)->applyFromArray([
                         'borders' => [
                             'allBorders' => [
                                 'borderStyle' => Border::BORDER_THIN,
@@ -326,12 +317,12 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                         ->sum('material_usages.total_cost');
 
                     $event->sheet->append([
-                        ['', '', '', '', '', '', '', '', '', '', '', '', '', 'TOTAL', $totalCost, '']
+                        ['', '', '', '', '', '', '', '', '', '', '', '', 'TOTAL', $totalCost]
                     ]);
 
                     $finalRow = $event->sheet->getHighestRow();
 
-                    $event->sheet->getStyle('N' . $finalRow . ':O' . $finalRow)->applyFromArray([
+                    $event->sheet->getStyle('M' . $finalRow . ':N' . $finalRow)->applyFromArray([
                         'font' => [
                             'bold' => true,
                             'color' => ['rgb' => 'FFFFFF'],
@@ -347,7 +338,7 @@ class MaterialLogExport implements FromCollection, WithHeadings, WithMapping, Wi
                         ],
                     ]);
 
-                    $event->sheet->getStyle('O' . $finalRow)->getNumberFormat()->setFormatCode('"Rp "#,##0');
+                    $event->sheet->getStyle('N' . $finalRow)->getNumberFormat()->setFormatCode('"Rp "#,##0');
                     return;
                 }
 

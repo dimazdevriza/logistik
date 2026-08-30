@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Spatie\Permission\Models\Role;
 
 class UserManagement extends Component
 {
@@ -59,6 +60,7 @@ class UserManagement extends Component
 
     public function save()
     {
+        $this->email = strtolower(trim($this->email));
         $this->validate();
 
         $data = [
@@ -72,13 +74,25 @@ class UserManagement extends Component
         }
 
         if ($this->editMode) {
-            User::findOrFail($this->userId)->update($data);
+            $user = User::findOrFail($this->userId);
+
+            if (strcasecmp($user->email, $this->email) !== 0) {
+                $user->forceFill([
+                    'google_id' => null,
+                    'google_linked_at' => null,
+                ])->save();
+            }
+
+            $user->update($data);
             session()->flash('success', 'User berhasil diperbarui.');
         } else {
             $data['password'] = Hash::make($this->password);
-            User::create($data);
+            $user = User::create($data);
             session()->flash('success', 'User berhasil ditambahkan.');
         }
+
+        Role::findOrCreate($this->role, 'web');
+        $user->syncRoles($this->role);
 
         $this->showModal = false;
         $this->resetForm();

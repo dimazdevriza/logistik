@@ -497,8 +497,8 @@ html.is-rail-initial .rail-hide,
 html.is-rail-initial .rail-show,
 .is-rail .rail-show { display: flex !important; }
 
-html.is-rail-initial .sidebar-section,
-.is-rail .sidebar-section {
+html.is-rail-initial .sidebar .sidebar-section,
+.is-rail .sidebar .sidebar-section {
     justify-content: center;
     padding-left: 0;
     margin: 1rem 0 0.375rem;
@@ -508,13 +508,13 @@ html.is-rail-initial .sidebar-section,
     text-align: center;
 }
 
-html.is-rail-initial nav,
-.is-rail nav {
+html.is-rail-initial .sidebar nav,
+.is-rail .sidebar nav {
     padding-inline: 0.5rem !important;
 }
 
-html.is-rail-initial .sidebar-link,
-.is-rail .sidebar-link {
+html.is-rail-initial .sidebar .sidebar-link,
+.is-rail .sidebar .sidebar-link {
     justify-content: center;
     height: 38px;
     width: 38px;
@@ -522,13 +522,13 @@ html.is-rail-initial .sidebar-link,
     margin-inline: auto;
 }
 
-html.is-rail-initial .sidebar-link.active::before,
-.is-rail .sidebar-link.active::before {
+html.is-rail-initial .sidebar .sidebar-link.active::before,
+.is-rail .sidebar .sidebar-link.active::before {
     display: none !important;
 }
 
-html.is-rail-initial .sidebar-link.active,
-.is-rail .sidebar-link.active {
+html.is-rail-initial .sidebar .sidebar-link.active,
+.is-rail .sidebar .sidebar-link.active {
     box-shadow: inset 0 0 0 1.5px var(--rail-accent);
 }
 
@@ -545,7 +545,7 @@ html.is-rail-initial .user-profile-card > div,
 }
 
 /* Tooltip for rail mode — visible when hovering collapsed icons */
-.is-rail .sidebar-link::after {
+.is-rail .sidebar .sidebar-link::after {
     content: attr(data-label);
     position: absolute;
     left: calc(100% + 0.75rem);
@@ -566,13 +566,13 @@ html.is-rail-initial .user-profile-card > div,
     z-index: 9999;
 }
 
-[data-bs-theme="dark"] .is-rail .sidebar-link::after {
+[data-bs-theme="dark"] .is-rail .sidebar .sidebar-link::after {
     background: #f8f9fa;
     color: #111111;
 }
 
-.is-rail .sidebar-link:hover::after,
-.is-rail .sidebar-link:focus-visible::after {
+.is-rail .sidebar .sidebar-link:hover::after,
+.is-rail .sidebar .sidebar-link:focus-visible::after {
     opacity: 1;
     visibility: visible;
     transform: translateY(-50%) translateX(2px);
@@ -706,6 +706,26 @@ html.is-rail-initial .user-profile-card > div,
         visibility: visible;
         pointer-events: auto;
     }
+}
+
+.excel-log-table {
+    min-width: 1680px !important;
+    table-layout: fixed;
+}
+
+.excel-log-table th,
+.excel-log-table td {
+    padding-inline: 0.75rem;
+}
+
+.excel-log-table th {
+    white-space: normal !important;
+    line-height: 1.2;
+}
+
+.excel-log-table .log-wrap {
+    white-space: normal !important;
+    line-height: 1.25;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -959,4 +979,3 @@ aside.sidebar nav.is-scrolling {
 [data-bs-theme="dark"] .btn-hero-action:hover svg {
     color: #4ade80;
 }
-

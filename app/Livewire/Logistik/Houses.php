@@ -3,6 +3,7 @@
 namespace App\Livewire\Logistik;
 
 use App\Models\House;
+use App\Models\ImportBatch;
 use App\Exports\HouseExport;
 use App\Exports\HouseListExport;
 use App\Imports\HouseImport;
@@ -180,8 +181,12 @@ class Houses extends Component
         ]);
 
         try {
-            $import = new HouseImport();
-            Excel::import($import, $this->importFile->getRealPath());
+            $import = ImportBatch::run('house', $this->importFile, function (string $path) {
+                $import = new HouseImport();
+                Excel::import($import, $path);
+
+                return $import;
+            });
 
             $this->importResultSummary = [
                 'totalRows' => $import->totalRows,
@@ -195,7 +200,7 @@ class Houses extends Component
 
             session()->flash('success', "Proses validasi & impor selesai: {$import->successfulRows} dari {$import->totalRows} baris data unit rumah berhasil diproses.");
             $this->resetPage();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->addError('importFile', 'Gagal memproses berkas Excel: ' . $e->getMessage());
         }
     }

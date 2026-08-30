@@ -453,7 +453,8 @@
                                 </a>
                             </div>
                             <ul class="extra-small text-secondary mb-0 ps-3">
-                                <li><strong>Stok Alat:</strong> <code>Kode</code>, <code>Nama Alat</code>, <code>Kategori</code>, <code>Kondisi</code> (baik/rusak), <code>Total Qty</code>, <code>Harga Beli</code></li>
+                                <li><strong>Format A.KELUAR:</strong> <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Admin</code>, <code>Pengambil</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Alat</code>, <code>Nama Alat</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code></li>
+                                <li><strong>Format lama:</strong> inventaris dengan <code>Kode</code>, <code>Nama Alat</code>, <code>Kategori</code>, <code>Kondisi</code>, <code>Total Qty</code>, <code>Harga Beli</code>, serta transaksi opsional.</li>
                                 <li><strong>Catatan Peminjaman:</strong> Tambahkan kolom <code>Jenis</code> (pinjam/kembali), <code>Unit Rumah</code> (mis. Blok B-04), <code>Tanggal</code>, <code>Catatan</code></li>
                             </ul>
                         </div>
@@ -511,7 +512,7 @@
                             <table class="table table-sm table-striped align-middle mb-0 extra-small">
                                 <thead class="table-light sticky-top">
                                     <tr>
-                                        <th style="width: 60px;">Baris</th>
+                                        <th style="width: 60px;">Baris Data</th>
                                         <th>Peralatan</th>
                                         <th>Status Validasi</th>
                                         <th>Keterangan Sistem</th>
@@ -520,7 +521,7 @@
                                 <tbody>
                                     @foreach($importResultSummary['logs'] as $log)
                                         <tr>
-                                            <td class="fw-mono text-center">#{{ $log['row'] }}</td>
+                                            <td class="fw-mono text-center">#{{ max(1, (int) $log['row'] - 1) }}</td>
                                             <td class="fw-semibold">{{ $log['item'] }}</td>
                                             <td>
                                                 @if($log['status'] === 'success')

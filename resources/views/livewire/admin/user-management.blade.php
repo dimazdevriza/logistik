@@ -60,6 +60,7 @@
                         <tr>
                             <th>Nama</th>
                             <th>Email</th>
+                            <th>Google</th>
                             <th>Role</th>
                             <th>Dibuat</th>
                             <th class="text-end" style="width: 100px;">Aksi</th>
@@ -73,6 +74,11 @@
                         <tr wire:key="usr-{{ $user->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $user->id }}) }">
                             <td class="fw-bold text-body">{{ $user->name }}</td>
                             <td class="text-secondary small">{{ $user->email }}</td>
+                            <td>
+                                <span class="badge {{ $user->google_id ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }}">
+                                    {{ $user->google_id ? 'Terhubung' : 'Belum' }}
+                                </span>
+                            </td>
                             <td>
                                 <span class="badge {{ $roleClasses[$user->role] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($user->role) }}</span>
                             </td>
@@ -92,7 +98,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-secondary">Belum ada data user.</td>
+                            <td colspan="6" class="text-center py-4 text-secondary">Belum ada data user.</td>
                         </tr>
                         @endforelse
                     </tbody>

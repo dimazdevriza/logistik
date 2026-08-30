@@ -12,7 +12,7 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\User::updateOrCreate(
+        $admin = \App\Models\User::updateOrCreate(
             ['email' => 'admin@logistik.com'],
             [
                 'name' => 'Admin',
@@ -20,8 +20,9 @@ class AdminSeeder extends Seeder
                 'role' => 'admin',
             ]
         );
+        $admin->syncRoles('admin');
 
-        \App\Models\User::updateOrCreate(
+        $logistik = \App\Models\User::updateOrCreate(
             ['email' => 'logistik@logistik.com'],
             [
                 'name' => 'Staff Logistik',
@@ -29,8 +30,9 @@ class AdminSeeder extends Seeder
                 'role' => 'logistik',
             ]
         );
+        $logistik->syncRoles('logistik');
 
-        \App\Models\User::updateOrCreate(
+        $mandor = \App\Models\User::updateOrCreate(
             ['email' => 'mandor@logistik.com'],
             [
                 'name' => 'Mandor Lapangan',
@@ -38,5 +40,6 @@ class AdminSeeder extends Seeder
                 'role' => 'mandor',
             ]
         );
+        $mandor->syncRoles('mandor');
     }
 }

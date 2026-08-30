@@ -9,7 +9,7 @@
                         Daftar Unit <span class="text-success">Rumah Proyek</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
-                        Pantau pembangunan unit rumah, tipe klaster, dan rincian alokasi material per unit.
+                        Pantau pembangunan unit rumah dan rincian alokasi material per unit.
                     </p>
                 </div>
                 <div class="d-flex flex-column gap-2" style="min-width: 260px;">
@@ -252,35 +252,35 @@
                         </div>
 
                         <!-- Summary Cards -->
-                        <div class="row g-2 mb-3 text-center">
+                        <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-5 g-2 mb-3 text-center">
                             <div class="col">
-                                <div class="p-2 border rounded bg-body-tertiary">
-                                    <span class="d-block text-secondary extra-small fw-bold text-uppercase">Total Baris</span>
-                                    <span class="fs-5 fw-bold text-body">{{ $importResultSummary['totalRows'] }}</span>
+                                <div class="h-100 p-2 border rounded bg-body-tertiary d-flex flex-column justify-content-center">
+                                    <span class="d-block text-secondary extra-small fw-bold text-uppercase lh-sm">Total Baris</span>
+                                    <span class="fs-5 fw-bold text-body lh-sm">{{ $importResultSummary['totalRows'] }}</span>
                                 </div>
                             </div>
                             <div class="col">
-                                <div class="p-2 border rounded bg-success-subtle text-success">
-                                    <span class="d-block extra-small fw-bold text-uppercase">Sukses</span>
-                                    <span class="fs-5 fw-bold">{{ $importResultSummary['successfulRows'] }}</span>
+                                <div class="h-100 p-2 border rounded bg-success-subtle text-success d-flex flex-column justify-content-center">
+                                    <span class="d-block extra-small fw-bold text-uppercase lh-sm">Sukses</span>
+                                    <span class="fs-5 fw-bold lh-sm">{{ $importResultSummary['successfulRows'] }}</span>
                                 </div>
                             </div>
                             <div class="col">
-                                <div class="p-2 border rounded bg-warning-subtle text-warning">
-                                    <span class="d-block extra-small fw-bold text-uppercase">Unit Baru</span>
-                                    <span class="fs-5 fw-bold">{{ $importResultSummary['housesImported'] }}</span>
+                                <div class="h-100 p-2 border rounded bg-warning-subtle text-warning d-flex flex-column justify-content-center">
+                                    <span class="d-block extra-small fw-bold text-uppercase lh-sm">Unit Baru</span>
+                                    <span class="fs-5 fw-bold lh-sm">{{ $importResultSummary['housesImported'] }}</span>
                                 </div>
                             </div>
                             <div class="col">
-                                <div class="p-2 border rounded bg-info-subtle text-info">
-                                    <span class="d-block extra-small fw-bold text-uppercase">Alokasi Mat.</span>
-                                    <span class="fs-5 fw-bold">{{ $importResultSummary['materialsImported'] ?? 0 }}</span>
+                                <div class="h-100 p-2 border rounded bg-info-subtle text-info d-flex flex-column justify-content-center">
+                                    <span class="d-block extra-small fw-bold text-uppercase lh-sm">Alokasi Mat.</span>
+                                    <span class="fs-5 fw-bold lh-sm">{{ $importResultSummary['materialsImported'] ?? 0 }}</span>
                                 </div>
                             </div>
                             <div class="col">
-                                <div class="p-2 border rounded bg-primary-subtle text-primary">
-                                    <span class="d-block extra-small fw-bold text-uppercase">Pinjam Alat</span>
-                                    <span class="fs-5 fw-bold">{{ $importResultSummary['toolsImported'] ?? 0 }}</span>
+                                <div class="h-100 p-2 border rounded bg-primary-subtle text-primary d-flex flex-column justify-content-center">
+                                    <span class="d-block extra-small fw-bold text-uppercase lh-sm">Pinjam Alat</span>
+                                    <span class="fs-5 fw-bold lh-sm">{{ $importResultSummary['toolsImported'] ?? 0 }}</span>
                                 </div>
                             </div>
                         </div>
@@ -291,7 +291,7 @@
                             <table class="table table-sm table-striped align-middle mb-0 extra-small">
                                 <thead class="table-light sticky-top">
                                     <tr>
-                                        <th style="width: 50px;">Baris</th>
+                                <th style="width: 50px;">Baris Data</th>
                                         <th>Sheet / Bagian</th>
                                         <th>Item / Unit</th>
                                         <th>Status</th>
@@ -301,7 +301,7 @@
                                 <tbody>
                                     @foreach($importResultSummary['logs'] as $log)
                                         <tr>
-                                            <td class="fw-mono text-center">#{{ $log['row'] }}</td>
+                                            <td class="fw-mono text-center">#{{ max(1, (int) $log['row'] - 1) }}</td>
                                             <td><span class="badge bg-secondary-subtle text-secondary">{{ $log['sheet'] ?? 'Unit Rumah' }}</span></td>
                                             <td class="fw-semibold">{{ $log['item'] }}</td>
                                             <td>

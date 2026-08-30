@@ -35,6 +35,6 @@ File ini digunakan oleh Roger (AI) untuk mencatat setiap masalah, solusi, dan br
 
 ## 6. Deterministic String Collisions (House Generation)
 - **Konteks**: Modul Proyek `Houses.php` (Fitur Auto-Generate `house_code`).
-- **Masalah**: Arsitektur pembuatan kode unik rumah ternyata menggunakan pola deterministik murni (e.g., Inisial Cluster + Nama + Tahun) tanpa *Sequence Database Counter*. Hal ini menimbulkan celah tabrakan (*Collision*): Jika input nama rumah identik pada sistem, maka duplikasi kode akan tercipta secara instan, merusak struktur unik database. Ditambah lagi, kode otomatis tersebut terus me-regenerate nilainya setiap kali fungsi `Edit` dipanggil.
+- **Masalah**: Arsitektur pembuatan kode unik rumah ternyata menggunakan pola deterministik murni (e.g., Nama + Tahun) tanpa *Sequence Database Counter*. Hal ini menimbulkan celah tabrakan (*Collision*): Jika input nama rumah identik pada sistem, maka duplikasi kode akan tercipta secara instan, merusak struktur unik database. Ditambah lagi, kode otomatis tersebut terus me-regenerate nilainya setiap kali fungsi `Edit` dipanggil.
 - **Solusi**: 1) Menutup celah re-generation pada alur `Update` (Kode rumah bersifat statis seumur hidup setelah diciptakan). 2) Mengeksekusi manual eksistensi kode (*Pre-save DB Existence Check*) pada alur `Create` untuk mendeteksi *Collision* sesaat sebelum operasi insert. 3) Memanfaatkan struktur tabel MySQL `->unique('house_code')` sebagai penjaga gawang absolut.
-- **Hasil**: Operasional kode klaster rumah menjadi aman dari insiden duplikasi input petugas human error.
+- **Hasil**: Operasional kode rumah menjadi aman dari insiden duplikasi input petugas human error.

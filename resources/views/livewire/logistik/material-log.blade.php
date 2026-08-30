@@ -68,127 +68,77 @@
             </div>
         </div>
 
+        @php
+            $monthNames = [1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL', 5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS', 9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER'];
+        @endphp
+
         <!-- Material Log Table -->
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 excel-log-table">
+                    <colgroup>
+                        <col style="width: 100px"><col style="width: 100px"><col style="width: 70px"><col style="width: 150px">
+                        <col style="width: 110px"><col style="width: 110px"><col style="width: 130px">
+                        <col style="width: 260px"><col style="width: 120px"><col style="width: 260px"><col style="width: 90px">
+                        <col style="width: 90px"><col style="width: 140px"><col style="width: 150px"><col style="width: 190px">
+                    </colgroup>
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
-                            <th class="text-center" style="width: 50px;">No.</th>
                             <th>Tanggal</th>
-                            @if ($filterType === '') <th>Tipe</th> @endif
-                            <th>Kode</th>
-                            <th>
-                                @if ($filterType === 'masuk') Toko / Supplier
-                                @elseif ($filterType === 'keluar') Unit Rumah
-                                @else Tujuan / Supplier
-                                @endif
-                            </th>
-                            <th>Material</th>
-                            <th class="text-end">Qty</th>
+                            <th>Bulan</th>
+                            <th>Tahun</th>
+                            <th title="Masuk: ditambahkan ke gudang. Keluar: digunakan dalam konstruksi.">Tipe</th>
+                            <th>Admin</th>
+                            <th>Pengambil</th>
+                            <th>Blok Rumah</th>
+                            <th>Keterangan Pekerjaan</th>
+                            <th>Kode Barang</th>
+                            <th>Nama Barang</th>
+                            <th class="text-end">Volume</th>
+                            <th>Satuan</th>
                             <th class="text-end">Harga Satuan</th>
-                            <th class="text-end">Total Biaya</th>
-                            <th>Dicatat oleh</th>
+                            <th class="text-end">Jumlah</th>
+                            <th>Toko/Supplier</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if ($filterType === '')
-                            @forelse ($records as $record)
-                            <tr wire:key="m-log-{{ $loop->index }}">
-                                <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
-                                <td class="font-mono text-secondary small">
-                                    {{ \Carbon\Carbon::parse($record->created_at ?? $record->date)->format('d/m/Y H:i') }}
-                                </td>
+                        @forelse ($records as $record)
+                            @php $date = \Carbon\Carbon::parse($record->date); @endphp
+                            <tr wire:key="m-log-{{ $record->type }}-{{ $record->id }}">
+                                <td class="font-mono text-secondary small">{{ $date->format('d/m/Y') }}</td>
+                                <td class="font-mono text-secondary small">{{ $monthNames[$date->month] }}</td>
+                                <td class="text-center font-mono text-secondary small">{{ $date->year }}</td>
                                 <td>
                                     @if ($record->type === 'masuk')
-                                        <span class="badge bg-success-subtle text-success">▼ Masuk</span>
+                                        <span class="badge bg-success-subtle text-success">Masuk</span>
+                                        <span class="d-block extra-small text-secondary">Gudang</span>
                                     @else
-                                        <span class="badge bg-warning-subtle text-warning">▲ Keluar</span>
+                                        <span class="badge bg-warning-subtle text-warning">Keluar</span>
+                                        <span class="d-block extra-small text-secondary">Konstruksi</span>
                                     @endif
                                 </td>
-                                <td class="font-mono text-secondary small">{{ $record->material_code ?? '-' }}</td>
-                                <td>
-                                    @if ($record->type === 'masuk')
-                                        <div class="extra-small text-success fw-bold text-uppercase font-geist">Supplier</div>
-                                    @else
-                                        <div class="extra-small text-warning fw-bold text-uppercase font-geist">Rumah</div>
-                                    @endif
-                                    <div class="fw-bold text-body">{{ $record->reference }}</div>
-                                </td>
-                                <td class="fw-bold text-body">{{ $record->material_name }}</td>
-                                <td class="text-end fw-bold">{{ number_format($record->quantity, 0, ',', '.') }} <span class="text-secondary small font-normal">{{ $record->material_unit }}</span></td>
-                                <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>
-                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
-                                <td class="text-secondary small">
-                                    <div class="d-inline-flex align-items-center gap-1 flex-wrap">
-                                        <span>{{ $record->user_name }}</span>
-                                        @if (($record->voided_at ?? null) !== null)
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small text-uppercase tracking-wider">VOIDED</span>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="10" class="text-center py-4 text-secondary">Belum ada catatan material.</td>
-                            </tr>
-                            @endforelse
-                        @elseif ($filterType === 'masuk')
-                            @forelse ($records as $record)
-                            <tr wire:key="m-in-log-{{ $loop->index }}">
-                                <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
-                                <td class="font-mono text-secondary small">{{ ($record->created_at ?? $record->date)->format('d/m/Y H:i') }}</td>
-                                <td class="font-mono text-secondary small">{{ $record->material->code ?? '-' }}</td>
-                                <td class="fw-bold text-body">{{ $record->supplier->name ?? '-' }}</td>
-                                <td class="fw-bold text-body">{{ $record->material->name ?? '-' }}</td>
-                                <td class="text-end fw-bold">{{ number_format($record->quantity, 0, ',', '.') }} <span class="text-secondary small font-normal">{{ $record->material->unit ?? '' }}</span></td>
-                                <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price, 0, ',', '.') }}</td>
-                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
-                                <td class="text-secondary small">
-                                    {{ $record->user->name ?? '-' }}
-                                    @if($record->proof_image)
-                                        <a href="{{ asset('storage/' . $record->proof_image) }}" target="_blank" class="badge bg-info-subtle text-info ms-1 text-decoration-none d-inline-flex align-items-center gap-1" title="Lihat Foto Bukti">
-                                            <svg width="12" height="12" fill="currentColor"><use href="#i-camera"/></svg> Bukti
-                                        </a>
+                                <td class="fw-semibold">{{ $record->admin_name ?? '-' }}</td>
+                                <td>{{ $record->taker_name ?? '-' }}</td>
+                                <td class="fw-semibold">{{ $record->house_name ?? '-' }}</td>
+                                <td class="log-wrap">
+                                    {{ $record->job_notes ?? '-' }}
+                                    @if (($record->voided_at ?? null) !== null)
+                                        <span class="badge bg-secondary-subtle text-secondary ms-1">VOIDED</span>
                                     @endif
                                 </td>
+                                <td class="font-mono text-secondary small">{{ $record->item_code ?? '-' }}</td>
+                                <td class="fw-bold text-body log-wrap">{{ $record->item_name ?? '-' }}</td>
+                                <td class="text-end fw-bold font-mono">{{ rtrim(rtrim(number_format((float) $record->volume, 2, ',', '.'), '0'), ',') }}</td>
+                                <td>{{ $record->unit ?? '-' }}</td>
+                                <td class="text-end font-mono text-secondary">Rp {{ number_format((float) $record->unit_price, 0, ',', '.') }}</td>
+                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format((float) $record->total_cost, 0, ',', '.') }}</td>
+                                <td>{{ $record->supplier_name ?? '-' }}</td>
                             </tr>
-                            @empty
+                        @empty
                             <tr>
-                                <td colspan="9" class="text-center py-4 text-secondary">Belum ada data barang masuk.</td>
+                                <td colspan="15" class="text-center py-4 text-secondary">Belum ada catatan material.</td>
                             </tr>
-                            @endforelse
-                        @else
-                            @forelse ($records as $record)
-                            <tr wire:key="m-out-log-{{ $loop->index }}">
-                                <td class="text-center text-secondary small">{{ ($records->currentPage() - 1) * $records->perPage() + $loop->iteration }}</td>
-                                <td class="font-mono text-secondary small">{{ ($record->created_at ?? $record->usage_date)->format('d/m/Y H:i') }}</td>
-                                <td class="font-mono text-secondary small">{{ $record->material->code ?? '-' }}</td>
-                                <td class="fw-bold text-body">{{ $record->house->name }}</td>
-                                <td class="fw-bold text-body">{{ $record->material->name }}</td>
-                                <td class="text-end fw-bold">{{ str_replace('.', ',', (float) $record->quantity) }} <span class="text-secondary small font-normal">{{ $record->material->unit }}</span></td>
-                                <td class="text-end font-mono text-secondary">Rp {{ number_format($record->unit_price_at_usage, 0, ',', '.') }}</td>
-                                <td class="text-end font-mono fw-bold text-success">Rp {{ number_format($record->total_cost, 0, ',', '.') }}</td>
-                                <td class="text-secondary small">
-                                    <div class="d-inline-flex align-items-center gap-1 flex-wrap">
-                                        <span>{{ $record->user->name }}</span>
-                                        @if($record->proof_image)
-                                            <a href="{{ asset('storage/' . $record->proof_image) }}" target="_blank" class="badge bg-info-subtle text-info text-decoration-none d-inline-flex align-items-center gap-1" title="Lihat Foto Bukti">
-                                                <svg width="12" height="12" fill="currentColor"><use href="#i-camera"/></svg> Bukti
-                                            </a>
-                                        @endif
-                                        @if ($record->voided_at !== null)
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small text-uppercase tracking-wider">VOIDED</span>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="9" class="text-center py-4 text-secondary">Belum ada data barang keluar.</td>
-                            </tr>
-                            @endforelse
-                        @endif
+                        @endforelse
                     </tbody>
                 </table>
             </div>

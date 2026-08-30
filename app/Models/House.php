@@ -20,8 +20,8 @@ class House extends Model
     ];
 
     /**
-     * Generate a unique house code: [ClusterInitials]-[Year]-[BlokStripped]
-     * e.g. "Cluster Mutiara" + "Blok A-01" → "CM-2026-A01"
+     * Generate a unique house code: [Year]-[BlokStripped]
+     * e.g. "Blok A-01" → "2026-A01"
      */
     public static function generateCode(string $houseName): string
     {

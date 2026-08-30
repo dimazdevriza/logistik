@@ -640,8 +640,8 @@
                                 </a>
                             </div>
                             <ul class="extra-small text-secondary mb-0 ps-3">
-                                <li><strong>Stok Inventaris:</strong> <code>Nama Material</code>, <code>Kategori</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Sisa Stok</code>, <code>Supplier</code></li>
-                                <li><strong>Catatan Transaksi:</strong> Tambahkan kolom <code>Jenis</code> (masuk/keluar), <code>Unit Rumah</code> (mis. Blok A-01), <code>Tanggal</code>, <code>Catatan</code></li>
+                                <li><strong>Format M.KELUAR:</strong> <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Admin</code>, <code>Pengambil</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Barang</code>, <code>Nama Barang</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code></li>
+                                <li><strong>Format lama:</strong> inventaris dengan <code>Nama Material</code>, <code>Kategori</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Sisa Stok</code>, <code>Supplier</code>, serta transaksi opsional.</li>
                             </ul>
                         </div>
 
@@ -698,7 +698,7 @@
                             <table class="table table-sm table-striped align-middle mb-0 extra-small">
                                 <thead class="table-light sticky-top">
                                     <tr>
-                                        <th style="width: 60px;">Baris</th>
+                                        <th style="width: 60px;">Baris Data</th>
                                         <th>Material</th>
                                         <th>Status Validasi</th>
                                         <th>Keterangan Sistem</th>
@@ -707,7 +707,7 @@
                                 <tbody>
                                     @foreach($importResultSummary['logs'] as $log)
                                         <tr>
-                                            <td class="fw-mono text-center">#{{ $log['row'] }}</td>
+                                            <td class="fw-mono text-center">#{{ max(1, (int) $log['row'] - 1) }}</td>
                                             <td class="fw-semibold">{{ $log['item'] }}</td>
                                             <td>
                                                 @if($log['status'] === 'success')

@@ -3,10 +3,12 @@
 namespace App\Livewire\Logistik;
 
 use App\Models\Material;
+use App\Models\ImportBatch;
 use App\Models\StockIn;
 use App\Models\Supplier;
 use App\Models\Category;
 use App\Exports\MaterialInventoryExport;
+use App\Imports\MaterialImport;
 use App\Traits\WithFilterModal;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
@@ -454,8 +456,12 @@ class Materials extends Component
         ]);
 
         try {
-            $import = new \App\Imports\MaterialImport();
-            Excel::import($import, $this->importFile->getRealPath());
+            $import = ImportBatch::run('material', $this->importFile, function (string $path) {
+                $import = new MaterialImport();
+                Excel::import($import, $path);
+
+                return $import;
+            });
 
             $this->importResultSummary = [
                 'totalRows' => $import->totalRows,
@@ -468,7 +474,7 @@ class Materials extends Component
 
             session()->flash('success', "Proses validasi & impor selesai: {$import->successfulRows} dari {$import->totalRows} baris data berhasil diproses.");
             $this->resetPage();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->addError('importFile', 'Gagal memproses berkas Excel: ' . $e->getMessage());
         }
     }

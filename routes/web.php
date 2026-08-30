@@ -11,8 +11,10 @@ Route::get('home', fn () => redirect()->route('login'))->name('home');
 Route::get('register', fn () => redirect()->route('login'));
 
 // Google OAuth Sign-In (Whitelist model)
-Route::get('auth/google', [App\Http\Controllers\Auth\GoogleController::class, 'redirect'])->name('auth.google');
-Route::get('auth/google/callback', [App\Http\Controllers\Auth\GoogleController::class, 'callback'])->name('auth.google.callback');
+Route::middleware('guest')->group(function () {
+    Route::get('auth/google', [App\Http\Controllers\Auth\GoogleController::class, 'redirect'])->name('auth.google');
+    Route::get('auth/google/callback', [App\Http\Controllers\Auth\GoogleController::class, 'callback'])->name('auth.google.callback');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Main dashboard entry point — redirects based on role
@@ -26,7 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
     // ─── Logistik module (logistik + admin) ───────────────────────
-    Route::middleware('role:logistik,admin')->prefix('logistik')->group(function () {
+    Route::middleware('role:logistik|admin')->prefix('logistik')->group(function () {
 
         Route::get('suppliers', App\Livewire\Logistik\Suppliers::class)->name('logistik.suppliers');
         Route::get('categories', App\Livewire\Logistik\Categories::class)->name('logistik.categories');

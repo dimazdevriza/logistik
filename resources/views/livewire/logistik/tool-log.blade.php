@@ -56,54 +56,66 @@
             </div>
         </div>
 
+        @php
+            $monthNames = [1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL', 5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS', 9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER'];
+        @endphp
+
         <!-- Tool Log Table -->
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 excel-log-table">
+                    <colgroup>
+                        <col style="width: 100px"><col style="width: 100px"><col style="width: 70px">
+                        <col style="width: 110px"><col style="width: 110px"><col style="width: 130px">
+                        <col style="width: 260px"><col style="width: 120px"><col style="width: 260px"><col style="width: 90px">
+                        <col style="width: 90px"><col style="width: 140px"><col style="width: 150px"><col style="width: 190px">
+                    </colgroup>
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
-                            <th class="text-center" style="width: 50px;">No.</th>
-                            <th>Tgl Pinjam</th>
-                            <th>Kode</th>
-                            <th>Rumah</th>
-                            <th>Alat</th>
-                            <th class="text-center">Qty</th>
-                            <th>Tgl Kembali</th>
-                            <th>Status</th>
-                            <th>Dicatat oleh</th>
+                            <th>Tanggal</th>
+                            <th>Bulan</th>
+                            <th>Tahun</th>
+                            <th>Admin</th>
+                            <th>Pengambil</th>
+                            <th>Blok Rumah</th>
+                            <th>Keterangan Pekerjaan</th>
+                            <th>Kode Alat</th>
+                            <th>Nama Alat</th>
+                            <th class="text-end">Volume</th>
+                            <th>Satuan</th>
+                            <th class="text-end">Harga Satuan</th>
+                            <th class="text-end">Jumlah</th>
+                            <th>Toko/Supplier</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($usages as $usage)
                         <tr wire:key="t-log-{{ $usage->id }}">
-                            <td class="text-center text-secondary small">{{ ($usages->currentPage() - 1) * $usages->perPage() + $loop->iteration }}</td>
                             <td class="font-mono text-secondary small">{{ $usage->checkout_date->format('d/m/Y') }}</td>
-                            <td class="font-mono text-secondary small">{{ $usage->tool->code ?? '-' }}</td>
-                            <td class="fw-bold text-body">{{ $usage->house->name }}</td>
-                            <td class="fw-bold text-body">{{ $usage->tool->name }}</td>
-                            <td class="text-center font-mono fw-bold">{{ $usage->quantity }}</td>
-                            <td class="font-mono text-secondary small">{{ $usage->return_date?->format('d/m/Y') ?? '-' }}</td>
-                            <td>
+                            <td class="font-mono text-secondary small">{{ $monthNames[$usage->checkout_date->month] }}</td>
+                            <td class="text-center font-mono text-secondary small">{{ $usage->checkout_date->year }}</td>
+                            <td class="fw-semibold">{{ $usage->user->name ?? '-' }}</td>
+                            <td>{{ $usage->user->name ?? '-' }}</td>
+                            <td class="fw-semibold">{{ $usage->house->name ?? '-' }}</td>
+                            <td class="log-wrap">
+                                {{ $usage->notes ?? '-' }}
                                 @if ($usage->return_date)
-                                    <span class="badge bg-success-subtle text-success">✓ Dikembalikan</span>
+                                    <span class="badge bg-success-subtle text-success ms-1">Dikembalikan {{ $usage->return_date->format('d/m/Y') }}</span>
                                 @else
-                                    <span class="badge bg-warning-subtle text-warning">⏳ Dipinjam</span>
+                                    <span class="badge bg-warning-subtle text-warning ms-1">Dipinjam</span>
                                 @endif
                             </td>
-                            <td class="text-secondary small">
-                                <div class="d-inline-flex align-items-center gap-1 flex-wrap">
-                                    <span>{{ $usage->user->name }}</span>
-                                    @if($usage->proof_image)
-                                        <a href="{{ asset('storage/' . $usage->proof_image) }}" target="_blank" class="badge bg-info-subtle text-info text-decoration-none d-inline-flex align-items-center gap-1" title="Lihat Foto Bukti">
-                                            <svg width="12" height="12" fill="currentColor"><use href="#i-camera"/></svg> Bukti
-                                        </a>
-                                    @endif
-                                </div>
-                            </td>
+                            <td class="font-mono text-secondary small">{{ $usage->tool->code ?? '-' }}</td>
+                            <td class="fw-bold text-body log-wrap">{{ $usage->tool->name ?? '-' }}</td>
+                            <td class="text-end fw-bold font-mono">{{ $usage->quantity }}</td>
+                            <td>unit</td>
+                            <td class="text-end font-mono text-secondary">Rp {{ number_format((float) ($usage->tool->purchase_price ?? 0), 0, ',', '.') }}</td>
+                            <td class="text-end font-mono fw-bold text-success">Rp {{ number_format((float) (($usage->tool->purchase_price ?? 0) * $usage->quantity), 0, ',', '.') }}</td>
+                            <td>-</td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="9" class="text-center py-4 text-secondary">Belum ada data penggunaan alat.</td>
+                            <td colspan="14" class="text-center py-4 text-secondary">Belum ada data penggunaan alat.</td>
                         </tr>
                         @endforelse
                     </tbody>

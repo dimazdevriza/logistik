@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class MaterialImport implements ToCollection
+class MaterialImport implements ToCollection, WithHeadingRow
 {
     public int $totalRows = 0;
     public int $successfulRows = 0;
@@ -38,28 +38,47 @@ class MaterialImport implements ToCollection
                 // Convert row to array & sanitize keys to lower case trimmed without spaces/underscores
                 $rowData = [];
                 foreach ($row as $key => $val) {
-                    $cleanKey = strtolower(str_replace(['_', ' '], '', trim((string) $key)));
+                    $cleanKey = strtolower(str_replace(['_', ' ', '/', '-', '.'], '', trim((string) $key)));
                     $rowData[$cleanKey] = is_string($val) ? trim($val) : $val;
                 }
 
+                $isKeluarFormat = array_key_exists('namabarang', $rowData)
+                    || array_key_exists('volume', $rowData)
+                    || array_key_exists('blokrumah', $rowData);
+                $normalizeText = static function ($value) {
+                    if ($value === null) return null;
+                    $value = is_string($value) ? trim($value) : $value;
+                    if (is_string($value) && in_array(strtolower($value), ['', '-', '—', '*di isi', '*link', '0'], true)) {
+                        return null;
+                    }
+                    return $value;
+                };
+
                 // Header detection based on normalized keys
                 // Mode A: Material Inventory item
-                $name = $rowData['namamaterial'] ?? $rowData['nama'] ?? $rowData['material'] ?? null;
-                $categoryName = $rowData['kategori'] ?? null;
-                $unit = $rowData['satuan'] ?? 'pcs';
+                $name = $normalizeText($rowData['namamaterial'] ?? $rowData['namabarang'] ?? $rowData['nama'] ?? $rowData['material'] ?? null);
+                $code = $normalizeText($rowData['kodematerial'] ?? $rowData['kodebarang'] ?? $rowData['kode'] ?? null);
+                $categoryName = $normalizeText($rowData['kategori'] ?? ($isKeluarFormat ? 'Material Umum' : null));
+                $unit = $normalizeText($rowData['satuan'] ?? 'pcs') ?: 'pcs';
                 $unitPrice = floatval($rowData['hargasatuan'] ?? $rowData['harga'] ?? 0);
-                $stock = floatval($rowData['sisastok'] ?? $rowData['stok'] ?? $rowData['jumlah'] ?? 0);
-                $supplierName = $rowData['supplier'] ?? $rowData['pemasok'] ?? null;
+                $stock = $isKeluarFormat ? 0 : floatval($rowData['sisastok'] ?? $rowData['stok'] ?? $rowData['jumlah'] ?? 0);
+                $supplierName = $normalizeText($rowData['supplier'] ?? $rowData['pemasok'] ?? $rowData['tokosupplier'] ?? null);
 
                 // Mode B: Transaction record (Keluar / Masuk)
-                $txType = strtolower((string) ($rowData['jenis'] ?? $rowData['tipe'] ?? $rowData['tipetransaksi'] ?? ''));
-                $houseName = $rowData['unitrumah'] ?? $rowData['rumah'] ?? $rowData['unit'] ?? $rowData['referensi'] ?? null;
-                $txNotes = $rowData['catatan'] ?? $rowData['keterangan'] ?? 'Import dari Excel';
-                $txDateRaw = $rowData['tanggal'] ?? $rowData['waktu'] ?? now()->toDateString();
+                $txType = strtolower((string) ($rowData['jenis'] ?? $rowData['tipe'] ?? $rowData['tipetransaksi'] ?? ($isKeluarFormat ? 'keluar' : '')));
+                $houseName = $normalizeText($rowData['unitrumah'] ?? $rowData['rumah'] ?? $rowData['unit'] ?? $rowData['referensi'] ?? $rowData['blokrumah'] ?? null);
+                $txNotes = $normalizeText($rowData['catatan'] ?? $rowData['keterangan'] ?? $rowData['keteranganpekerjaan'] ?? null) ?? 'Import dari Excel';
+                $txDateRaw = $rowData['tanggal'] ?? $rowData['waktu'] ?? $rowData['0'] ?? $rowData[''] ?? now()->toDateString();
                 
                 // Parse date
                 try {
-                    $txDate = \Carbon\Carbon::parse($txDateRaw)->toDateString();
+                    if (is_numeric($txDateRaw) && (float) $txDateRaw > 20000) {
+                        $txDate = \Carbon\Carbon::instance(
+                            \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $txDateRaw)
+                        )->toDateString();
+                    } else {
+                        $txDate = \Carbon\Carbon::parse($txDateRaw)->toDateString();
+                    }
                 } catch (\Exception $e) {
                     $txDate = now()->toDateString();
                 }
@@ -97,13 +116,17 @@ class MaterialImport implements ToCollection
                 $isNewMaterial = false;
 
                 if (!$material) {
+                    $isTransaction = in_array($txType, ['masuk', 'restock', 'in', 'keluar', 'alokasi', 'out', 'usage'], true)
+                        || $houseName;
+
                     $material = Material::create([
+                        'code' => $code,
                         'name' => $name,
                         'category_id' => $category?->id,
                         'supplier_id' => $supplier?->id,
                         'unit' => $unit ?: 'pcs',
                         'unit_price' => $unitPrice,
-                        'stock' => max(0, $stock),
+                        'stock' => $isTransaction ? 0 : max(0, $stock),
                     ]);
                     $this->materialsImported++;
                     $isNewMaterial = true;
@@ -117,6 +140,9 @@ class MaterialImport implements ToCollection
                     }
                     if ($supplier && !$material->supplier_id) {
                         $material->supplier_id = $supplier->id;
+                    }
+                    if ($code && !$material->code) {
+                        $material->code = $code;
                     }
                     // If strictly importing inventory stock, update stock if given
                     if (!in_array($txType, ['masuk', 'keluar', 'restock', 'alokasi'])) {
@@ -153,10 +179,11 @@ class MaterialImport implements ToCollection
                     $house = null;
                     if ($houseName) {
                         $house = House::where('name', 'like', "%{$houseName}%")
-                            ->orWhere('code', 'like', "%{$houseName}%")
+                            ->orWhere('house_code', 'like', "%{$houseName}%")
                             ->first();
                         if (!$house) {
                             $house = House::create([
+                                'house_code' => House::generateCode($houseName),
                                 'name' => $houseName,
                                 'type' => 'Tipe Standar',
                                 'status' => 'pembangunan',
@@ -165,7 +192,9 @@ class MaterialImport implements ToCollection
                     }
 
                     if ($house) {
-                        $qty = max(0.01, $stock > 0 ? $stock : floatval($rowData['jumlah'] ?? 1));
+                        $qty = max(0.01, $isKeluarFormat
+                            ? floatval($rowData['volume'] ?? 1)
+                            : ($stock > 0 ? $stock : floatval($rowData['jumlah'] ?? 1)));
                         $price = $unitPrice > 0 ? $unitPrice : floatval($material->unit_price ?? 0);
                         $total = $qty * $price;
 
