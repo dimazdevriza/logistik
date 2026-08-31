@@ -29,4 +29,9 @@ test('two factor challenge can be rendered', function () {
         'email' => $user->email,
         'password' => 'password',
     ])->assertRedirect(route('two-factor.login'));
+
+    $this->get(route('two-factor.login'))
+        ->assertOk()
+        ->assertSee('livewire.js', false)
+        ->assertSee('Kode Otentikator');
 });
