@@ -17,6 +17,9 @@ class GoogleAuthWhitelistTest extends TestCase
         $response = $this->get(route('auth.google'));
 
         $response->assertRedirect();
+
+        parse_str(parse_url($response->headers->get('Location'), PHP_URL_QUERY), $query);
+        $this->assertSame('select_account', $query['prompt'] ?? null);
     }
 
     public function test_preregistered_google_email_logs_in_successfully(): void
