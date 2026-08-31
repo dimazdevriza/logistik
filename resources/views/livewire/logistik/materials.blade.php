@@ -640,7 +640,7 @@
                                 </a>
                             </div>
                             <ul class="extra-small text-secondary mb-0 ps-3">
-                                <li><strong>Format M.KELUAR:</strong> <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Admin</code>, <code>Pengambil</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Barang</code>, <code>Nama Barang</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code></li>
+                                <li><strong>Format M.KELUAR:</strong> <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Penanggung Jawab</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Barang</code>, <code>Nama Barang</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code></li>
                                 <li><strong>Format lama:</strong> inventaris dengan <code>Nama Material</code>, <code>Kategori</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Sisa Stok</code>, <code>Supplier</code>, serta transaksi opsional.</li>
                             </ul>
                         </div>

@@ -221,6 +221,13 @@ class ExcelImportFeatureTest extends TestCase
         $this->assertGreaterThan(0, $import->successfulRows);
         $this->assertGreaterThan(0, $import->housesImported + $import->materialsImported + $import->toolsImported);
         $this->assertDatabaseCount('houses', $import->housesImported);
+        $this->assertDatabaseHas('houses', [
+            'house_code' => '2026-G01',
+            'start_date' => '2026-09-01 00:00:00',
+            'target_end_date' => '2027-02-28 00:00:00',
+        ]);
+        $this->assertDatabaseHas('material_usages', ['usage_date' => '2026-09-03 00:00:00']);
+        $this->assertDatabaseHas('tool_usages', ['checkout_date' => '2026-09-03 00:00:00']);
     }
 
     public function test_same_file_cannot_be_imported_twice_for_each_import_type()

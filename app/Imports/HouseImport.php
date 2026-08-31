@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class HouseImport implements WithMultipleSheets
 {
@@ -25,6 +26,19 @@ class HouseImport implements WithMultipleSheets
     public int $materialsImported = 0;
     public int $toolsImported = 0;
     public array $rowLogs = [];
+
+    public static function parseDate(mixed $value): ?string
+    {
+        if (!$value) return null;
+
+        try {
+            return is_numeric($value) && (float) $value > 20000
+                ? Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value))->toDateString()
+                : Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
 
     public function sheets(): array
     {
@@ -72,15 +86,8 @@ class HouseUnitsSheetImport implements ToCollection, WithHeadingRow
                 $startDateRaw = $rowData['mulai'] ?? $rowData['tanggalmulai'] ?? $rowData['startdate'] ?? null;
                 $targetEndDateRaw = $rowData['targetselesai'] ?? $rowData['selesai'] ?? $rowData['target'] ?? $rowData['targetenddate'] ?? null;
 
-                $startDate = null;
-                if ($startDateRaw) {
-                    try { $startDate = Carbon::parse($startDateRaw)->toDateString(); } catch (\Exception $e) { $startDate = null; }
-                }
-
-                $targetEndDate = null;
-                if ($targetEndDateRaw) {
-                    try { $targetEndDate = Carbon::parse($targetEndDateRaw)->toDateString(); } catch (\Exception $e) { $targetEndDate = null; }
-                }
+                $startDate = HouseImport::parseDate($startDateRaw);
+                $targetEndDate = HouseImport::parseDate($targetEndDateRaw);
 
                 if (!$name && !$code) {
                     $this->parent->skippedRows++;
@@ -177,7 +184,7 @@ class HouseMaterialsSheetImport implements ToCollection, WithHeadingRow
                 $notes = $rowData['peruntukkan'] ?? $rowData['catatan'] ?? $rowData['keterangan'] ?? 'Alokasi Proyek (Import)';
                 $dateRaw = $rowData['tanggal'] ?? $rowData['waktu'] ?? now()->toDateString();
 
-                try { $usageDate = Carbon::parse($dateRaw)->toDateString(); } catch (\Exception $e) { $usageDate = now()->toDateString(); }
+                $usageDate = HouseImport::parseDate($dateRaw) ?? now()->toDateString();
 
                 if (!$houseRef || !$matName || $qty <= 0) {
                     if ($houseRef || $matName) {
@@ -283,11 +290,11 @@ class HouseToolsSheetImport implements ToCollection, WithHeadingRow
                 $checkoutDateRaw = $rowData['tanggalpinjam'] ?? $rowData['tanggal'] ?? $rowData['mulai'] ?? now()->toDateString();
                 $returnDateRaw = $rowData['tanggalkembali'] ?? $rowData['kembali'] ?? null;
 
-                try { $checkoutDate = Carbon::parse($checkoutDateRaw)->toDateString(); } catch (\Exception $e) { $checkoutDate = now()->toDateString(); }
+                $checkoutDate = HouseImport::parseDate($checkoutDateRaw) ?? now()->toDateString();
                 
                 $returnDate = null;
                 if ($statusPinjam === 'kembali' || $statusPinjam === 'selesai' || $returnDateRaw) {
-                    try { $returnDate = Carbon::parse($returnDateRaw ?: now())->toDateString(); } catch (\Exception $e) { $returnDate = now()->toDateString(); }
+                    $returnDate = HouseImport::parseDate($returnDateRaw ?: now()) ?? now()->toDateString();
                 }
 
                 if (!$houseRef || (!$toolName && !$toolCode) || $qty <= 0) {
@@ -365,4 +372,3 @@ class HouseToolsSheetImport implements ToCollection, WithHeadingRow
         });
     }
 }
-
