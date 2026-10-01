@@ -2,33 +2,34 @@
 
 namespace App\Exports;
 
-use App\Models\ToolUsage;
 use App\Models\House;
-use Maatwebsite\Excel\Concerns\FromQuery;
+use App\Models\ToolUsage;
 use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class ToolUsageExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle
+class ToolUsageExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     use Exportable;
 
     private $rowNumber = 0;
 
     public function __construct(
-        private int $houseId
+        private int $houseId,
+        private string $sheetTitle = 'Peminjaman Alat',
     ) {}
 
     public function title(): string
     {
-        return 'Peminjaman Alat';
+        return $this->sheetTitle;
     }
 
     public function query()
@@ -44,9 +45,9 @@ class ToolUsageExport implements FromQuery, WithHeadings, WithMapping, WithStyle
         $house = House::find($this->houseId);
 
         return [
-            ['Laporan Peminjaman Alat - ' . ($house->name ?? 'D\'Royal Village')],
-            ['Diekspor pada: ' . now()->format('d F Y H:i')],
-            ['Proyek: ' . ($house->house_code ?? '-') . ' (' . ($house->type ?? '-') . ')'],
+            ['Laporan Peminjaman Alat - '.($house->name ?? 'D\'Royal Village')],
+            ['Diekspor pada: '.now()->format('d F Y H:i')],
+            ['Proyek: '.($house->house_code ?? '-').' ('.($house->type ?? '-').')'],
             [], // Empty row
             [
                 'No',
@@ -58,25 +59,27 @@ class ToolUsageExport implements FromQuery, WithHeadings, WithMapping, WithStyle
                 'Tanggal Kembali',
                 'Pencatat',
                 'Catatan',
-            ]
+                'Dicatat pada',
+            ],
         ];
     }
 
     public function map($usage): array
     {
         $this->rowNumber++;
-        
+
         return [
             $this->rowNumber,
-            $usage->checkout_date->format('d/m/Y H:i'),
+            $usage->checkout_date->format('d/m/Y'),
             $usage->tool->name,
             $usage->tool->code,
             // Rule 4: Zero substitution
             (int) ($usage->quantity ?? 0),
             $usage->return_date ? 'Dikembalikan' : 'Dipinjam',
-            $usage->return_date ? $usage->return_date->format('d/m/Y H:i') : '-',
+            $usage->return_date ? $usage->return_date->format('d/m/Y') : '-',
             $usage->user->name,
             $usage->notes ?? '-',
+            $usage->created_at?->format('d/m/Y H:i') ?? '-',
         ];
     }
 
@@ -106,8 +109,8 @@ class ToolUsageExport implements FromQuery, WithHeadings, WithMapping, WithStyle
             ],
         ];
 
-        $sheet->getStyle('A5:I5')->applyFromArray($headerStyle);
-        
+        $sheet->getStyle('A5:J5')->applyFromArray($headerStyle);
+
         // Alignment
         $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('E:G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);

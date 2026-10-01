@@ -59,6 +59,12 @@ class GoogleController extends Controller
             ]);
         }
 
+        if (! in_array($user->role, ['admin', 'logistik', 'keuangan'], true)) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Akun ini sudah tidak memiliki akses. Hubungi Administrator.',
+            ]);
+        }
+
         if ($user->google_id && ! hash_equals($user->google_id, $googleId)) {
             return redirect()->route('login')->withErrors([
                 'email' => 'Akun ini sudah terhubung dengan akun Google lain. Hubungi Administrator.',

@@ -2,78 +2,115 @@
 
 namespace App\Exports;
 
-use App\Models\ToolUsage;
-use Maatwebsite\Excel\Concerns\FromQuery;
+use Carbon\Carbon;
+use Illuminate\Database\Query\Builder;
 use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class ToolLogExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
+class ToolLogExport implements WithColumnFormatting, FromQuery, ShouldAutoSize, WithHeadings, WithMapping, WithStyles
 {
     use Exportable;
 
     private $rowNumber = 0;
 
-    public function __construct(
-        private string $search = '',
-        private string $filterStatus = '',
-        private string $filterHouse = '',
-        private string $sortDirection = 'desc'
-    ) {}
-
-    public function query()
+    public function columnFormats(): array
     {
-        return ToolUsage::with(['tool', 'house', 'user'])
-            ->whereNull('tool_usages.voided_at')
-            ->when($this->search, fn ($q) => $q->whereHas('tool', fn ($tq) => $tq->where('name', 'like', "%{$this->search}%")))
-            ->when($this->filterHouse, fn ($q) => $q->where('house_id', $this->filterHouse))
-            ->when($this->filterStatus === 'dipinjam', fn ($q) => $q->whereNull('return_date'))
-            ->when($this->filterStatus === 'dikembalikan', fn ($q) => $q->whereNotNull('return_date'))
-            ->orderBy('checkout_date', $this->sortDirection);
+        return [
+            'Q' => '[$Rp-421] #,##0.00',
+            'R' => '[$Rp-421] #,##0.00',
+        ];
+    }
+
+    public function __construct(private Builder $recordsQuery) {}
+
+    public function query(): Builder
+    {
+        return clone $this->recordsQuery;
     }
 
     public function headings(): array
     {
         return [
             ['Catatan Alat - Sistem Logistik'],
-            ['Diekspor pada: ' . now()->format('d F Y H:i')],
+            ['Diekspor pada: '.now()->format('d F Y H:i')],
             [], // Empty row
             [
                 'No',
-                'Tanggal Pinjam',
-                'Rumah',
+                'Tanggal',
+                'Rumah / Gudang',
                 'Nama Alat',
                 'Kode Alat',
                 'Jumlah',
                 'Status',
                 'Tanggal Kembali',
-                'Pencatat',
+                'Penanggung Jawab',
                 'Catatan',
-            ]
+                'Jenis',
+                'Kode Transaksi',
+                'Kode Pengiriman',
+                'Kode Masuk Asal',
+                'Gudang Asal',
+                'Satuan',
+                'Harga Satuan',
+                'Total',
+                'Vendor',
+                'Jatuh Tempo Sewa',
+                'Kode Transaksi Induk',
+                'Waktu Diterima',
+                'Dicatat pada',
+            ],
         ];
     }
 
-    public function map($usage): array
+    public function map($record): array
     {
-        $this->rowNumber++;
+        $type = match ($record->type) {
+            'masuk' => 'Masuk',
+            'saldo_awal' => 'Saldo awal',
+            'keluar' => 'Peminjaman',
+            'kembali' => 'Pengembalian',
+            'transfer' => 'Transfer antargudang',
+            'rental' => 'Sewa vendor',
+            'rental_extension' => 'Perpanjangan sewa',
+            'rental_return' => 'Kembali ke vendor',
+            default => $record->type,
+        };
+        $status = $record->voided_at ? 'Dibatalkan' : ($record->rental_status
+            ?? ($record->type === 'kembali' ? 'Dikembalikan' : ($record->type === 'keluar' ? ($record->return_date ? 'Dikembalikan' : 'Dipinjam') : '-')));
 
         return [
-            $this->rowNumber,
-            $usage->checkout_date->format('d/m/Y'),
-            $usage->house->name,
-            $usage->tool->name,
-            $usage->tool->code,
-            (int) ($usage->quantity ?? 0),
-            $usage->return_date ? 'Dikembalikan' : 'Dipinjam',
-            $usage->return_date ? $usage->return_date->format('d/m/Y') : '-',
-            $usage->user->name,
-            $usage->notes ?? '-',
+            ++$this->rowNumber,
+            $record->date ? Carbon::parse($record->date)->format('d/m/Y') : '-',
+            $record->house_name,
+            $record->item_name,
+            $record->item_code,
+            (float) $record->volume,
+            $status,
+            $record->return_date ? Carbon::parse($record->return_date)->format('d/m/Y') : '-',
+            $record->admin_name ?? 'Tidak tercatat',
+            $record->job_notes ?? '-',
+            $type,
+            $record->transaction_code,
+            $record->dispatch_code,
+            $record->source_entry_code,
+            $record->source_warehouse_name,
+            $record->unit,
+            (float) $record->unit_price,
+            (float) $record->total_cost,
+            $record->vendor_name,
+            $record->rental_due_date ? Carbon::parse($record->rental_due_date)->format('d/m/Y') : '-',
+            $record->parent_transaction_code,
+            $record->received_at,
+            $record->created_at ? Carbon::parse($record->created_at)->format('d/m/Y H:i') : '-',
         ];
     }
 
@@ -103,7 +140,7 @@ class ToolLogExport implements FromQuery, WithHeadings, WithMapping, WithStyles,
             ],
         ];
 
-        $sheet->getStyle('A4:J4')->applyFromArray($headerStyle);
+        $sheet->getStyle('A4:W4')->applyFromArray($headerStyle);
 
         // Alignment
         $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);

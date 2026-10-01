@@ -69,3 +69,34 @@ Drop caveman when:
 - User asks to clarify or repeats question
 
 Resume caveman after clear part done.
+
+---
+
+<!-- antislop:start -->
+# Anti-Slop Mode (Always On)
+
+Enforce antislop on EVERY response, code generation, UI modification, copywriting, and architecture work. No expiry. No reverting.
+
+Core skills loaded:
+- Core Rules: `.agents/skills/antislop/SKILL.md`
+- UI & Visual: `.agents/skills/antislop-ui/SKILL.md`
+- Copywriting & Tone: `.agents/skills/antislop-copywriting/SKILL.md`
+- Accessibility & Human: `.agents/skills/antislop-human/SKILL.md`
+- Mobile & Responsive: `.agents/skills/antislop-layoutmobile/SKILL.md`
+- Code Hygiene: `.agents/skills/antislop-code/SKILL.md`
+
+### Hard Rules:
+- **No Generic AI Slop:** No purple/indigo SaaS gradients, no floating decorative cards with arbitrary icons, no empty buzzwords, no uniform border radii without hierarchy.
+- **Specific & Grounded:** All UI, copy, and code tailored specifically to project context (`D'Royal Village` logistics / construction).
+- **Quality Gates:** Check contrast ratios, real touch targets (44px min), clean semantic structure, zero redundant abstractions.
+- **Persistent:** Active on every turn automatically.
+<!-- antislop:end -->
+
+## Project execution rules
+
+- Use MySQL for the application and automated tests. Do not configure or run SQLite. Automated tests use the isolated local `logistik_test` database, never live `logistik`.
+- After every project change, refresh the open local browser tab so it shows the latest app state; keep the current route when possible.
+- For every UI change, capture a screenshot of the refreshed page and inspect it for wrapping, clipping, spacing, alignment, and hierarchy problems. Fix visible defects and repeat the screenshot review until the layout is clean before delivery.
+- After every behavior change, run focused tests, open the local browser, exercise the changed workflow with clearly labeled test data, inspect errors and layout, fix discovered bugs, then rerun tests and browser checks.
+- UI work must read `DESIGN.md` and `antislop.md`, preserve the current D'Royal Village ledger style, and check normal, empty, loading, error, focus, mobile, and theme states when applicable.
+- New icons must be inline or component SVG. Do not add emoji, icon fonts, or generic image icons.

@@ -34,12 +34,17 @@ class PermissionSeeder extends Seeder
                 'import inventory',
                 'view logs',
                 'manage houses',
-            ])->values(),
-            'mandor' => $permissions->only([
-                'view dashboard',
                 'request materials',
                 'request tools',
             ])->values(),
+            'keuangan' => $permissions->only([
+                'view dashboard',
+                'view inventory',
+                'manage inventory',
+                'import inventory',
+                'view logs',
+            ])->values(),
+            'inactive' => collect(),
             'user' => collect(),
         ];
 

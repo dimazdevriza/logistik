@@ -2,17 +2,21 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Cluster;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Traits\WithTableSorting;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Role;
 
 class UserManagement extends Component
 {
-    use WithPagination;
+    use WithPagination, WithTableSorting;
 
     public $search = '';
+    public $sort = 'name_asc';
     public $showModal = false;
     public $editMode = false;
     public $userId;
@@ -21,13 +25,16 @@ class UserManagement extends Component
     public $email = '';
     public $password = '';
     public $role = 'logistik';
+    public $cluster_id = '';
+    public bool $reactivatingLegacyUser = false;
 
     protected function rules()
     {
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . ($this->userId ?? 'NULL'),
-            'role' => 'required|in:admin,logistik',
+            'role' => 'required|in:admin,logistik,keuangan',
+            'cluster_id' => [Rule::requiredIf($this->role === 'logistik'), 'nullable', 'exists:clusters,id'],
         ];
 
         if (!$this->editMode) {
@@ -52,7 +59,9 @@ class UserManagement extends Component
         $this->userId = $user->id;
         $this->name = $user->name;
         $this->email = $user->email;
-        $this->role = $user->role;
+        $this->role = $user->role === 'inactive' ? 'logistik' : $user->role;
+        $this->reactivatingLegacyUser = $user->role === 'inactive';
+        $this->cluster_id = $user->cluster_id ?? '';
         $this->password = '';
         $this->editMode = true;
         $this->showModal = true;
@@ -67,6 +76,7 @@ class UserManagement extends Component
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
+            'cluster_id' => $this->role === 'logistik' ? ($this->cluster_id ?: null) : null,
         ];
 
         if ($this->password) {
@@ -104,7 +114,12 @@ class UserManagement extends Component
             session()->flash('error', 'Anda tidak dapat menghapus akun sendiri.');
             return;
         }
-        User::findOrFail($id)->delete();
+        $user = User::findOrFail($id);
+        if ($user->hasOperationalHistory()) {
+            session()->flash('error', 'User tidak dapat dihapus karena memiliki riwayat operasional. Riwayat transaksi harus tetap tersimpan.');
+            return;
+        }
+        $user->delete();
         session()->flash('success', 'User berhasil dihapus.');
     }
 
@@ -115,6 +130,8 @@ class UserManagement extends Component
         $this->email = '';
         $this->password = '';
         $this->role = 'logistik';
+        $this->cluster_id = '';
+        $this->reactivatingLegacyUser = false;
         $this->resetValidation();
     }
 
@@ -124,15 +141,33 @@ class UserManagement extends Component
         $this->resetPage();
     }
 
+    protected function sortableColumns(): array
+    {
+        return [
+            'name' => 'users.name',
+            'email' => 'users.email',
+            'google' => 'users.google_id',
+            'role' => 'users.role',
+            'cluster' => fn ($query, $direction) => $query->orderBy(
+                Cluster::select('name')->whereColumn('clusters.id', 'users.cluster_id'),
+                $direction
+            ),
+            'created_at' => 'users.created_at',
+        ];
+    }
+
     public function render()
     {
-        $users = User::query()
+        $users = User::with('cluster:id,name')
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%")
                 ->orWhere('email', 'like', "%{$this->search}%"))
-            ->orderBy('name')
+            ->tap(fn ($query) => $this->applyTableSort($query))
+            ->orderBy('users.id')
             ->paginate(10);
 
-        return view('livewire.admin.user-management', compact('users'))
+        $clusters = Cluster::query()->orderBy('name')->get(['id', 'name']);
+
+        return view('livewire.admin.user-management', compact('users', 'clusters'))
             ->layout('layouts.app', ['title' => 'Manajemen User']);
     }
 }

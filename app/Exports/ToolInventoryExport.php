@@ -24,16 +24,18 @@ class ToolInventoryExport implements FromQuery, WithHeadings, WithMapping, WithS
     public function __construct(
         private string $search = '',
         private string $filterCategory = '',
-        private string $filterCondition = ''
+        private string $filterCondition = '',
+        private string $filterWarehouse = ''
     ) {}
 
     public function query()
     {
-        return Tool::with(['category'])
+        return Tool::with(['category', 'warehouse', 'warehouseBalances.warehouse'])
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%")
                 ->orWhere('code', 'like', "%{$this->search}%"))
             ->when($this->filterCategory, fn ($q) => $q->where('category_id', $this->filterCategory))
             ->when($this->filterCondition, fn ($q) => $q->where('condition', $this->filterCondition))
+            ->when($this->filterWarehouse, fn ($q) => $q->whereHas('warehouseBalances', fn ($balance) => $balance->where('warehouse_id', $this->filterWarehouse)))
             ->orderBy('name');
     }
 
@@ -51,6 +53,7 @@ class ToolInventoryExport implements FromQuery, WithHeadings, WithMapping, WithS
                 'Kode',
                 'Nama Alat',
                 'Kategori',
+                'Gudang',
                 'Kondisi',
                 'Total Qty',
                 'Tersedia',
@@ -68,6 +71,10 @@ class ToolInventoryExport implements FromQuery, WithHeadings, WithMapping, WithS
             $tool->code,
             $tool->name,
             $tool->category?->name ?? 'Tanpa Kategori',
+            $tool->warehouseBalances
+                ->filter(fn ($balance) => ($balance->available_qty + $balance->qty_broken) > 0)
+                ->map(fn ($balance) => ($balance->warehouse?->name ?? 'Belum ditetapkan').' ('.$balance->available_qty.' tersedia)')
+                ->join('; ') ?: 'Belum ditetapkan',
             ucfirst($tool->condition),
             (int) ($tool->total_qty ?? 0),
             (int) ($tool->available_qty ?? 0),

@@ -14,13 +14,11 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PermissionSeeder::class,
             AdminSeeder::class,
-            SupplierSeeder::class,
-            CategorySeeder::class,
-            MaterialSeeder::class,
-            ToolSeeder::class,
+            DemoInventorySeeder::class,
+            ClusterSeeder::class,
             HouseSeeder::class,
-            ToolUsageSeeder::class,
             MaterialUsageSeeder::class,
+            ToolUsageSeeder::class,
         ]);
     }
 }

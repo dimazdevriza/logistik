@@ -3,12 +3,15 @@
 namespace Database\Seeders;
 
 use App\Models\Material;
+use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
 
 class MaterialSeeder extends Seeder
 {
     public function run(): void
     {
+        $warehouseId = Warehouse::firstOrCreate(['name' => 'Gudang Utama'])->id;
+
         $materials = [
             // Semen & Beton (category 1 & 2, supplier 1)
             ['supplier_id' => 1, 'category_id' => 1, 'name' => 'Semen Portland 50kg', 'unit' => 'sak', 'unit_price' => 65000, 'stock' => 300],
@@ -55,7 +58,7 @@ class MaterialSeeder extends Seeder
         ];
 
         foreach ($materials as $index => $material) {
-            Material::create($material);
+            Material::create($material + ['warehouse_id' => $warehouseId]);
         }
     }
 }

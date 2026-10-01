@@ -2,7 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\Category;
+use App\Imports\HouseImport;
+use App\Imports\MaterialImport;
+use App\Imports\ToolImport;
+use App\Livewire\Logistik\Houses;
+use App\Livewire\Logistik\Materials;
+use App\Livewire\Logistik\Tools;
 use App\Models\House;
 use App\Models\ImportBatch;
 use App\Models\Material;
@@ -12,7 +17,7 @@ use App\Models\Tool;
 use App\Models\ToolReturnLog;
 use App\Models\ToolUsage;
 use App\Models\User;
-use App\Imports\HouseImport;
+use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
@@ -26,13 +31,15 @@ class ExcelImportFeatureTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create(['role' => 'admin']);
         $this->actingAs($this->user);
     }
 
     public function test_material_import_parses_materials_and_transaction_logs()
     {
+        Material::factory()->create(['name' => 'Besi Beton 12mm Import', 'stock' => 15]);
+        House::factory()->create(['name' => 'Blok X-01']);
         $rows = collect([
             [
                 'nama_material' => 'Semen Portland Import Test',
@@ -43,7 +50,7 @@ class ExcelImportFeatureTest extends TestCase
                 'supplier' => 'PT Semen Maju',
                 'jenis' => 'masuk',
                 'catatan' => 'Restock Awal Import',
-                'tanggal' => '2026-08-18'
+                'tanggal' => '2026-08-18',
             ],
             [
                 'nama_material' => 'Besi Beton 12mm Import',
@@ -54,14 +61,14 @@ class ExcelImportFeatureTest extends TestCase
                 'unit_rumah' => 'Blok X-01',
                 'jenis' => 'keluar',
                 'catatan' => 'Alokasi Pengecoran Atap',
-                'tanggal' => '2026-08-18'
-            ]
+                'tanggal' => '2026-08-18',
+            ],
         ]);
 
-        $import = new \App\Imports\MaterialImport();
+        $import = new MaterialImport;
         $import->collection($rows);
 
-        $this->assertEquals(2, $import->materialsImported);
+        $this->assertEquals(1, $import->materialsImported);
         $this->assertEquals(2, $import->transactionsImported);
 
         $this->assertDatabaseHas('materials', ['name' => 'Semen Portland Import Test', 'unit' => 'sak']);
@@ -76,6 +83,7 @@ class ExcelImportFeatureTest extends TestCase
 
     public function test_tool_import_parses_tools_and_checkout_return_logs()
     {
+        House::factory()->create(['name' => 'Blok Y-02']);
         $rows = collect([
             [
                 'kode' => 'ALT-TST-01',
@@ -88,23 +96,31 @@ class ExcelImportFeatureTest extends TestCase
                 'jenis' => 'pinjam',
                 'unit_rumah' => 'Blok Y-02',
                 'catatan' => 'Peminjaman Pengeringan Pondasi',
-                'tanggal' => '2026-08-18'
-            ]
+                'tanggal' => '2026-08-18',
+            ],
         ]);
 
-        $import = new \App\Imports\ToolImport();
+        $import = new ToolImport;
         $import->collection($rows);
 
         $this->assertEquals(1, $import->toolsImported);
         $this->assertEquals(1, $import->transactionsImported);
 
         $this->assertDatabaseHas('tools', ['code' => 'ALT-TST-01', 'name' => 'Pompa Air Submersible Test']);
+        $openingTool = Tool::where('code', 'ALT-TST-01')->sole();
+        $this->assertSame('opening_balance', $openingTool->entry_type);
+        $this->assertStringStartsWith('ALT-OPEN-', $openingTool->entry_code);
+        $this->assertNull($openingTool->received_at);
         $this->assertDatabaseHas('houses', ['name' => 'Blok Y-02']);
         $this->assertDatabaseHas('tool_usages', ['notes' => 'Peminjaman Pengeringan Pondasi']);
     }
 
     public function test_material_import_parses_m_keluar_format()
     {
+        House::factory()->create(['name' => 'F-01']);
+        Material::factory()->create([
+            'name' => 'Alkali Jotun Jotashield', 'code' => 'BL509', 'stock' => 1, 'unit' => 'Pail',
+        ]);
         $rows = collect([
             [
                 0 => 46052,
@@ -128,12 +144,12 @@ class ExcelImportFeatureTest extends TestCase
             ],
         ]);
 
-        $import = new \App\Imports\MaterialImport();
+        $import = new MaterialImport;
         $import->collection($rows);
 
         $this->assertEquals(1, $import->successfulRows);
         $this->assertEquals(1, $import->skippedRows);
-        $this->assertEquals(1, $import->materialsImported);
+        $this->assertEquals(0, $import->materialsImported);
         $this->assertEquals(1, $import->transactionsImported);
 
         $this->assertDatabaseHas('materials', [
@@ -152,6 +168,7 @@ class ExcelImportFeatureTest extends TestCase
 
     public function test_tool_import_parses_a_keluar_format()
     {
+        House::factory()->create(['name' => 'F-01']);
         $rows = collect([
             [
                 0 => 46265,
@@ -175,7 +192,7 @@ class ExcelImportFeatureTest extends TestCase
             ],
         ]);
 
-        $import = new \App\Imports\ToolImport();
+        $import = new ToolImport;
         $import->collection($rows);
 
         $this->assertEquals(1, $import->successfulRows);
@@ -200,27 +217,71 @@ class ExcelImportFeatureTest extends TestCase
 
     public function test_material_livewire_import_modal()
     {
-        Livewire::test(\App\Livewire\Logistik\Materials::class)
+        Livewire::test(Materials::class)
             ->call('openImportModal')
             ->assertSet('showImportModal', true);
     }
 
     public function test_tool_livewire_import_modal()
     {
-        Livewire::test(\App\Livewire\Logistik\Tools::class)
+        Livewire::test(Tools::class)
             ->call('openImportModal')
             ->assertSet('showImportModal', true);
     }
 
     public function test_house_template_import_processes_all_sheets()
     {
-        $import = new HouseImport();
+        $warehouse = Warehouse::firstOrFail();
+        Material::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'name' => 'Bata Ringan AAC Rumah',
+            'unit' => 'buah',
+            'unit_price' => 12500,
+            'stock' => 500,
+        ]);
+        Material::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'name' => 'Semen Portland Rumah',
+            'unit' => 'sak',
+            'unit_price' => 96000,
+            'stock' => 25,
+        ]);
+        $house = House::factory()->create([
+            'house_code' => '2026-G02',
+            'name' => 'Blok G-02',
+            'status' => 'pembangunan',
+        ]);
+        $returnableTool = Tool::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'code' => 'ALT-HSE-002',
+            'name' => 'Bor Beton Rumah',
+            'total_qty' => 1,
+            'available_qty' => 0,
+        ]);
+        Tool::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'code' => 'ALT-HSE-001',
+            'name' => 'Mesin Potong Keramik Rumah',
+            'total_qty' => 1,
+            'available_qty' => 1,
+        ]);
+        ToolUsage::factory()->create([
+            'tool_id' => $returnableTool->id,
+            'house_id' => $house->id,
+            'user_id' => $this->user->id,
+            'quantity' => 1,
+            'checkout_date' => '2026-09-01',
+            'return_date' => null,
+        ]);
+
+        $import = new HouseImport;
 
         Excel::import($import, base_path('docs/sample_house_import.xlsx'));
 
         $this->assertGreaterThan(0, $import->successfulRows);
         $this->assertGreaterThan(0, $import->housesImported + $import->materialsImported + $import->toolsImported);
-        $this->assertDatabaseCount('houses', $import->housesImported);
+        $this->assertSame(1, $import->housesImported);
+        $this->assertDatabaseCount('houses', 2);
         $this->assertDatabaseHas('houses', [
             'house_code' => '2026-G01',
             'start_date' => '2026-09-01 00:00:00',
@@ -232,17 +293,69 @@ class ExcelImportFeatureTest extends TestCase
 
     public function test_same_file_cannot_be_imported_twice_for_each_import_type()
     {
+        // The material template contains stock-out rows; warehouse stock must exist first.
+        Material::factory()->create(['name' => 'Bata Ringan AAC 10 cm', 'stock' => 500]);
+        Material::factory()->create(['name' => 'Semen Portland 50 kg', 'stock' => 25]);
+        $warehouse = Warehouse::firstOrFail();
+        Material::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'name' => 'Bata Ringan AAC Rumah',
+            'unit' => 'buah',
+            'unit_price' => 12500,
+            'stock' => 500,
+        ]);
+        Material::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'name' => 'Semen Portland Rumah',
+            'unit' => 'sak',
+            'unit_price' => 96000,
+            'stock' => 25,
+        ]);
+        $house = House::factory()->create([
+            'house_code' => '2026-G02',
+            'name' => 'Blok G-02',
+            'status' => 'pembangunan',
+        ]);
+        $returnableTool = Tool::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'code' => 'ALT-HSE-002',
+            'name' => 'Bor Beton Rumah',
+            'total_qty' => 1,
+            'available_qty' => 0,
+        ]);
+        Tool::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'code' => 'ALT-HSE-001',
+            'name' => 'Mesin Potong Keramik Rumah',
+            'total_qty' => 1,
+            'available_qty' => 1,
+        ]);
+        ToolUsage::factory()->create([
+            'tool_id' => $returnableTool->id,
+            'house_id' => $house->id,
+            'user_id' => $this->user->id,
+            'quantity' => 1,
+            'checkout_date' => '2026-09-01',
+            'return_date' => null,
+        ]);
+        House::factory()->create([
+            'house_code' => '2026-G01',
+            'name' => 'Blok G-01',
+            'status' => 'pembangunan',
+        ]);
         $cases = [
-            ['material', \App\Livewire\Logistik\Materials::class, 'sample_material_import.xlsx'],
-            ['tool', \App\Livewire\Logistik\Tools::class, 'sample_tool_import.xlsx'],
-            ['house', \App\Livewire\Logistik\Houses::class, 'sample_house_import.xlsx'],
+            ['material', Materials::class, 'sample_material_import.xlsx'],
+            ['tool', Tools::class, 'sample_tool_import.xlsx'],
+            ['house', Houses::class, 'sample_house_import.xlsx'],
         ];
 
         foreach ($cases as [$type, $component, $fileName]) {
-            Livewire::test($component)
+            $firstImport = Livewire::test($component)
                 ->set('importFile', $this->templateUpload($fileName))
-                ->call('importExcel')
-                ->assertHasNoErrors('importFile');
+                ->call('importExcel');
+            if ($firstImport->errors()->has('importFile')) {
+                $this->fail($type.': '.$firstImport->errors()->first('importFile'));
+            }
 
             $countsAfterFirstImport = [
                 Material::count(),
@@ -276,6 +389,10 @@ class ExcelImportFeatureTest extends TestCase
         }
 
         $this->assertDatabaseCount('import_batches', 3);
+        $batch = ImportBatch::where('import_type', 'material')->where('status', 'completed')->firstOrFail();
+        $this->assertNotEmpty($batch->reconciliation_before);
+        $this->assertNotEmpty($batch->reconciliation_after);
+        $this->assertArrayHasKey('warehouses', $batch->reconciliation_delta);
     }
 
     public function test_failed_import_batch_is_recorded_and_can_be_retried()
@@ -326,7 +443,7 @@ class ExcelImportFeatureTest extends TestCase
     {
         return UploadedFile::fake()->createWithContent(
             $fileName,
-            file_get_contents(base_path('docs/' . $fileName)),
+            file_get_contents(base_path('docs/'.$fileName)),
         );
     }
 }

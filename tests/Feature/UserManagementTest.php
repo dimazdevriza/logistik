@@ -28,11 +28,11 @@ class UserManagementTest extends TestCase
 
     public function test_user_management_search_filter()
     {
-        $targetUser = User::factory()->create(['name' => 'Budi Mandor', 'email' => 'budi@logistik.com']);
+        $targetUser = User::factory()->create(['name' => 'Budi Logistik', 'email' => 'budi@logistik.com']);
 
         Livewire::test(\App\Livewire\Admin\UserManagement::class)
             ->set('search', 'Budi')
-            ->assertSee('Budi Mandor')
+            ->assertSee('Budi Logistik')
             ->call('resetFilters')
             ->assertSet('search', '');
     }

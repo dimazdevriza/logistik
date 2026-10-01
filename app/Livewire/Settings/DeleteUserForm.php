@@ -22,7 +22,13 @@ class DeleteUserForm extends Component
             'password' => $this->currentPasswordRules(),
         ]);
 
-        tap(Auth::user(), $logout(...))->delete();
+        $user = Auth::user();
+        if ($user->hasOperationalHistory()) {
+            $this->addError('account', 'Akun memiliki riwayat operasional dan tidak dapat dihapus. Hubungi penanggung jawab data.');
+            return;
+        }
+
+        tap($user, $logout(...))->delete();
 
         $this->redirect('/', navigate: true);
     }

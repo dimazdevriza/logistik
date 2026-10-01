@@ -1,7 +1,8 @@
 @php
     $user = auth()->user();
     $role = $user?->role;
-    $isStaff = in_array($role, ['logistik', 'admin'], true);
+    $isStaff = in_array($role, ['logistik', 'admin', 'keuangan'], true);
+    $isFieldStaff = in_array($role, ['logistik', 'admin'], true);
 
     // Nav model: each section is a label plus its links. Sections with no
     // visible links are dropped, so role changes never leave an empty header.
@@ -18,15 +19,19 @@
             'links' => [
                 ['route' => 'logistik.materials', 'active' => 'logistik.materials', 'icon' => 'i-box', 'label' => 'Material'],
                 ['route' => 'logistik.tools', 'active' => 'logistik.tools', 'icon' => 'i-wrench', 'label' => 'Alat'],
+                ['route' => 'logistik.warehouses', 'active' => 'logistik.warehouses', 'icon' => 'i-box', 'label' => 'Gudang'],
                 ['route' => 'logistik.suppliers', 'active' => 'logistik.suppliers', 'icon' => 'i-truck', 'label' => 'Supplier'],
                 ['route' => 'logistik.categories', 'active' => 'logistik.categories', 'icon' => 'i-tags', 'label' => 'Kategori'],
             ],
         ],
         [
             'label' => 'Lapangan',
+            'show' => $isFieldStaff,
             'links' => array_filter([
-                $isStaff ? ['route' => 'logistik.houses', 'active' => 'logistik.houses*', 'icon' => 'i-houses', 'label' => 'Rumah'] : null,
-                $isStaff ? ['route' => 'logistik.transaksi', 'active' => 'logistik.transaksi', 'icon' => 'i-transfer', 'label' => 'Transaksi Material & Alat'] : null,
+                $isFieldStaff ? ['route' => 'logistik.houses', 'active' => 'logistik.houses*', 'icon' => 'i-houses', 'label' => 'Rumah'] : null,
+                $role === 'admin' ? ['route' => 'logistik.clusters', 'active' => 'logistik.clusters', 'icon' => 'i-cluster', 'label' => 'Cluster'] : null,
+                $isFieldStaff ? ['route' => 'logistik.transfers', 'active' => 'logistik.transfers', 'icon' => 'i-transfer', 'label' => 'Transfer Gudang'] : null,
+                $isFieldStaff ? ['route' => 'logistik.alokasi', 'active' => 'logistik.alokasi', 'icon' => 'i-transfer', 'label' => 'Alokasi Material & Alat'] : null,
             ]),
         ],
         [
@@ -38,21 +43,37 @@
             ],
         ],
         [
+            'label' => 'Biaya',
+            'show' => $role === 'logistik',
+            'links' => array_values(array_filter([
+                $role === 'logistik' && $user?->cluster_id
+                    ? ['route' => 'logistik.cluster-expenses', 'query' => [$user->cluster_id], 'active' => 'logistik.cluster-expenses', 'icon' => 'i-chart', 'label' => 'Biaya Cluster']
+                    : null,
+            ])),
+        ],
+        [
+            'label' => 'Keuangan',
+            'show' => in_array($role, ['admin', 'keuangan'], true),
+            'links' => [
+                ['route' => $role === 'admin' ? 'admin.house-costs' : 'logistik.house-costs', 'active' => $role === 'admin' ? 'admin.house-costs*' : 'logistik.house-costs*', 'icon' => 'i-chart', 'label' => 'Biaya Rumah'],
+                ['route' => 'logistik.clusters', 'active' => 'logistik.clusters', 'icon' => 'i-chart', 'label' => 'Biaya Cluster'],
+            ],
+        ],
+        [
             'label' => 'Admin',
             'show' => $role === 'admin',
             'links' => [
-                ['route' => 'admin.house-costs', 'active' => 'admin.house-costs*', 'icon' => 'i-chart', 'label' => 'Biaya Rumah'],
                 ['route' => 'admin.users', 'active' => 'admin.users', 'icon' => 'i-people', 'label' => 'Manajemen User'],
             ],
         ],
     ])->filter(fn ($s) => $s['show'] ?? true)->values();
 
     $currentLabel = collect($sections)->flatMap(fn ($s) => $s['links'])
-        ->first(fn ($l) => request()->routeIs($l['active']))['label'] ?? null;
+        ->first(fn ($l) => request()->routeIs($l['active']) || (($l['route'] ?? null) === 'logistik.alokasi' && request()->routeIs('logistik.transaksi')))['label'] ?? null;
 @endphp
 
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="dark">
 <head>
     @include('partials.head')
     <script>
@@ -61,7 +82,7 @@
             try {
                 var t = localStorage.getItem('theme');
                 if (t !== 'light' && t !== 'dark') {
-                    t = 'light'; // default is light (white)
+                    t = 'dark'; // the operational ledger defaults to the night surface
                 }
                 document.documentElement.setAttribute('data-bs-theme', t);
 
@@ -144,9 +165,16 @@
                         <span class="sidebar-label">{{ $section['label'] }}</span>
                     </div>
                     @foreach ($section['links'] as $link)
-                        @php $isActive = request()->routeIs($link['active']); @endphp
+                        @php
+                            $isActive = request()->routeIs($link['active']) || (($link['route'] ?? null) === 'logistik.alokasi' && request()->routeIs('logistik.transaksi'));
+                            if (($link['view'] ?? null) === 'history') {
+                                $isActive = $isActive && request('view') === 'history';
+                            } elseif (($link['view'] ?? null) === 'request') {
+                                $isActive = $isActive && request('view', 'request') === 'request';
+                            }
+                        @endphp
                         <a
-                            href="{{ route($link['route']) }}"
+                            href="{{ route($link['route'], $link['query'] ?? []) }}"
                             class="sidebar-link {{ $isActive ? 'active' : '' }}"
                             data-label="{{ $link['label'] }}"
                             :title="rail ? '{{ $link['label'] }}' : ''"
@@ -191,20 +219,20 @@
 
         <div class="main-content min-vh-100 d-flex flex-column">
             <!-- Mobile top bar header (Single Seamless Expanding Capsule) -->
-            <header class="app-header-mobile d-lg-none sticky-top border shadow-sm rounded-4 mb-3 overflow-hidden" style="top: 0.5rem; z-index: 1060;">
+            <header class="app-header-mobile d-lg-none sticky-top border shadow-sm rounded-4 mb-3 overflow-hidden" style="top: 0.5rem; z-index: 1060;" @click.outside="mobileOpen = false">
                 <div class="d-flex align-items-center justify-content-between px-3" style="height: 56px; min-height: 56px;">
                     <div class="d-flex align-items-center gap-2 overflow-hidden">
-                        <button type="button" class="btn btn-icon text-body p-2 d-inline-flex align-items-center justify-content-center rounded-3 hover-bg border-0 bg-transparent" @click="mobileOpen = !mobileOpen" aria-label="Buka menu">
+                        <button type="button" class="btn btn-icon text-body p-2 d-inline-flex align-items-center justify-content-center rounded-3 hover-bg border-0 bg-transparent" @click="mobileOpen = !mobileOpen" :aria-label="mobileOpen ? 'Tutup menu' : 'Buka menu'" aria-controls="mobile-navigation-dropdown" :aria-expanded="mobileOpen.toString()">
                             <svg width="18" height="18" fill="currentColor" aria-hidden="true" :style="mobileOpen ? 'transform: rotate(90deg); transition: transform 0.2s ease;' : 'transition: transform 0.2s ease;'"><use href="#i-menu"/></svg>
                         </button>
-                        <a href="{{ route('dashboard') }}" class="d-flex align-items-center text-decoration-none ms-1">
+                        <a href="{{ route('dashboard') }}" class="app-header-brand d-flex align-items-center text-decoration-none ms-1">
                             <img src="{{ asset('images/logo-light.png') }}" alt="D'Royal Village" class="img-fluid d-dark-none" style="height: 24px; object-fit: contain;" />
                             <img src="{{ asset('images/logo-dark.png') }}" alt="D'Royal Village" class="img-fluid d-light-none" style="height: 24px; object-fit: contain;" />
                         </a>
                     </div>
 
                     <div class="d-flex align-items-center gap-2">
-                        <button type="button" class="btn p-0 border-0" @click="mobileOpen = !mobileOpen">
+                        <button type="button" class="btn p-0 border-0" @click="mobileOpen = !mobileOpen" aria-label="Buka atau tutup menu navigasi" aria-controls="mobile-navigation-dropdown" :aria-expanded="mobileOpen.toString()">
                             <span class="d-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success fw-bold extra-small" style="width: 32px; height: 32px;">
                                 {{ $user?->initials() }}
                             </span>
@@ -212,71 +240,57 @@
                     </div>
                 </div>
 
-                <!-- Seamless Expandable Navigation Accordion Inside the Header -->
-                <div 
-                    x-show="mobileOpen" 
-                    x-collapse
-                    class="border-top px-3 py-3 overflow-y-auto"
-                    style="max-height: calc(85vh - 70px);"
-                >
-                    <nav class="d-flex flex-column gap-1">
-                        @foreach ($sections as $section)
-                            <div class="sidebar-section px-2 mt-2 mb-1 text-uppercase font-geist fw-bold extra-small text-secondary">
-                                {{ $section['label'] }}
-                            </div>
-                            @foreach ($section['links'] as $link)
-                                @php $isActive = request()->routeIs($link['active']); @endphp
-                                <a 
-                                    href="{{ route($link['route']) }}" 
-                                    class="sidebar-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-decoration-none {{ $isActive ? 'active bg-success-subtle text-success fw-bold' : 'text-body hover-bg' }}"
-                                    @click="mobileOpen = false"
-                                >
-                                    <svg width="18" height="18" fill="currentColor"><use href="#{{ $link['icon'] }}"/></svg>
-                                    <span class="small">{{ $link['label'] }}</span>
-                                </a>
-                            @endforeach
+                <div id="mobile-navigation-dropdown" class="mobile-nav-dropdown d-lg-none" :class="{ 'is-open': mobileOpen }" :aria-hidden="(!mobileOpen).toString()" aria-label="Navigasi utama">
+                    <nav class="mobile-nav-dropdown-content d-flex flex-column gap-1 p-3" aria-label="Menu utama">
+                    @foreach ($sections as $section)
+                        <div class="sidebar-section px-2 mt-2 mb-1 text-uppercase font-geist fw-bold extra-small text-secondary">
+                            {{ $section['label'] }}
+                        </div>
+                        @foreach ($section['links'] as $link)
+                            @php
+                                $isActive = request()->routeIs($link['active']) || (($link['route'] ?? null) === 'logistik.alokasi' && request()->routeIs('logistik.transaksi'));
+                                if (($link['view'] ?? null) === 'history') {
+                                    $isActive = $isActive && request('view') === 'history';
+                                } elseif (($link['view'] ?? null) === 'request') {
+                                    $isActive = $isActive && request('view', 'request') === 'request';
+                                }
+                            @endphp
+                            <a
+                                href="{{ route($link['route'], $link['query'] ?? []) }}"
+                                class="sidebar-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-decoration-none {{ $isActive ? 'active bg-success-subtle text-success fw-bold' : 'text-body hover-bg' }}"
+                                @if ($isActive) aria-current="page" @endif
+                                @click="mobileOpen = false"
+                            >
+                                <svg width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#{{ $link['icon'] }}"/></svg>
+                                <span class="small">{{ $link['label'] }}</span>
+                            </a>
                         @endforeach
+                    @endforeach
                     </nav>
-
-                    <div class="border-top mt-3 pt-3 d-flex align-items-center justify-content-between px-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="d-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success fw-bold extra-small" style="width: 32px; height: 32px;">
+                    <div class="mobile-nav-dropdown-footer border-top p-3 d-flex align-items-center justify-content-between gap-2">
+                        <div class="d-flex align-items-center gap-2 overflow-hidden">
+                            <span class="d-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success fw-bold extra-small flex-shrink-0" style="width: 32px; height: 32px;">
                                 {{ $user?->initials() }}
                             </span>
-                            <div class="lh-sm">
-                                <div class="fw-bold small text-body">{{ $user?->name }}</div>
+                            <div class="lh-sm overflow-hidden">
+                                <div class="fw-bold small text-body text-truncate">{{ $user?->name }}</div>
                                 <div class="extra-small text-secondary text-capitalize">{{ $user?->role }}</div>
                             </div>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <a href="{{ route('profile.edit') }}" class="btn btn-icon text-secondary p-1.5 rounded-2 hover-bg" title="Pengaturan">
-                                <svg width="16" height="16" fill="currentColor"><use href="#i-gear"/></svg>
+                        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                            <a href="{{ route('profile.edit') }}" class="btn btn-icon text-secondary p-1.5 rounded-2 hover-bg" title="Pengaturan" aria-label="Pengaturan" @click="mobileOpen = false">
+                                <svg width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-gear"/></svg>
                             </a>
                             <form method="POST" action="{{ route('logout') }}" class="m-0">
                                 @csrf
-                                <button type="submit" class="btn btn-icon text-danger p-1.5 rounded-2 hover-bg border-0 bg-transparent" title="Keluar">
-                                    <svg width="16" height="16" fill="currentColor"><use href="#i-logout"/></svg>
+                                <button type="submit" class="btn btn-icon text-danger p-1.5 rounded-2 hover-bg border-0 bg-transparent" title="Keluar" aria-label="Keluar">
+                                    <svg width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-logout"/></svg>
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
             </header>
-
-            <!-- Dim backdrop when mobile menu is expanded -->
-            <div 
-                x-show="mobileOpen" 
-                x-cloak 
-                @click="mobileOpen = false"
-                class="position-fixed inset-0 d-lg-none"
-                style="z-index: 1055; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);"
-                x-transition:enter="transition ease-out duration-200"
-                x-transition:enter-start="opacity-0"
-                x-transition:enter-end="opacity-100"
-                x-transition:leave="transition ease-in duration-150"
-                x-transition:leave-start="opacity-100"
-                x-transition:leave-end="opacity-0"
-            ></div>
 
             <main class="flex-grow-1 p-0 d-flex flex-column overflow-lg-hidden">
                 <div 

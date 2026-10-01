@@ -3,23 +3,32 @@
 namespace App\Imports;
 
 use App\Models\Category;
-use App\Models\House;
 use App\Models\Tool;
-use App\Models\ToolUsage;
 use App\Models\ToolReturnLog;
+use App\Models\ToolUsage;
+use App\Support\ToolInventory;
+use App\Support\ImportHouseIdentity;
+use App\Support\ImportTransaction;
+use App\Support\ImportWarehouse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class ToolImport implements ToCollection, WithHeadingRow
 {
     public int $totalRows = 0;
+
     public int $successfulRows = 0;
+
     public int $skippedRows = 0;
+
     public int $toolsImported = 0;
+
     public int $transactionsImported = 0;
+
     public array $rowLogs = [];
 
     public function collection(Collection $rows)
@@ -29,7 +38,6 @@ class ToolImport implements ToCollection, WithHeadingRow
         }
 
         $userId = Auth::id() ?? 1;
-
         DB::transaction(function () use ($rows, $userId) {
             foreach ($rows as $index => $row) {
                 $rowNum = $index + 2;
@@ -45,11 +53,14 @@ class ToolImport implements ToCollection, WithHeadingRow
                     || array_key_exists('blokrumah', $rowData)
                     || array_key_exists('keteranganpekerjaan', $rowData);
                 $normalizeText = static function ($value) {
-                    if ($value === null) return null;
+                    if ($value === null) {
+                        return null;
+                    }
                     $value = is_string($value) ? trim($value) : $value;
                     if (is_string($value) && in_array(strtolower($value), ['', '-', '—', '*di isi', '*link', '0'], true)) {
                         return null;
                     }
+
                     return $value;
                 };
 
@@ -57,10 +68,11 @@ class ToolImport implements ToCollection, WithHeadingRow
                 $code = $normalizeText($rowData['kode'] ?? $rowData['kodealat'] ?? $rowData['kodebarang'] ?? null);
                 $name = $normalizeText($rowData['namaalat'] ?? $rowData['namabarang'] ?? $rowData['nama'] ?? $rowData['alat'] ?? null);
                 $categoryName = $normalizeText($rowData['kategori'] ?? ($isKeluarFormat ? 'Alat Umum' : null));
-                $condition = strtolower((string) ($rowData['kondisi'] ?? 'baik'));
-                if (!in_array($condition, ['baik', 'rusak', 'perbaikan'])) {
-                    $condition = 'baik';
-                }
+                $condition = match (strtolower((string) ($rowData['kondisi'] ?? 'baik'))) {
+                    'rusak', 'perbaikan', 'repair', 'broken' => 'rusak',
+                    'hilang', 'lost' => 'hilang',
+                    default => 'baik',
+                };
 
                 $totalQty = max(1, intval($isKeluarFormat
                     ? ($rowData['volume'] ?? 1)
@@ -70,34 +82,41 @@ class ToolImport implements ToCollection, WithHeadingRow
 
                 // Transaction data (Checkout / Return)
                 $txType = strtolower((string) ($rowData['jenis'] ?? $rowData['tipe'] ?? $rowData['tipetransaksi'] ?? ($isKeluarFormat ? 'pinjam' : '')));
+                $isIncoming = in_array($txType, ['masuk', 'restock', 'in', 'penerimaan', 'receipt'], true);
                 $houseName = $normalizeText($rowData['unitrumah'] ?? $rowData['rumah'] ?? $rowData['unit'] ?? $rowData['peminjam'] ?? $rowData['blokrumah'] ?? null);
+                $clusterName = $normalizeText($rowData['cluster'] ?? $rowData['namacluster'] ?? null);
                 $txNotes = $normalizeText($rowData['catatan'] ?? $rowData['keterangan'] ?? $rowData['keteranganpekerjaan'] ?? null) ?? 'Import dari Excel';
-                $txDateRaw = $rowData['tanggal'] ?? $rowData['waktu'] ?? $rowData['0'] ?? $rowData[''] ?? now()->toDateString();
+                $txDateRaw = $rowData['tanggal'] ?? $rowData['waktu'] ?? $rowData['waktumasuk'] ?? $rowData['waktuterima'] ?? $rowData['tanggalmasuk'] ?? $rowData['tanggalterima'] ?? $rowData['0'] ?? $rowData[''] ?? null;
+                $transactionCodeInput = $normalizeText($rowData['kodetransaksi'] ?? null);
 
-                try {
-                    if (is_numeric($txDateRaw) && (float) $txDateRaw > 20000) {
-                        $txDate = \Carbon\Carbon::instance(
-                            \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $txDateRaw)
-                        )->toDateString();
-                    } else {
-                        $txDate = \Carbon\Carbon::parse($txDateRaw)->toDateString();
-                    }
-                } catch (\Exception $e) {
-                    $txDate = now()->toDateString();
-                }
-
-                if (!$name && !$code) {
+                if (! $name && ! $code) {
                     $this->skippedRows++;
                     $this->rowLogs[] = [
                         'row' => $rowNum,
                         'status' => 'skipped',
                         'item' => '—',
-                        'message' => 'Baris kosong / Kode & Nama alat tidak ditemukan.'
+                        'message' => 'Baris kosong / Kode & Nama alat tidak ditemukan.',
                     ];
+
                     continue;
                 }
 
+                $warehouseId = ImportWarehouse::resolve($rowData, $rowNum, (string) ($name ?: $code));
+
                 $this->totalRows++;
+                $isReturn = in_array($txType, ['kembali', 'return', 'pengembalian'], true);
+                $isCheckout = in_array($txType, ['pinjam', 'checkout', 'peminjaman', 'keluar'], true)
+                    || ($houseName && ! $isReturn);
+                $txDate = ($isCheckout || $isReturn || $isIncoming)
+                    ? ImportTransaction::date($txDateRaw, $rowNum, (string) ($name ?: $code))
+                    : null;
+                $receivedAt = $isIncoming
+                    ? ImportTransaction::dateTime(
+                        $rowData['waktumasuk'] ?? $rowData['waktuterima'] ?? $rowData['tanggalterima'] ?? $rowData['tanggalmasuk'] ?? $txDateRaw,
+                        $rowNum,
+                        (string) ($name ?: $code),
+                    )
+                    : null;
 
                 // Resolve or create Category
                 $category = null;
@@ -108,30 +127,49 @@ class ToolImport implements ToCollection, WithHeadingRow
                     );
                 }
 
-                // Auto-generate code if missing
-                if (!$code) {
-                    $code = 'ALT-' . strtoupper(substr(md5($name), 0, 5));
+                $hasProvidedCode = (bool) $code;
+
+                if (! $hasProvidedCode && ($isCheckout || $isReturn)) {
+                    throw new \RuntimeException("Baris {$rowNum} ({$name}): Kode alat wajib diisi untuk memilih batch alat yang benar.");
                 }
 
-                // Resolve or create Tool
-                $tool = Tool::where('code', $code)->orWhere('name', $name)->first();
+                if (! $code) {
+                    $code = 'ALT-'.Str::ulid();
+                }
+
+                $tool = $isIncoming ? null : Tool::where('code', $code)->lockForUpdate()->first();
                 $isNewTool = false;
-                
-                if (!$tool) {
+
+                if (! $tool) {
+                    $toolCode = Tool::where('code', $code)->exists() ? 'ALT-'.Str::ulid() : $code;
                     $tool = Tool::create([
-                        'code' => $code,
+                        'code' => $toolCode,
                         'name' => $name ?: $code,
+                        'entry_code' => $isIncoming ? null : 'ALT-OPEN-'.Str::ulid(),
                         'category_id' => $category?->id,
                         'condition' => $condition,
                         'purchase_price' => $purchasePrice,
                         'total_qty' => max(1, $totalQty),
                         'available_qty' => max(0, min($totalQty, $availableQty)),
                         'qty_broken' => $condition === 'rusak' ? 1 : 0,
+                        'warehouse_id' => $warehouseId,
+                        'entry_type' => $isIncoming ? 'receipt' : 'opening_balance',
+                        'submission_key' => $isIncoming ? (string) Str::uuid() : null,
+                        'received_at' => $receivedAt,
+                        'received_date' => $isIncoming ? $txDate : null,
+                        'recorded_by_id' => $userId,
                     ]);
                     $this->toolsImported++;
                     $isNewTool = true;
                 } else {
-                    if ($category && !$tool->category_id) {
+                    ToolInventory::ensureBalance(
+                        $tool,
+                        (int) $warehouseId,
+                        $isCheckout || $isReturn ? 0 : max(0, min($totalQty, $availableQty)),
+                        $isCheckout || $isReturn ? 0 : ($condition === 'rusak' ? 1 : 0),
+                    );
+                    ToolInventory::refreshAggregates($tool);
+                    if ($category && ! $tool->category_id) {
                         $tool->category_id = $category->id;
                     }
                     if ($purchasePrice > 0) {
@@ -140,86 +178,139 @@ class ToolImport implements ToCollection, WithHeadingRow
                     $tool->save();
                 }
 
-                $logDetail = $isNewTool ? "Alat baru diregistrasi" : "Data alat diperbarui";
+                $logDetail = $isNewTool ? 'Alat baru diregistrasi' : 'Data alat diperbarui';
 
                 $house = null;
                 if ($houseName) {
-                    $house = House::where('name', 'like', "%{$houseName}%")
-                        ->orWhere('house_code', 'like', "%{$houseName}%")
-                        ->first();
-
-                    if (!$house) {
-                        $house = House::create([
-                            'house_code' => House::generateCode($houseName),
-                            'name' => $houseName,
-                            'type' => 'Tipe Standar',
-                            'status' => 'pembangunan',
-                        ]);
-                    }
+                    $house = ImportHouseIdentity::resolve((string) $houseName, $rowNum, (string) ($name ?: $code), $clusterName ? (string) $clusterName : null);
                 }
 
-                // If this row represents a tool transaction (Pinjam / Kembali)
-                if (in_array($txType, ['pinjam', 'checkout', 'peminjaman', 'keluar']) || ($houseName && !in_array($txType, ['kembali', 'return', 'pengembalian']))) {
-                    if ($house) {
-                        $qty = max(1, intval($isKeluarFormat ? ($rowData['volume'] ?? 1) : ($rowData['jumlah'] ?? 1)));
-                        
-                        ToolUsage::create([
-                            'house_id' => $house->id,
-                            'tool_id' => $tool->id,
-                            'user_id' => $userId,
-                            'quantity' => $qty,
-                            'checkout_date' => $txDate,
-                            'notes' => $txNotes,
-                        ]);
-
-                        if ($tool->available_qty >= $qty) {
-                            $tool->decrement('available_qty', $qty);
-                        }
-                        $this->transactionsImported++;
-                        $logDetail .= " + Peminjaman ke {$house->name} ({$qty} unit)";
+                if ($isCheckout) {
+                    if (! $house) {
+                        throw new \RuntimeException("Baris {$rowNum} ({$tool->name}): Unit Rumah wajib diisi untuk peminjaman alat.");
                     }
-                } elseif (in_array($txType, ['kembali', 'return', 'pengembalian'])) {
-                    $qty = max(1, intval($rowData['jumlah'] ?? 1));
-                    
-                    // Find active checkout usage for this tool if any
-                    $activeUsage = ToolUsage::where('tool_id', $tool->id)
-                        ->when($house, fn ($query) => $query->where('house_id', $house->id))
+
+                    $qty = $this->transactionQuantity($rowData, $isKeluarFormat, $rowNum, $tool->name);
+                    $transactionCode = ImportTransaction::code('KLR', $transactionCodeInput, [
+                        'type' => 'pinjam',
+                        'tool_id' => $tool->id,
+                        'house_id' => $house->id,
+                        'date' => $txDate,
+                        'quantity' => $qty,
+                    ], $rowNum, $tool->name);
+                    $tool = Tool::lockForUpdate()->findOrFail($tool->id);
+
+                    if (ToolUsage::where('transaction_code', $transactionCode)->where('house_id', $house->id)->exists()) {
+                        $this->skipDuplicate($rowNum, $tool->name);
+
+                        continue;
+                    }
+
+                    $sourceBalance = ToolInventory::lockBalance($tool, (int) $warehouseId);
+                    if ($sourceBalance->available_qty < $qty) {
+                        throw new \RuntimeException("Baris {$rowNum} ({$tool->name}): Stok alat tidak mencukupi di gudang asal. Tersedia: {$sourceBalance->available_qty} unit, diminta: {$qty} unit. Seluruh impor dibatalkan.");
+                    }
+
+                    if (ToolUsage::where('tool_id', $tool->id)
+                        ->where('house_id', $house->id)
                         ->whereNull('return_date')
                         ->whereNull('voided_at')
+                        ->exists()) {
+                        throw new \RuntimeException("Baris {$rowNum} ({$tool->name}): Alat ini masih dipinjam oleh {$house->name}. Kembalikan alat sebelum mencatat peminjaman baru.");
+                    }
+
+                    ToolUsage::create([
+                        'transaction_code' => $transactionCode,
+                        'house_id' => $house->id,
+                        'tool_id' => $tool->id,
+                        'warehouse_id' => $warehouseId,
+                        'warehouse_source_recorded' => true,
+                        'user_id' => $userId,
+                        'quantity' => $qty,
+                        'checkout_date' => $txDate,
+                        'notes' => $txNotes,
+                    ]);
+
+                    ToolInventory::checkout($tool, (int) $warehouseId, $qty);
+                    $this->transactionsImported++;
+                    $logDetail .= " + Peminjaman ke {$house->name} ({$qty} unit)";
+                } elseif ($isReturn) {
+                    if (! $house) {
+                        throw new \RuntimeException("Baris {$rowNum} ({$tool->name}): Unit Rumah wajib diisi untuk pengembalian alat.");
+                    }
+
+                    $qty = $this->transactionQuantity($rowData, $isKeluarFormat, $rowNum, $tool->name);
+                    $transactionCode = ImportTransaction::code('MSK', $transactionCodeInput, [
+                        'type' => 'kembali',
+                        'tool_id' => $tool->id,
+                        'house_id' => $house->id,
+                        'date' => $txDate,
+                        'quantity' => $qty,
+                    ], $rowNum, $tool->name);
+                    $tool = Tool::lockForUpdate()->findOrFail($tool->id);
+
+                    if (ToolReturnLog::where('transaction_code', $transactionCode)
+                        ->where('tool_id', $tool->id)
+                        ->where('house_id', $house->id)
+                        ->exists()) {
+                        $this->skipDuplicate($rowNum, $tool->name);
+
+                        continue;
+                    }
+
+                    $activeUsage = ToolUsage::where('tool_id', $tool->id)
+                        ->where('house_id', $house->id)
+                        ->whereNull('return_date')
+                        ->whereNull('voided_at')
+                        ->lockForUpdate()
                         ->first();
 
-                    if (!$activeUsage && $house) {
-                        $activeUsage = ToolUsage::create([
-                            'house_id' => $house->id,
-                            'tool_id' => $tool->id,
-                            'user_id' => $userId,
-                            'quantity' => $qty,
-                            'checkout_date' => $txDate,
-                            'return_date' => $txDate,
-                            'notes' => $txNotes,
-                        ]);
-                    } elseif ($activeUsage) {
+                    if (! $activeUsage) {
+                        throw new \RuntimeException("Baris {$rowNum} ({$tool->name}): Tidak ada peminjaman aktif untuk {$house->name}.");
+                    }
+
+                    if ($qty > $activeUsage->quantity) {
+                        throw new \RuntimeException("Baris {$rowNum} ({$tool->name}): Jumlah pengembalian melebihi jumlah yang dipinjam ({$activeUsage->quantity} unit).");
+                    }
+
+                    $remainingQty = $activeUsage->quantity - $qty;
+                    if ($remainingQty === 0) {
                         $activeUsage->update(['return_date' => $txDate]);
-                    }
+                    } else {
+                        $activeUsage->update(['quantity' => $qty, 'return_date' => $txDate]);
 
-                    if ($activeUsage) {
-                        ToolReturnLog::create([
-                            'tool_id' => $tool->id,
+                        ToolUsage::create([
+                            'transaction_code' => ImportTransaction::code('KLR', null, [
+                                'type' => 'sisa-pinjaman',
+                                'parent_usage_id' => $activeUsage->id,
+                                'return_transaction_code' => $transactionCode,
+                            ], $rowNum, $tool->name),
                             'house_id' => $activeUsage->house_id,
-                            'tool_usage_id' => $activeUsage->id,
-                            'reported_by' => $userId,
-                            'quantity' => $qty,
-                            'report_type' => 'normal',
-                            'status' => 'pending',
-                            'notes' => $txNotes,
+                            'tool_id' => $activeUsage->tool_id,
+                            'warehouse_id' => $activeUsage->warehouse_id,
+                            'warehouse_source_recorded' => $activeUsage->warehouse_source_recorded,
+                            'user_id' => $activeUsage->user_id,
+                            'quantity' => $remainingQty,
+                            'checkout_date' => $activeUsage->checkout_date,
+                            'parent_usage_id' => $activeUsage->id,
+                            'notes' => $activeUsage->notes,
                         ]);
                     }
 
-                    $tool->increment('available_qty', $qty);
-                    if ($tool->available_qty > $tool->total_qty) {
-                        $tool->total_qty = $tool->available_qty;
-                        $tool->save();
-                    }
+                    ToolReturnLog::create([
+                        'transaction_code' => $transactionCode,
+                        'tool_id' => $tool->id,
+                        'house_id' => $activeUsage->house_id,
+                        'tool_usage_id' => $activeUsage->id,
+                        'reported_by' => $userId,
+                        'receiving_warehouse_id' => $warehouseId,
+                        'quantity' => $qty,
+                        'report_type' => 'normal',
+                        'status' => 'pending',
+                        'notes' => $txNotes,
+                    ]);
+
+                    ToolInventory::receive($tool, (int) $warehouseId, $qty, 0);
                     $this->transactionsImported++;
                     $logDetail .= " + Pengembalian ({$qty} unit)";
                 }
@@ -229,9 +320,31 @@ class ToolImport implements ToCollection, WithHeadingRow
                     'row' => $rowNum,
                     'status' => 'success',
                     'item' => $tool->name,
-                    'message' => $logDetail
+                    'message' => $logDetail,
                 ];
             }
         });
+    }
+
+    private function transactionQuantity(array $rowData, bool $isKeluarFormat, int $row, string $item): int
+    {
+        $value = $isKeluarFormat ? ($rowData['volume'] ?? null) : ($rowData['jumlah'] ?? 1);
+
+        if (! is_numeric($value) || (int) $value < 1 || (float) $value !== (float) (int) $value) {
+            throw new \RuntimeException("Baris {$row} ({$item}): Jumlah alat wajib berupa bilangan bulat minimal 1.");
+        }
+
+        return (int) $value;
+    }
+
+    private function skipDuplicate(int $row, string $item): void
+    {
+        $this->skippedRows++;
+        $this->rowLogs[] = [
+            'row' => $row,
+            'status' => 'skipped',
+            'item' => $item,
+            'message' => 'Transaksi sudah tercatat. Stok tidak diubah.',
+        ];
     }
 }

@@ -12,5 +12,21 @@ test('authenticated users can visit the dashboard', function () {
     $this->actingAs($user);
 
     $response = $this->get(route('dashboard'));
-    $response->assertOk();
+    $response->assertOk()
+        ->assertSee('Portal Kontrol')
+        ->assertSee('Royal Village')
+        ->assertSee('Unit terdaftar')
+        ->assertDontSee('Status Server')
+        ->assertDontSee('Active');
+});
+
+test('inactive legacy accounts cannot enter the application', function () {
+    $inactive = User::factory()->create(['role' => 'inactive']);
+
+    $this->actingAs($inactive)
+        ->get(route('dashboard'))
+        ->assertForbidden();
+
+    $this->get(route('logistik.alokasi'))->assertForbidden();
+    $this->get(route('profile.edit'))->assertForbidden();
 });

@@ -1,17 +1,38 @@
+@php
+    $warrantyStartsAt = now();
+    $warrantyEndsAt = $warrantyStartsAt->copy()->addYear();
+@endphp
+
 <div>
+    @if ($completionToast)
+        @teleport('body')
+            <div wire:key="transaction-feedback-{{ $completionToastSequence }}" class="transaction-feedback transaction-feedback--error" x-data="{ visible: true }" x-show="visible" role="alert" aria-live="assertive">
+                <div class="transaction-feedback-content">
+                    <strong>Periksa isian</strong>
+                    <p class="mb-0">{{ $completionToast }}</p>
+                </div>
+                <button type="button" class="transaction-feedback-close" x-on:click="$wire.set('completionToast', '')" aria-label="Tutup pemberitahuan">Tutup</button>
+            </div>
+        @endteleport
+    @endif
+
     <div class="container-fluid p-0">
         <!-- Hero Header -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary workflow-page-header house-finish-header">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <a href="{{ route('logistik.house-detail', $house) }}" wire:navigate class="btn btn-outline-secondary btn-sm font-semibold">
-                            ← Kembali
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <a href="{{ route('logistik.house-detail', $house) }}" wire:navigate class="back-link">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
+                            Kembali
                         </a>
-                        <span class="badge bg-warning-subtle text-warning">Penyelesaian Proyek</span>
+                        @if($house->house_code)
+                            <span class="badge bg-secondary-subtle text-secondary font-mono">{{ $house->house_code }}</span>
+                        @endif
                     </div>
-                    <h1 class="display-5 fw-black text-body mb-1 font-outfit">Selesaikan Proyek</h1>
-                    <p class="text-secondary mb-0">Unit: {{ $house->name }}{{ $house->type ? ' — ' . $house->type : '' }}</p>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">Selesaikan <span>Proyek</span></h1>
+                    <p class="text-secondary mb-1">{{ $house->name }}{{ $house->type ? ' · ' . $house->type : '' }}</p>
+                    <p class="house-finish-warranty-note small mb-0">Masa garansi satu tahun dimulai setelah proyek selesai.</p>
                 </div>
             </div>
         </div>
@@ -30,143 +51,199 @@
         @endif
 
         <!-- STEP 1: Material Summary -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-body-tertiary">
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning text-dark fw-bold font-mono flex-shrink-0" style="width: 28px; height: 28px; font-size: 0.85rem;">1</span>
-                <h5 class="fw-bold mb-0 font-outfit text-body">Ringkasan Material Digunakan</h5>
-            </div>
-
-            <div class="table-responsive rounded-3 border mb-3 overflow-hidden">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-body-secondary border-bottom">
-                        <tr class="text-secondary extra-small text-uppercase font-geist tracking-wider">
-                            <th class="text-center py-3 px-3" style="width: 50px;">No.</th>
-                            <th class="py-3 px-3">Material</th>
-                            <th class="text-end py-3 px-3">Jumlah</th>
-                            <th class="text-end py-3 px-3">Total Biaya</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y">
-                        @forelse($materialUsages as $usage)
-                        <tr wire:key="finish-m-{{ $usage->id }}">
-                            <td class="text-center text-secondary small py-3 px-3">{{ ($materialUsages->currentPage() - 1) * $materialUsages->perPage() + $loop->iteration }}</td>
-                            <td class="fw-bold text-body py-3 px-3">{{ $usage->material->name }}</td>
-                            <td class="text-end fw-bold text-body py-3 px-3">{{ str_replace('.', ',', (float) rtrim(rtrim($usage->quantity, '0'), '.')) }} <span class="text-secondary small font-normal">{{ $usage->material->unit }}</span></td>
-                            <td class="text-end font-mono fw-bold text-warning py-3 px-3">Rp {{ number_format($usage->total_cost, 0, ',', '.') }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-secondary extra-small">Tidak ada material yang digunakan.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                    <tfoot class="bg-body-tertiary border-top">
-                        <tr>
-                            <td class="fw-bold text-body py-3 px-3" colspan="3">Total Biaya Material</td>
-                            <td class="text-end font-mono fw-black text-warning fs-5 py-3 px-3">Rp {{ number_format($totalMaterialCost, 0, ',', '.') }}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-
-            <div class="d-flex justify-content-end">{{ $materialUsages->links() }}</div>
-        </div>
-
-        <!-- STEP 2: Tool Accountability -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-body-tertiary">
-            <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2 mb-3">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold font-mono flex-shrink-0" style="width: 28px; height: 28px; font-size: 0.85rem;">2</span>
-                    <h5 class="fw-bold mb-0 font-outfit text-body">Pertanggungjawaban Peminjaman Alat</h5>
+        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary house-finish-section">
+            <div class="house-finish-section-heading">
+                <div class="house-finish-section-title">
+                    <span class="house-finish-step-number">1</span>
+                    <div>
+                        <h2 class="fw-bold mb-1 font-outfit text-body">Ringkasan material digunakan</h2>
+                        <p class="text-secondary small mb-0">Periksa jumlah dan biaya sebelum menutup catatan proyek.</p>
+                    </div>
                 </div>
-                <span class="text-secondary extra-small">— Tentukan kondisi setiap unit alat yang dikembalikan.</span>
+                <span class="house-finish-section-count">{{ $materialUsages->total() }} catatan</span>
             </div>
 
-            @if($activeToolUsages->isEmpty())
-                <div class="text-center py-4 text-success border rounded-3 bg-body p-3">
-                    <h6 class="mb-0 fw-bold">✓ Semua alat telah dikembalikan sebelumnya.</h6>
+            @if ($materialUsages->isEmpty())
+                <div class="house-finish-material-empty-state border rounded-3 p-3 bg-body mb-3">
+                    <p class="text-secondary mb-0">Tidak ada material yang digunakan.</p>
+                    <div class="house-finish-material-empty-total">
+                        <span class="fw-bold text-body">Total Biaya Material</span>
+                        <span class="font-mono fw-black text-warning">Rp {{ number_format($totalMaterialCost, 0, ',', '.') }}</span>
+                    </div>
                 </div>
             @else
-                <div class="table-responsive rounded-3 border overflow-hidden">
-                    <table class="table table-hover align-middle mb-0">
+                <div class="table-responsive rounded-3 border mb-3 overflow-hidden house-finish-material-scroll">
+                    <table class="table table-hover align-middle mb-0 house-finish-material-table">
                         <thead class="bg-body-secondary border-bottom">
                             <tr class="text-secondary extra-small text-uppercase font-geist tracking-wider">
                                 <th class="text-center py-3 px-3" style="width: 50px;">No.</th>
-                                <th class="py-3 px-3">Alat</th>
-                                <th class="text-center py-3 px-3" style="width: 60px;">Qty</th>
-                                <th class="py-3 px-3">Status Pengembalian</th>
-                                <th class="py-3 px-3">Keterangan</th>
+                                <x-sortable-th field="material" :sort="$sort" class="py-3 px-3">Material</x-sortable-th>
+                                <x-sortable-th field="quantity" :sort="$sort" class="text-end py-3 px-3">Jumlah</x-sortable-th>
+                                <x-sortable-th field="total" :sort="$sort" class="text-end py-3 px-3">Total Biaya</x-sortable-th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
-                            @foreach($activeToolUsages as $usage)
-                            @php $currentAction = $toolSelections[$usage->id]['action'] ?? 'normal'; @endphp
-                            <tr wire:key="tool-{{ $usage->id }}">
-                                <td class="text-center text-secondary small py-3 px-3">{{ $loop->iteration }}</td>
-                                <td class="py-3 px-3">
-                                    <div class="fw-bold text-body small">{{ $usage->tool->name }}</div>
-                                    <span class="badge bg-secondary-subtle text-secondary font-mono extra-small">{{ $usage->tool->code }}</span>
-                                </td>
-                                <td class="text-center font-mono fw-bold text-body py-3 px-3">{{ str_replace('.', ',', (float) $usage->quantity) }}</td>
-                                <td class="py-3 px-3">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <input type="radio" class="btn-check" wire:model.live="toolSelections.{{ $usage->id }}.action" id="action-normal-{{ $usage->id }}" value="normal" autocomplete="off">
-                                        <label class="btn btn-outline-success font-semibold px-2.5 py-1" for="action-normal-{{ $usage->id }}">✓ Baik</label>
-
-                                        <input type="radio" class="btn-check" wire:model.live="toolSelections.{{ $usage->id }}.action" id="action-broken-{{ $usage->id }}" value="broken" autocomplete="off">
-                                        <label class="btn btn-outline-danger font-semibold px-2.5 py-1" for="action-broken-{{ $usage->id }}">✕ Rusak</label>
-
-                                        <input type="radio" class="btn-check" wire:model.live="toolSelections.{{ $usage->id }}.action" id="action-lost-{{ $usage->id }}" value="lost" autocomplete="off">
-                                        <label class="btn btn-outline-secondary font-semibold px-2.5 py-1" for="action-lost-{{ $usage->id }}">? Hilang</label>
-                                    </div>
-                                </td>
-                                <td class="py-3 px-3">
-                                    @if(in_array($currentAction, ['broken', 'lost']))
-                                    <div style="max-width: 280px;">
-                                        <input type="text" wire:model="toolSelections.{{ $usage->id }}.notes" placeholder="Catatan kondisi..." class="form-control form-control-sm" />
-                                    </div>
-                                    @else
-                                    <span class="text-secondary extra-small">—</span>
-                                    @endif
-                                </td>
+                            @foreach($materialUsages as $usage)
+                            <tr wire:key="finish-m-{{ $usage->id }}">
+                                <td class="text-center text-secondary small py-3 px-3">{{ ($materialUsages->currentPage() - 1) * $materialUsages->perPage() + $loop->iteration }}</td>
+                                <td class="fw-bold text-body py-3 px-3">{{ $usage->material->name }}</td>
+                                <td class="text-end fw-bold text-body py-3 px-3">{{ str_replace('.', ',', (float) rtrim(rtrim($usage->quantity, '0'), '.')) }} <span class="text-secondary small font-normal">{{ $usage->material->unit }}</span></td>
+                                <td class="text-end font-mono fw-bold text-warning py-3 px-3">Rp {{ number_format($usage->total_cost, 0, ',', '.') }}</td>
                             </tr>
                             @endforeach
                         </tbody>
+                        <tfoot class="bg-body-tertiary border-top">
+                            <tr>
+                                <td class="fw-bold text-body py-3 px-3" colspan="3">Total Biaya Material</td>
+                                <td class="text-end font-mono fw-black text-warning fs-5 py-3 px-3">Rp {{ number_format($totalMaterialCost, 0, ',', '.') }}</td>
+                            </tr>
+                        </tfoot>
                     </table>
+                </div>
+
+            <div class="d-flex justify-content-end">{{ $materialUsages->links() }}</div>
+            @endif
+        </div>
+
+        <!-- STEP 2: Tool Accountability -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary house-finish-section">
+            <div class="house-finish-section-heading">
+                <div class="house-finish-section-title">
+                    <span class="house-finish-step-number">2</span>
+                    <div>
+                        <h2 class="fw-bold mb-1 font-outfit text-body">Pertanggungjawaban alat pinjaman</h2>
+                        <p class="text-secondary small mb-0">Bagi jumlah dipinjam menurut kondisinya, lalu tentukan gudang penerima.</p>
+                    </div>
+                </div>
+                <span class="house-finish-section-count">{{ $activeToolUsages->count() }} pinjaman aktif</span>
+            </div>
+
+            @if($activeToolUsages->isEmpty())
+                <div class="house-finish-empty-tools">
+                    <span class="house-finish-empty-tools-mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0"/></svg></span>
+                    <div>
+                        <h3 class="fw-semibold mb-1">Tidak ada pinjaman aktif</h3>
+                        <p class="text-secondary small mb-0">Semua alat sudah dikembalikan. Anda dapat melanjutkan ke konfirmasi penyelesaian.</p>
+                    </div>
+                </div>
+            @else
+                <div class="house-finish-tool-list">
+                    @foreach($activeToolUsages as $usage)
+                        @php $selection = $toolSelections[$usage->id] ?? []; @endphp
+                        <article class="house-finish-tool-entry" wire:key="tool-{{ $usage->id }}">
+                            <header class="house-finish-tool-heading">
+                                <div class="min-w-0">
+                                    <span class="house-finish-tool-index">Alat {{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
+                                    <h3 class="fw-bold text-body mb-1">{{ $usage->tool->name }}</h3>
+                                    <span class="house-finish-tool-code">{{ $usage->tool->code }}</span>
+                                </div>
+                                <div class="house-finish-tool-quantity">
+                                    <span>Jumlah dipinjam</span>
+                                    <strong>{{ str_replace('.', ',', (float) $usage->quantity) }} <small>unit</small></strong>
+                                </div>
+                            </header>
+
+                            <div class="house-finish-tool-fields">
+                                <fieldset class="house-finish-condition-group">
+                                    <legend>Pembagian kondisi <span>Total harus {{ str_replace('.', ',', (float) $usage->quantity) }} unit</span></legend>
+                                    <div class="house-finish-condition-inputs">
+                                        <label class="house-finish-condition-field text-success" for="tool-good-{{ $usage->id }}">
+                                            <span>Baik</span>
+                                            <input id="tool-good-{{ $usage->id }}" type="number" min="0" max="{{ $usage->quantity }}" wire:model.live="toolSelections.{{ $usage->id }}.qty_good" class="form-control font-mono" />
+                                        </label>
+                                        <label class="house-finish-condition-field text-danger" for="tool-broken-{{ $usage->id }}">
+                                            <span>Rusak</span>
+                                            <input id="tool-broken-{{ $usage->id }}" type="number" min="0" max="{{ $usage->quantity }}" wire:model.live="toolSelections.{{ $usage->id }}.qty_broken" class="form-control font-mono" />
+                                        </label>
+                                        <label class="house-finish-condition-field text-secondary" for="tool-lost-{{ $usage->id }}">
+                                            <span>Hilang</span>
+                                            <input id="tool-lost-{{ $usage->id }}" type="number" min="0" max="{{ $usage->quantity }}" wire:model.live="toolSelections.{{ $usage->id }}.qty_lost" class="form-control font-mono" />
+                                        </label>
+                                    </div>
+                                </fieldset>
+
+                                <div class="house-finish-field">
+                                    <label for="tool-warehouse-{{ $usage->id }}" class="form-label">Gudang penerima</label>
+                                    <select id="tool-warehouse-{{ $usage->id }}" wire:model.live="toolSelections.{{ $usage->id }}.receiving_warehouse_id" class="form-select">
+                                        <option value="">Pilih gudang</option>
+                                        @foreach($warehouses as $warehouse)
+                                            <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="house-finish-field">
+                                    <label for="tool-notes-{{ $usage->id }}" class="form-label">Keterangan <span>(opsional)</span></label>
+                                    <input id="tool-notes-{{ $usage->id }}" type="text" wire:model="toolSelections.{{ $usage->id }}.notes" placeholder="Catatan kondisi alat..." class="form-control" />
+                                </div>
+                            </div>
+                        </article>
+                    @endforeach
                 </div>
             @endif
         </div>
 
         <!-- STEP 3: Confirmation -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary">
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning text-dark fw-bold font-mono flex-shrink-0" style="width: 28px; height: 28px; font-size: 0.85rem;">3</span>
-                <h5 class="fw-bold mb-0 font-outfit text-body">Konfirmasi Penyelesaian</h5>
+        <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4 bg-body-tertiary house-finish-section">
+            <div class="house-finish-section-title mb-3">
+                <span class="house-finish-step-number">3</span>
+                <div>
+                    <h2 class="fw-bold mb-1 font-outfit text-body">Konfirmasi penyelesaian</h2>
+                    <p class="text-secondary small mb-0">Pastikan seluruh catatan dan pengembalian alat sudah benar.</p>
+                </div>
             </div>
 
-            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 p-3 bg-warning-subtle rounded-3">
-                <p class="text-warning-emphasis mb-0 small">
-                    Status rumah akan berubah menjadi <strong>Selesai</strong> dan semua data transaksi akan dikunci.
-                </p>
-                <button type="button" wire:click="confirm('processCompletion', null, 'Selesaikan Proyek?', 'Apakah Anda yakin ingin menyelesaikan proyek ini? Status rumah akan berubah menjadi Selesai dan penggunaan material akan dikunci. Tindakan ini tidak dapat dibatalkan.')" class="btn btn-success font-semibold text-nowrap">
-                    🚩 Selesaikan Proyek
+            <div class="house-finish-final-action">
+                <div>
+                    <strong>Setelah proyek selesai</strong>
+                    <p class="mb-0 small">Setelah ditandai Selesai, rumah masuk masa garansi selama 1 tahun, mulai {{ $warrantyStartsAt->format('d/m/Y') }} sampai {{ $warrantyEndsAt->format('d/m/Y') }}. Catatan material yang ada dikunci.</p>
+                </div>
+                <button type="button" wire:click="confirm('processCompletion', null, 'Selesaikan Proyek?')" class="btn btn-success font-semibold text-nowrap d-inline-flex align-items-center gap-2 {{ $completionBlocked ? 'house-finish-button-blocked' : '' }}" aria-disabled="{{ $completionBlocked ? 'true' : 'false' }}" x-data="{ shaking: false }" x-on:house-finish-invalid.window="shaking = false; setTimeout(() => shaking = true, 10); setTimeout(() => shaking = false, 650)" x-bind:class="{ 'house-finish-button-jiggle': shaking }" @if($activeToolUsages->isNotEmpty()) aria-describedby="house-finish-return-requirement" @endif>
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 1.5a.5.5 0 0 1 .5.5v.73c1.8-1.04 3.7-1.04 5.5 0 1.47.85 2.93.85 4.4 0V9.5c-1.8 1.04-3.7 1.04-5.5 0-1.47-.85-2.93-.85-4.4 0v5a.5.5 0 0 1-1 0V2a.5.5 0 0 1 .5-.5Z"/></svg>
+                    Selesaikan Proyek
                 </button>
             </div>
+            @if ($activeToolUsages->isNotEmpty())
+                <p id="house-finish-return-requirement" class="house-finish-return-requirement small mb-0">Isi jumlah baik, rusak, atau hilang sesuai jumlah pinjaman, lalu pilih gudang penerima.</p>
+            @endif
         </div>
     </div>
 
     <!-- Confirmation Modal -->
     @if($showConfirmation)
     @teleport('body')
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal fade show d-block house-finish-confirmation-backdrop" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title font-outfit fw-bold">{{ $confirmTitle ?? 'Konfirmasi' }}</h5>
                     <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)"></button>
                 </div>
                 <div class="modal-body py-4">
-                    <p class="text-secondary mb-0 small">{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                    @if($confirmingAction === 'processCompletion')
+                        <div class="d-grid gap-3 house-finish-confirmation-copy">
+                            <p class="text-secondary mb-0 lh-base">Rumah akan ditandai <strong class="text-body">Selesai</strong> dan menerima masa garansi berikut.</p>
+                            <div class="border rounded-3 p-3 bg-body-tertiary">
+                                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                                    <span class="small text-secondary">Masa garansi</span>
+                                    <strong class="text-success">1 tahun</strong>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between gap-3">
+                                    <div>
+                                        <span class="d-block small text-secondary">Mulai</span>
+                                        <strong>{{ $warrantyStartsOn }}</strong>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="d-block small text-secondary">Berakhir</span>
+                                        <strong>{{ $warrantyEndsOn }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-secondary mb-0 lh-base">Alat baik atau rusak masuk ke gudang penerima. Catatan material yang ada akan dikunci.</p>
+                        </div>
+                    @else
+                        <p class="text-secondary mb-0 small lh-base">{{ $confirmMessage ?? 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                    @endif
                 </div>
                 <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
                     <button type="button" class="btn btn-secondary btn-sm fw-semibold" wire:click="$set('showConfirmation', false)">Batal</button>

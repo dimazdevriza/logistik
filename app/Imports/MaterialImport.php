@@ -3,11 +3,13 @@
 namespace App\Imports;
 
 use App\Models\Category;
-use App\Models\House;
 use App\Models\Material;
 use App\Models\MaterialUsage;
 use App\Models\StockIn;
 use App\Models\Supplier;
+use App\Support\ImportTransaction;
+use App\Support\ImportHouseIdentity;
+use App\Support\ImportWarehouse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,10 +19,15 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 class MaterialImport implements ToCollection, WithHeadingRow
 {
     public int $totalRows = 0;
+
     public int $successfulRows = 0;
+
     public int $skippedRows = 0;
+
     public int $materialsImported = 0;
+
     public int $transactionsImported = 0;
+
     public array $rowLogs = [];
 
     public function collection(Collection $rows)
@@ -30,7 +37,6 @@ class MaterialImport implements ToCollection, WithHeadingRow
         }
 
         $userId = Auth::id() ?? 1;
-
         DB::transaction(function () use ($rows, $userId) {
             foreach ($rows as $index => $row) {
                 $rowNum = $index + 2; // Accounting for 1-based index + header row
@@ -46,11 +52,14 @@ class MaterialImport implements ToCollection, WithHeadingRow
                     || array_key_exists('volume', $rowData)
                     || array_key_exists('blokrumah', $rowData);
                 $normalizeText = static function ($value) {
-                    if ($value === null) return null;
+                    if ($value === null) {
+                        return null;
+                    }
                     $value = is_string($value) ? trim($value) : $value;
                     if (is_string($value) && in_array(strtolower($value), ['', '-', '—', '*di isi', '*link', '0'], true)) {
                         return null;
                     }
+
                     return $value;
                 };
 
@@ -67,34 +76,35 @@ class MaterialImport implements ToCollection, WithHeadingRow
                 // Mode B: Transaction record (Keluar / Masuk)
                 $txType = strtolower((string) ($rowData['jenis'] ?? $rowData['tipe'] ?? $rowData['tipetransaksi'] ?? ($isKeluarFormat ? 'keluar' : '')));
                 $houseName = $normalizeText($rowData['unitrumah'] ?? $rowData['rumah'] ?? $rowData['unit'] ?? $rowData['referensi'] ?? $rowData['blokrumah'] ?? null);
+                $clusterName = $normalizeText($rowData['cluster'] ?? $rowData['namacluster'] ?? null);
                 $txNotes = $normalizeText($rowData['catatan'] ?? $rowData['keterangan'] ?? $rowData['keteranganpekerjaan'] ?? null) ?? 'Import dari Excel';
-                $txDateRaw = $rowData['tanggal'] ?? $rowData['waktu'] ?? $rowData['0'] ?? $rowData[''] ?? now()->toDateString();
-                
-                // Parse date
-                try {
-                    if (is_numeric($txDateRaw) && (float) $txDateRaw > 20000) {
-                        $txDate = \Carbon\Carbon::instance(
-                            \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $txDateRaw)
-                        )->toDateString();
-                    } else {
-                        $txDate = \Carbon\Carbon::parse($txDateRaw)->toDateString();
-                    }
-                } catch (\Exception $e) {
-                    $txDate = now()->toDateString();
-                }
+                $txDateRaw = $rowData['tanggal'] ?? $rowData['waktu'] ?? $rowData['waktumasuk'] ?? $rowData['waktuterima'] ?? $rowData['tanggalmasuk'] ?? $rowData['tanggalterima'] ?? $rowData['0'] ?? $rowData[''] ?? null;
+                $transactionCodeInput = $normalizeText($rowData['kodetransaksi'] ?? null);
 
-                if (!$name) {
+                if (! $name) {
                     $this->skippedRows++;
                     $this->rowLogs[] = [
                         'row' => $rowNum,
                         'status' => 'skipped',
                         'item' => '—',
-                        'message' => 'Baris kosong / Nama material tidak ditemukan.'
+                        'message' => 'Baris kosong / Nama material tidak ditemukan.',
                     ];
+
                     continue;
                 }
 
+                $warehouseId = ImportWarehouse::resolve($rowData, $rowNum, (string) $name);
+
                 $this->totalRows++;
+                $isIncoming = in_array($txType, ['masuk', 'restock', 'in'], true);
+                $isOutgoing = in_array($txType, ['keluar', 'alokasi', 'out', 'usage'], true) || $houseName;
+                $isTransaction = $isIncoming || $isOutgoing;
+                if (! $isTransaction && $stock < 0) {
+                    throw new \RuntimeException("Baris {$rowNum} ({$name}): Saldo awal negatif perlu direkonsiliasi sebelum impor.");
+                }
+                $txDate = $isTransaction
+                    ? ImportTransaction::date($txDateRaw, $rowNum, (string) $name)
+                    : null;
 
                 // Resolve or create Category
                 $category = null;
@@ -111,14 +121,51 @@ class MaterialImport implements ToCollection, WithHeadingRow
                     $supplier = Supplier::firstOrCreate(['name' => $supplierName]);
                 }
 
-                // Resolve or create Material
-                $material = Material::where('name', $name)->first();
+                // Keep differently priced purchases as separate inventory rows.
+                $materialQuery = Material::where('warehouse_id', $warehouseId)
+                    ->where('name', $name)
+                    ->where('unit', $unit);
+                if ($unitPrice > 0) {
+                    $materialQuery->where('unit_price', $unitPrice);
+                }
+                if ($supplier) {
+                    $materialQuery->where('supplier_id', $supplier->id);
+                } else {
+                    $materialQuery->whereNull('supplier_id');
+                }
+
+                // Historical outgoing rows may carry their historical price rather than
+                // the current batch price. Use the only matching item in that case.
+                $material = $materialQuery->lockForUpdate()->first();
+                if (! $material && $isOutgoing && $code) {
+                    $material = Material::where('warehouse_id', $warehouseId)
+                        ->where('code', $code)
+                        ->lockForUpdate()
+                        ->first();
+                }
+                if (! $material && $isOutgoing) {
+                    $sameName = Material::where('warehouse_id', $warehouseId)
+                        ->where('name', $name)
+                        ->lockForUpdate()
+                        ->get();
+                    if ($sameName->count() === 1) {
+                        $material = $sameName->first();
+                    } elseif ($sameName->count() > 1) {
+                        throw new \RuntimeException("Baris {$rowNum} ({$name}): Beberapa harga material ditemukan. Isi Kode Material atau Harga Satuan yang tepat.");
+                    }
+                }
+                if (! $material && ! $isTransaction) {
+                    $sameName = Material::where('warehouse_id', $warehouseId)
+                        ->where('name', $name)
+                        ->lockForUpdate()
+                        ->get();
+                    if ($sameName->count() === 1) {
+                        $material = $sameName->first();
+                    }
+                }
                 $isNewMaterial = false;
 
-                if (!$material) {
-                    $isTransaction = in_array($txType, ['masuk', 'restock', 'in', 'keluar', 'alokasi', 'out', 'usage'], true)
-                        || $houseName;
-
+                if (! $material) {
                     $material = Material::create([
                         'code' => $code,
                         'name' => $name,
@@ -126,7 +173,8 @@ class MaterialImport implements ToCollection, WithHeadingRow
                         'supplier_id' => $supplier?->id,
                         'unit' => $unit ?: 'pcs',
                         'unit_price' => $unitPrice,
-                        'stock' => $isTransaction ? 0 : max(0, $stock),
+                        'stock' => 0,
+                        'warehouse_id' => $warehouseId,
                     ]);
                     $this->materialsImported++;
                     $isNewMaterial = true;
@@ -135,85 +183,170 @@ class MaterialImport implements ToCollection, WithHeadingRow
                     if ($unitPrice > 0) {
                         $material->unit_price = $unitPrice;
                     }
-                    if ($category && !$material->category_id) {
+                    if ($category && ! $material->category_id) {
                         $material->category_id = $category->id;
                     }
-                    if ($supplier && !$material->supplier_id) {
+                    if ($supplier && ! $material->supplier_id) {
                         $material->supplier_id = $supplier->id;
                     }
-                    if ($code && !$material->code) {
+                    if ($code && ! $material->code) {
                         $material->code = $code;
-                    }
-                    // If strictly importing inventory stock, update stock if given
-                    if (!in_array($txType, ['masuk', 'keluar', 'restock', 'alokasi'])) {
-                        if ($stock > 0 && $material->stock == 0) {
-                            $material->stock = $stock;
-                        }
                     }
                     $material->save();
                 }
 
-                $logDetail = $isNewMaterial ? "Material baru ditambahkan" : "Material diperbarui";
+                $logDetail = $isNewMaterial ? 'Material baru ditambahkan' : 'Material diperbarui';
 
                 // If this row represents a transaction (Catatan Log: Restock / Allocation)
-                if (in_array($txType, ['masuk', 'restock', 'in'])) {
-                    $qty = max(0.01, $stock > 0 ? $stock : floatval($rowData['jumlah'] ?? 1));
+                if ($isIncoming) {
+                    if ($isKeluarFormat) {
+                        // In the transaction template, Jumlah is money; Volume is quantity.
+                        $volume = $rowData['volume'] ?? null;
+                        if (! is_numeric($volume) || ! is_finite((float) $volume) || (float) $volume < 0.01) {
+                            throw new \RuntimeException(
+                                "Baris {$rowNum} ({$material->name}): Volume stok masuk wajib berupa angka minimal 0.01. Seluruh impor dibatalkan."
+                            );
+                        }
+                        $qty = round((float) $volume, 2);
+                    } else {
+                        $qty = max(0.01, $stock > 0 ? $stock : floatval($rowData['jumlah'] ?? 1));
+                    }
                     $price = $unitPrice > 0 ? $unitPrice : floatval($material->unit_price ?? 0);
                     $total = $qty * $price;
 
-                    StockIn::create([
+                    $transactionCode = ImportTransaction::code('MSK', $transactionCodeInput, [
+                        'type' => 'masuk',
                         'material_id' => $material->id,
+                        'supplier_id' => $supplier?->id ?? $material->supplier_id,
+                        'date' => $txDate,
+                        'quantity' => number_format($qty, 2, '.', ''),
+                        'unit_price' => number_format($price, 2, '.', ''),
+                        'row' => $rowNum,
+                    ], $rowNum, $material->name);
+                    $receivedAt = ImportTransaction::dateTime(
+                        $rowData['waktumasuk'] ?? $rowData['waktuterima'] ?? $rowData['tanggalterima'] ?? $rowData['tanggalmasuk'] ?? $txDateRaw,
+                        $rowNum,
+                        $material->name,
+                    );
+
+                    $stockIn = StockIn::firstOrCreate([
+                        'transaction_code' => $transactionCode,
+                        'material_id' => $material->id,
+                    ], [
                         'supplier_id' => $supplier?->id ?? $material->supplier_id,
                         'user_id' => $userId,
                         'quantity' => $qty,
                         'unit_price' => $price,
                         'total_cost' => $total,
                         'date' => $txDate,
+                        'received_at' => $receivedAt,
                         'notes' => $txNotes,
                     ]);
+
+                    if (! $stockIn->wasRecentlyCreated) {
+                        $this->skipDuplicate($rowNum, $material->name);
+
+                        continue;
+                    }
 
                     $material->increment('stock', $qty);
                     $this->transactionsImported++;
                     $logDetail .= " + Restock ({$qty} {$material->unit})";
-                } elseif (in_array($txType, ['keluar', 'alokasi', 'out', 'usage']) || $houseName) {
-                    $house = null;
-                    if ($houseName) {
-                        $house = House::where('name', 'like', "%{$houseName}%")
-                            ->orWhere('house_code', 'like', "%{$houseName}%")
-                            ->first();
-                        if (!$house) {
-                            $house = House::create([
-                                'house_code' => House::generateCode($houseName),
-                                'name' => $houseName,
-                                'type' => 'Tipe Standar',
-                                'status' => 'pembangunan',
-                            ]);
-                        }
+                } elseif ($isOutgoing) {
+                    if (! $houseName) {
+                        throw new \RuntimeException("Baris {$rowNum} ({$material->name}): Blok rumah wajib diisi untuk transaksi keluar.");
                     }
 
-                    if ($house) {
-                        $qty = max(0.01, $isKeluarFormat
-                            ? floatval($rowData['volume'] ?? 1)
-                            : ($stock > 0 ? $stock : floatval($rowData['jumlah'] ?? 1)));
-                        $price = $unitPrice > 0 ? $unitPrice : floatval($material->unit_price ?? 0);
-                        $total = $qty * $price;
+                    $house = ImportHouseIdentity::resolve((string) $houseName, $rowNum, $material->name, $clusterName ? (string) $clusterName : null);
+                    $qty = max(0.01, $isKeluarFormat
+                        ? floatval($rowData['volume'] ?? 1)
+                        : ($stock > 0 ? $stock : floatval($rowData['jumlah'] ?? 1)));
+                    $qty = round($qty, 2);
+                    $price = $unitPrice > 0 ? $unitPrice : floatval($material->unit_price ?? 0);
+                    $total = $qty * $price;
 
-                        MaterialUsage::create([
-                            'house_id' => $house->id,
-                            'material_id' => $material->id,
-                            'user_id' => $userId,
-                            'quantity' => $qty,
-                            'unit_price_at_usage' => $price,
-                            'total_cost' => $total,
-                            'usage_date' => $txDate,
-                            'notes' => $txNotes,
-                        ]);
+                    $transactionCode = ImportTransaction::code('KLR', $transactionCodeInput, [
+                        'type' => 'keluar',
+                        'material_id' => $material->id,
+                        'house_id' => $house->id,
+                        'date' => $txDate,
+                        'quantity' => number_format($qty, 2, '.', ''),
+                        'unit_price' => number_format($price, 2, '.', ''),
+                    ], $rowNum, $material->name);
 
-                        // Reduce stock if available
-                        $material->decrement('stock', min($material->stock, $qty));
-                        $this->transactionsImported++;
-                        $logDetail .= " + Alokasi ke {$house->name} ({$qty} {$material->unit})";
+                    if (MaterialUsage::where('transaction_code', $transactionCode)->where('house_id', $house->id)->exists()) {
+                        $this->skipDuplicate($rowNum, $material->name);
+
+                        continue;
                     }
+
+                    if ((float) $material->stock < $qty) {
+                        $available = (float) $material->stock;
+                        throw new \RuntimeException(
+                            "Baris {$rowNum} ({$material->name}): Stok tidak mencukupi. Tersedia: {$available} {$material->unit}, diminta: {$qty} {$material->unit}. Seluruh impor dibatalkan."
+                        );
+                    }
+
+                    $usage = MaterialUsage::firstOrCreate([
+                        'transaction_code' => $transactionCode,
+                        'house_id' => $house->id,
+                    ], [
+                        'material_id' => $material->id,
+                        'user_id' => $userId,
+                        'quantity' => $qty,
+                        'unit_price_at_usage' => $price,
+                        'total_cost' => $total,
+                        'usage_date' => $txDate,
+                        'notes' => $txNotes,
+                    ]);
+
+                    if (! $usage->wasRecentlyCreated) {
+                        $this->skipDuplicate($rowNum, $material->name);
+
+                        continue;
+                    }
+
+                    $material->decrement('stock', $qty);
+                    $this->transactionsImported++;
+                    $logDetail .= " + Alokasi ke {$house->name} ({$qty} {$material->unit})";
+                } elseif ($stock > 0 && (float) $material->stock === 0.0) {
+                    $price = $unitPrice > 0 ? $unitPrice : (float) $material->unit_price;
+                    $transactionCode = ImportTransaction::code('MAT', $transactionCodeInput, [
+                        'type' => 'opening_balance',
+                        'material_id' => $material->id,
+                        'warehouse_id' => $warehouseId,
+                        'supplier_id' => $supplier?->id ?? $material->supplier_id,
+                        'quantity' => number_format($stock, 2, '.', ''),
+                        'unit_price' => number_format($price, 2, '.', ''),
+                    ], $rowNum, $material->name);
+                    $entryCode = 'OPEN-MAT-'.strtoupper(substr(hash('sha256', $material->id.':'.$transactionCode), 0, 26));
+                    $openingBatch = StockIn::firstOrCreate([
+                        'transaction_code' => $transactionCode,
+                        'material_id' => $material->id,
+                    ], [
+                        'entry_code' => $entryCode,
+                        'entry_type' => 'opening_balance',
+                        'warehouse_id' => $warehouseId,
+                        'supplier_id' => $supplier?->id ?? $material->supplier_id,
+                        'user_id' => $userId,
+                        'quantity' => $stock,
+                        'remaining_quantity' => $stock,
+                        'unit_price' => $price,
+                        'total_cost' => 0,
+                        'date' => config('logistics.migration_cutoff_date', now()->toDateString()),
+                        'received_at' => null,
+                        'notes' => 'Saldo awal hasil impor; waktu dan bukti kedatangan tidak tercatat.',
+                    ]);
+
+                    if (! $openingBatch->wasRecentlyCreated) {
+                        $this->skipDuplicate($rowNum, $material->name);
+
+                        continue;
+                    }
+
+                    $material->increment('stock', $stock);
+                    $this->transactionsImported++;
+                    $logDetail .= " + Saldo awal ({$stock} {$material->unit})";
                 }
 
                 $this->successfulRows++;
@@ -221,9 +354,20 @@ class MaterialImport implements ToCollection, WithHeadingRow
                     'row' => $rowNum,
                     'status' => 'success',
                     'item' => $name,
-                    'message' => $logDetail
+                    'message' => $logDetail,
                 ];
             }
         });
+    }
+
+    private function skipDuplicate(int $row, string $item): void
+    {
+        $this->skippedRows++;
+        $this->rowLogs[] = [
+            'row' => $row,
+            'status' => 'skipped',
+            'item' => $item,
+            'message' => 'Transaksi sudah tercatat. Stok tidak diubah.',
+        ];
     }
 }

@@ -37,9 +37,10 @@
             </div>
 
             <div class="d-flex align-items-center gap-3 pt-2">
-                <button type="submit" class="btn btn-success font-semibold px-4 py-2 rounded-3 shadow-xs d-inline-flex align-items-center gap-2">
+                <button type="submit" class="btn btn-success font-semibold px-4 py-2 rounded-3 shadow-xs d-inline-flex align-items-center gap-2" wire:loading.attr="disabled" wire:target="updatePassword">
                     <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/></svg>
-                    <span>Simpan Kata Sandi</span>
+                    <span wire:loading.remove wire:target="updatePassword">Simpan Kata Sandi</span>
+                    <span wire:loading wire:target="updatePassword">Menyimpan kata sandi…</span>
                 </button>
                 <x-action-message class="text-success small fw-semibold" on="password-updated">
                     {{ __('Kata sandi berhasil diperbarui.') }}

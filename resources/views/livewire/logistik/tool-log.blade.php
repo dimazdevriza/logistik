@@ -4,35 +4,40 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Riwayat Alat Kerja</span>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
-                        Catatan Riwayat <span class="text-success">Peminjaman Alat</span>
+                        Catatan Riwayat <span class="text-success">Alat</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
-                        Catatan riwayat peminjaman dan pemrosesan pengembalian alat kerja proyek.
+                        Penerimaan alat, peminjaman, dan pengembalian alat kerja proyek.
                     </p>
                 </div>
                 <div>
-                    @if(in_array(auth()->user()->role, ['admin', 'logistik']))
-                        <button type="button" wire:click="exportExcel" class="btn btn-outline-success font-semibold">Export Excel</button>
+                    @if(in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true))
+                        <button type="button" wire:click="exportExcel" class="btn btn-utility font-semibold">
+                            <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+                            </svg>
+                            <span>Ekspor Excel</span>
+                        </button>
                     @endif
                 </div>
             </div>
         </div>
 
+        @if (session('success'))
+            <div class="alert alert-success" role="alert">{{ session('success') }}</div>
+        @endif
+        @error('void')
+            <div class="alert alert-danger" role="alert">{{ $message }}</div>
+        @enderror
         <!-- Search & Filter Controls -->
         <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
             <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
                 <div class="w-100 max-w-sm">
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari alat..." class="form-control" />
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari alat / kode masuk / pengiriman..." aria-label="Cari alat, kode masuk, atau pengiriman" class="form-control" />
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" wire:click="toggleSortDirection" class="btn btn-outline-secondary px-3 d-inline-flex align-items-center gap-2 font-semibold shadow-xs" style="height: 38px;" title="Urutkan Tanggal">
-                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="{{ $sortDirection === 'asc' ? 'transform: rotate(180deg);' : '' }}">
-                            <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
-                        </svg>
-                        <span>Tanggal</span>
-                    </button>
                     <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase text-secondary">Status Peminjaman</label>
@@ -61,61 +66,108 @@
         @endphp
 
         <!-- Tool Log Table -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 excel-log-table">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 data-table-card">
+            <div wire:loading.delay class="data-table-status" role="status">Memuat catatan alat...</div>
+            <div wire:offline class="data-table-status is-error" role="alert">Koneksi terputus. Data mungkin tidak terbaru.</div>
+            <div class="table-responsive data-table-scroll tool-log-table-scroll" tabindex="0" role="region" aria-label="Catatan alat">
+                <table class="table table-hover table-striped align-middle mb-0 excel-log-table data-table data-table--compact data-table--sticky-history tool-log-table">
                     <colgroup>
-                        <col style="width: 100px"><col style="width: 100px"><col style="width: 70px">
-                        <col style="width: 110px"><col style="width: 110px"><col style="width: 130px">
-                        <col style="width: 260px"><col style="width: 120px"><col style="width: 260px"><col style="width: 90px">
-                        <col style="width: 90px"><col style="width: 140px"><col style="width: 150px"><col style="width: 190px">
+                        <col style="width: 220px"><col style="width: 120px"><col style="width: 75px"><col style="width: 130px">
+                        <col style="width: 180px"><col style="width: 150px">
+                        <col style="width: 260px"><col style="width: 120px"><col style="width: 256px"><col style="width: 90px">
+                        <col style="width: 90px"><col style="width: 140px"><col style="width: 150px"><col style="width: 120px">
                     </colgroup>
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
-                            <th>Tanggal</th>
+                            <x-sortable-th field="date" :sort="$sort">Tanggal</x-sortable-th>
                             <th>Bulan</th>
                             <th>Tahun</th>
-                            <th>Admin</th>
-                            <th>Pengambil</th>
-                            <th>Blok Rumah</th>
-                            <th>Keterangan Pekerjaan</th>
-                            <th>Kode Alat</th>
-                            <th>Nama Alat</th>
-                            <th class="text-end">Volume</th>
+                            <x-sortable-th field="type" :sort="$sort">Tipe</x-sortable-th>
+                            <x-sortable-th field="admin" :sort="$sort">Penanggung Jawab</x-sortable-th>
+                            <x-sortable-th field="house" :sort="$sort">Rumah / Gudang</x-sortable-th>
+                            <x-sortable-th field="notes" :sort="$sort">Keterangan Pekerjaan</x-sortable-th>
+                            <x-sortable-th field="code" :sort="$sort" class="data-key-code">Kode Alat</x-sortable-th>
+                            <x-sortable-th field="name" :sort="$sort" class="data-key-name">Nama Alat</x-sortable-th>
+                            <x-sortable-th field="volume" :sort="$sort" class="text-end data-number">Volume</x-sortable-th>
                             <th>Satuan</th>
-                            <th class="text-end">Harga Satuan</th>
-                            <th class="text-end">Jumlah</th>
-                            <th>Toko/Supplier</th>
+                            <x-sortable-th field="unit_price" :sort="$sort" class="text-end data-number">Harga Satuan</x-sortable-th>
+                            <th class="text-end data-number">Jumlah</th>
+                            <th class="text-end">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($usages as $usage)
-                        <tr wire:key="t-log-{{ $usage->id }}">
-                            <td class="font-mono text-secondary small">{{ $usage->checkout_date->format('d/m/Y') }}</td>
-                            <td class="font-mono text-secondary small">{{ $monthNames[$usage->checkout_date->month] }}</td>
-                            <td class="text-center font-mono text-secondary small">{{ $usage->checkout_date->year }}</td>
-                            <td class="fw-semibold">{{ $usage->user->name ?? '-' }}</td>
-                            <td>{{ $usage->user->name ?? '-' }}</td>
-                            <td class="fw-semibold">{{ $usage->house->name ?? '-' }}</td>
-                            <td class="log-wrap">
-                                {{ $usage->notes ?? '-' }}
-                                @if ($usage->return_date)
-                                    <span class="badge bg-success-subtle text-success ms-1">Dikembalikan {{ $usage->return_date->format('d/m/Y') }}</span>
+                        @forelse ($records as $record)
+                        @php $date = $record->date ? \Carbon\Carbon::parse($record->date) : null; @endphp
+                        <tr wire:key="t-log-{{ $record->type }}-{{ $record->id }}">
+                            <td data-label="Tanggal" class="font-mono text-secondary small">
+                                <span class="tool-log-cell-value">
+                                    {{ $date?->format('d/m/Y') ?? 'Tanggal tidak tercatat' }}
+                                    @if ($record->transaction_code)
+                                        <span class="d-block extra-small" title="{{ $record->type === 'kembali' ? 'Kode pengembalian' : ($record->type === 'keluar' ? 'Kode transaksi' : ($record->type === 'transfer' ? 'Kode transfer' : 'Kode masuk')) }}">{{ $record->transaction_code }}</span>
+                                    @endif
+                                    @if ($record->type === 'keluar' && $record->dispatch_code)
+                                        <span class="d-block extra-small">Pengiriman {{ $record->dispatch_code }}</span>
+                                        @if ($record->source_line_id)<span class="d-block extra-small">Sumber {{ $record->source_entry_code ?? 'Tidak tercatat' }} · {{ $record->source_warehouse_name ?? '-' }}</span>@endif
+                                    @endif
+                                </span>
+                            </td>
+                            <td data-label="Bulan" class="font-mono text-secondary small"><span class="tool-log-cell-value">{{ $date ? $monthNames[$date->month] : '-' }}</span></td>
+                            <td data-label="Tahun" class="text-center font-mono text-secondary small"><span class="tool-log-cell-value">{{ $date?->year ?? '-' }}</span></td>
+                            <td data-label="Tipe"><span class="tool-log-cell-value">
+                                @if ($record->type === 'rental')<span class="badge bg-warning-subtle text-warning-emphasis">Sewa vendor</span>
+                                @elseif ($record->type === 'rental_extension')<span class="badge bg-info-subtle text-info-emphasis">Perpanjangan sewa</span>
+                                @elseif ($record->type === 'rental_return')<span class="badge bg-success-subtle text-success">Kembali ke vendor</span>
+                                @elseif ($record->type === 'saldo_awal')<span class="badge bg-secondary-subtle text-secondary">Saldo awal</span>
+                                @elseif ($record->type === 'masuk')<span class="badge bg-success-subtle text-success">Masuk</span>
+                                @elseif ($record->type === 'kembali')<span class="badge bg-success-subtle text-success">Kembali</span>
+                                @elseif ($record->type === 'transfer')<span class="badge bg-info-subtle text-info-emphasis">Transfer</span><span class="d-block extra-small text-secondary">Antargudang</span>
+                                @else<span class="badge {{ $record->voided_at ? 'bg-secondary-subtle text-secondary' : ($record->return_date ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning') }}">{{ $record->voided_at ? 'Dibatalkan' : ($record->return_date ? 'Dikembalikan' : 'Dipinjam') }}</span>@endif
+                            </span></td>
+                            <td data-label="Penanggung jawab" class="fw-semibold data-cell-truncate" title="{{ $record->admin_name ?? '-' }}">
+                                <span class="tool-log-cell-value">
+                                    {{ $record->admin_name ?: '-' }}
+                                    @if ($record->admin_role)
+                                        <span class="d-block extra-small text-secondary">{{ ucfirst($record->admin_role) }}</span>
+                                    @endif
+                                </span>
+                            </td>
+                            <td data-label="Rumah / Gudang" class="fw-semibold data-cell-truncate" title="{{ $record->house_name ?? '-' }}"><span class="tool-log-cell-value">{{ $record->house_name ?: '-' }}</span></td>
+                            <td data-label="Keterangan" class="data-cell-truncate" title="{{ $record->job_notes ?? '-' }}">
+                                <span class="tool-log-cell-value">
+                                    {{ $record->job_notes ?: '-' }}
+                                    @if (in_array($record->type, ['rental', 'rental_extension', 'rental_return']))
+                                        <span class="d-block extra-small text-secondary">Vendor: {{ $record->vendor_name ?: '-' }}</span>
+                                        @if ($record->rental_due_date)<span class="d-block extra-small text-secondary">Batas sewa: {{ \Carbon\Carbon::parse($record->rental_due_date)->format('d/m/Y') }}</span>@endif
+                                        <span class="badge {{ $record->rental_status === 'Aktif' ? 'bg-warning-subtle text-warning-emphasis' : ($record->rental_status === 'Terlambat' ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary') }}">{{ $record->rental_status }}</span>
+                                        @if ($record->parent_transaction_code)<span class="d-block extra-small text-secondary">Sewa {{ $record->parent_transaction_code }}</span>@endif
+                                        @if ($record->type === 'rental_return')<span class="d-block extra-small">Kondisi: {{ $record->job_notes ?: '-' }}</span>@endif
+                                        @if ($record->rental_evidence_path)<a class="d-block extra-small" href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($record->rental_evidence_path) }}" target="_blank" rel="noopener">Lihat bukti</a>@endif
+                                    @endif
+                                    @if ($record->type === 'keluar' && $record->return_date)<span class="badge bg-success-subtle text-success ms-1">Dikembalikan {{ \Carbon\Carbon::parse($record->return_date)->format('d/m/Y') }}</span>@endif
+                                    @if ($record->type === 'kembali' && $record->parent_transaction_code)<span class="d-block extra-small text-secondary">Peminjaman {{ $record->parent_transaction_code }}</span>@endif
+                                </span>
+                            </td>
+                            <td data-label="Kode alat" class="font-mono text-secondary small data-key-code" title="{{ $record->item_code ?? '-' }}"><span class="tool-log-cell-value">{{ in_array($record->type, ['rental', 'rental_extension', 'rental_return']) ? $record->transaction_code : ($record->item_code ?: '-') }}</span></td>
+                            <td data-label="Nama alat" class="fw-bold text-body data-key-name" title="{{ $record->item_name ?? '-' }}"><span class="tool-log-cell-value">{{ $record->item_name ?: '-' }}</span></td>
+                            <td data-label="Volume" class="text-end fw-bold font-mono data-number"><span class="tool-log-cell-value">{{ number_format((float) $record->volume, 2, ',', '.') }}</span></td>
+                            <td data-label="Satuan" class="data-cell-truncate" title="unit"><span class="tool-log-cell-value">unit</span></td>
+                            <td data-label="Harga satuan" class="text-end font-mono text-secondary data-number"><span class="tool-log-cell-value">{{ $record->type === 'kembali' ? '—' : 'Rp '.number_format((float) $record->unit_price, 0, ',', '.') }}</span></td>
+                            <td data-label="Jumlah" class="text-end font-mono fw-bold text-success data-number"><span class="tool-log-cell-value">{{ $record->type === 'kembali' ? '—' : 'Rp '.number_format((float) $record->total_cost, 0, ',', '.') }}</span></td>
+                            <td data-label="Aksi" class="text-end">
+                                @if ($record->type !== 'keluar')
+                                    <span class="small text-secondary">-</span>
+                                @elseif ($record->voided_at)
+                                    <span class="small text-secondary">Dibatalkan</span>
+                                @elseif (!$record->return_date)
+                                    <button type="button" wire:click="voidTool({{ $record->id }})" wire:confirm="Batalkan peminjaman ini? Unit akan dikembalikan ke stok tersedia dan catatan tetap disimpan." class="btn log-row-action log-row-action--danger">Batalkan</button>
                                 @else
-                                    <span class="badge bg-warning-subtle text-warning ms-1">Dipinjam</span>
+                                    <span class="small text-secondary">-</span>
                                 @endif
                             </td>
-                            <td class="font-mono text-secondary small">{{ $usage->tool->code ?? '-' }}</td>
-                            <td class="fw-bold text-body log-wrap">{{ $usage->tool->name ?? '-' }}</td>
-                            <td class="text-end fw-bold font-mono">{{ $usage->quantity }}</td>
-                            <td>unit</td>
-                            <td class="text-end font-mono text-secondary">Rp {{ number_format((float) ($usage->tool->purchase_price ?? 0), 0, ',', '.') }}</td>
-                            <td class="text-end font-mono fw-bold text-success">Rp {{ number_format((float) (($usage->tool->purchase_price ?? 0) * $usage->quantity), 0, ',', '.') }}</td>
-                            <td>-</td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="14" class="text-center py-4 text-secondary">Belum ada data penggunaan alat.</td>
+                            <td colspan="14" class="data-table-empty-state py-4 text-secondary">Belum ada catatan alat.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -123,6 +175,6 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-end">{{ $usages->links() }}</div>
+        <div class="d-flex justify-content-end">{{ $records->links() }}</div>
     </div>
 </div>

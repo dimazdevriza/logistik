@@ -4,22 +4,12 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Modul Logistik</span>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
                         Kontrol Operasional <span class="text-success">Logistik</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
                         Pantau ketersediaan stok, peringatan stok menipis, dan kelola peminjaman alat konstruksi.
                     </p>
-                </div>
-                <div class="p-3 rounded-3 border bg-body-tertiary shadow-xs d-flex align-items-center gap-3">
-                    <div class="p-2 bg-success-subtle text-success rounded d-flex align-items-center justify-content-center">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-4 0H1.5A1.5 1.5 0 0 1 0 10.5v-7zm1 0v7a.5.5 0 0 0 .5.5H2a2 2 0 0 1 3.5 0h4.5a2 2 0 0 1 3.5 0h1.5a.5.5 0 0 0 .5-.5V8.851a.5.5 0 0 0-.11-.312L14.41 6.689A.5.5 0 0 0 14.02 6.5H12v-3a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z"/></svg>
-                    </div>
-                    <div>
-                        <div class="extra-small text-secondary fw-bold text-uppercase">Status Inventaris</div>
-                        <div class="fw-bold text-body small">Sistem Berjalan Normal</div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -86,7 +76,8 @@
                     <p class="text-secondary extra-small mb-0">Catatan alokasi material terbaru pada proyek pembangunan rumah.</p>
                 </div>
                 <a href="{{ route('logistik.houses') }}" wire:navigate class="btn btn-outline-secondary btn-sm font-semibold rounded-3 d-inline-flex align-items-center gap-1">
-                    Buka Proyek Rumah →
+                    Buka Proyek Rumah
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793L9.146 3.354a.5.5 0 1 1 .708-.708l5 5a.5.5 0 0 1 0 .708l-5 5a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/></svg>
                 </a>
             </div>
 
@@ -95,10 +86,10 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-body-secondary border-bottom">
                         <tr class="text-secondary extra-small text-uppercase font-geist tracking-wider">
-                            <th class="py-3 px-3">Waktu</th>
-                            <th class="py-3 px-3">Unit Rumah</th>
-                            <th class="py-3 px-3">Item / Material</th>
-                            <th class="py-3 px-3 text-end">Jumlah Alokasi</th>
+                            <x-sortable-th field="date" :sort="$activity_sort" :href="request()->fullUrlWithQuery(['activity_sort' => $activity_sort === 'date_asc' ? 'date_desc' : 'date_asc'])" class="py-3 px-3">Waktu</x-sortable-th>
+                            <x-sortable-th field="house" :sort="$activity_sort" :href="request()->fullUrlWithQuery(['activity_sort' => $activity_sort === 'house_asc' ? 'house_desc' : 'house_asc'])" class="py-3 px-3">Unit Rumah</x-sortable-th>
+                            <x-sortable-th field="material" :sort="$activity_sort" :href="request()->fullUrlWithQuery(['activity_sort' => $activity_sort === 'material_asc' ? 'material_desc' : 'material_asc'])" class="py-3 px-3">Item / Material</x-sortable-th>
+                            <x-sortable-th field="quantity" :sort="$activity_sort" :href="request()->fullUrlWithQuery(['activity_sort' => $activity_sort === 'quantity_asc' ? 'quantity_desc' : 'quantity_asc'])" class="py-3 px-3 text-end">Jumlah Alokasi</x-sortable-th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">

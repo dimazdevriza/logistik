@@ -85,7 +85,6 @@
                             <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">Selesai</span>
                             <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-pill">Menunggu</span>
                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">Ditolak</span>
-                            <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill">Dalam Pengiriman</span>
                             <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-pill">Draf</span>
                         </div>
 
@@ -254,13 +253,13 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-body-secondary border-bottom">
                             <tr class="text-secondary extra-small text-uppercase font-geist tracking-wider">
-                                <th class="py-3 px-3">Kode & Tanggal</th>
-                                <th class="py-3 px-3">Item / Material</th>
-                                <th class="py-3 px-3">Unit Rumah</th>
-                                <th class="py-3 px-3 text-end">Jumlah</th>
-                                <th class="py-3 px-3 text-end">Harga Satuan</th>
-                                <th class="py-3 px-3 text-end">Total Biaya</th>
-                                <th class="py-3 px-3">Status</th>
+                                <x-sortable-th field="code" :sort="$sort" class="py-3 px-3">Kode & Tanggal</x-sortable-th>
+                                <x-sortable-th field="item" :sort="$sort" class="py-3 px-3">Item / Material</x-sortable-th>
+                                <x-sortable-th field="house" :sort="$sort" class="py-3 px-3">Unit Rumah</x-sortable-th>
+                                <x-sortable-th field="quantity" :sort="$sort" class="py-3 px-3 text-end">Jumlah</x-sortable-th>
+                                <x-sortable-th field="unit_price" :sort="$sort" class="py-3 px-3 text-end">Harga Satuan</x-sortable-th>
+                                <x-sortable-th field="total" :sort="$sort" class="py-3 px-3 text-end">Total Biaya</x-sortable-th>
+                                <x-sortable-th field="status" :sort="$sort" class="py-3 px-3">Status</x-sortable-th>
                                 <th class="py-3 px-3 text-end">Aksi</th>
                             </tr>
                         </thead>

@@ -3,33 +3,43 @@
 namespace App\Livewire\Logistik;
 
 use App\Models\Material;
+use App\Models\MaterialToolRequest;
 use App\Models\ImportBatch;
 use App\Models\StockIn;
 use App\Models\Supplier;
 use App\Models\Category;
+use App\Models\Warehouse;
+use App\Models\InventoryAdjustment;
 use App\Exports\MaterialInventoryExport;
 use App\Imports\MaterialImport;
 use App\Traits\WithFilterModal;
+use App\Traits\WithTableSorting;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class Materials extends Component
 {
-    use WithPagination, WithFilterModal, WithFileUploads;
+    use WithPagination, WithFilterModal, WithFileUploads, WithTableSorting;
 
     public $search = '';
     public $filterCategory = '';
     public $filterSupplier = '';
     public $filterStock = '';
     public $filterPhoto = '';
+    public $filterWarehouse = '';
     public $sort = 'name_asc';
 
     public $showModal = false;
     public $editMode = false;
+    public string $createMode = 'new';
+    public $existingMaterialId = '';
     public $materialId;
+    public $saveSuccess = '';
 
     // Form: Create/Edit Material
     public $name = '';
@@ -39,18 +49,20 @@ class Materials extends Component
     public $unit = '';
     public $unit_price = 0;
     public $stock = 0;
+    public $receiptReceivedAt = '';
+    public $receiptSubmissionKey = '';
+    public $stockAdjustmentReason = '';
+    public $warehouse_id = '';
     public $image = null;
     public $existingImage = null;
 
     // Restock Modal State
-    public $showRestockModal = false;
     public $restockMaterialId = null;
-    public $restockMaterialName = '';
-    public $restockMaterialUnit = '';
     public $restockQuantity = 1;
     public $restockUnitPrice = 0;
     public $restockSupplierName = '';
-    public $restockDate = '';
+    public $restockReceivedAt = '';
+    public $restockSubmissionKey = '';
     public $restockNotes = '';
     public $restockProofImage = null;
 
@@ -73,6 +85,11 @@ class Materials extends Component
 
     public function confirm($action, $id = null, $title = '', $message = '')
     {
+        $this->resetValidation('delete');
+        if ($action === 'delete' && Material::findOrFail($id)->hasTransactionHistory()) {
+            $this->addError('delete', 'Material tidak dapat dihapus karena memiliki riwayat stok, pemakaian, permintaan, atau transfer gudang. Riwayat transaksi harus tetap tersimpan.');
+            return;
+        }
         $this->confirmingAction = $action;
         $this->confirmingId = $id;
         $this->confirmTitle = $title;
@@ -98,17 +115,30 @@ class Materials extends Component
     public function updatingFilterSupplier(): void { $this->resetPage(); }
     public function updatingFilterStock(): void { $this->resetPage(); }
     public function updatingFilterPhoto(): void { $this->resetPage(); }
+    public function updatingFilterWarehouse(): void { $this->resetPage(); }
 
-    public function toggleSortDirection(): void
+    protected function sortableColumns(): array
     {
-        if (str_ends_with($this->sort, '_asc')) {
-            $this->sort = substr($this->sort, 0, -4) . '_desc';
-        } elseif (str_ends_with($this->sort, '_desc')) {
-            $this->sort = substr($this->sort, 0, -5) . '_asc';
-        } else {
-            $this->sort = 'name_desc';
-        }
-        $this->resetPage();
+        return [
+            'name' => 'materials.name',
+            'code' => 'materials.code',
+            'category' => fn ($query, $direction) => $query->orderBy(
+                Category::select('name')->whereColumn('categories.id', 'materials.category_id'),
+                $direction
+            ),
+            'supplier' => fn ($query, $direction) => $query->orderBy(
+                Supplier::select('name')->whereColumn('suppliers.id', 'materials.supplier_id'),
+                $direction
+            ),
+            'warehouse' => fn ($query, $direction) => $query->orderBy(
+                Warehouse::select('name')->whereColumn('warehouses.id', 'materials.warehouse_id'),
+                $direction
+            ),
+            'stock' => 'materials.stock',
+            'unit_price' => 'materials.unit_price',
+            'value' => fn ($query, $direction) => $query->orderByRaw('(materials.stock * materials.unit_price) ' . $direction),
+            'date' => 'materials.created_at',
+        ];
     }
 
     public function resetFilters(): void
@@ -118,6 +148,7 @@ class Materials extends Component
         $this->filterSupplier = '';
         $this->filterStock = '';
         $this->filterPhoto = '';
+        $this->filterWarehouse = '';
         $this->showFilterModal = false;
         $this->resetPage();
     }
@@ -166,7 +197,8 @@ class Materials extends Component
             'category_id' => 'nullable|exists:categories,id',
             'unit' => 'required|string|max:50',
             'unit_price' => 'required|numeric|min:0',
-            'stock' => 'required|numeric|min:0',
+            'stock' => 'required|numeric|min:' . ($this->editMode ? '0' : '0.01'),
+            'warehouse_id' => 'required|exists:warehouses,id',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
     }
@@ -174,8 +206,69 @@ class Materials extends Component
     public function create()
     {
         $this->resetForm();
+        $this->resetRestockForm();
+        $this->createMode = 'new';
+        $this->existingMaterialId = '';
+        $this->stock = 1;
+        $this->receiptReceivedAt = now()->format('Y-m-d\\TH:i');
         $this->editMode = false;
         $this->showModal = true;
+    }
+
+    public function setCreateMode(string $mode): void
+    {
+        abort_unless(in_array($mode, ['new', 'existing'], true), 400);
+        if ($this->createMode === $mode) {
+            return;
+        }
+        $this->resetForm();
+        $this->resetRestockForm();
+        $this->createMode = $mode;
+        $this->existingMaterialId = '';
+        $this->editMode = false;
+        $this->stock = 1;
+        $this->receiptReceivedAt = now()->format('Y-m-d\\TH:i');
+    }
+
+    public function updatedExistingMaterialId($id): void
+    {
+        $this->selectExistingMaterial($id);
+    }
+
+    public function selectExistingMaterial($id): void
+    {
+        $this->resetValidation();
+        $this->saveSuccess = '';
+        if (! $id) {
+            $this->resetForm();
+            $this->resetRestockForm();
+            $this->existingMaterialId = '';
+            $this->stock = 1;
+            $this->receiptReceivedAt = now()->format('Y-m-d\\TH:i');
+            return;
+        }
+
+        $material = Material::with('supplier')->findOrFail($id);
+        $this->existingMaterialId = (string) $material->id;
+        $this->name = $material->name;
+        $this->code = $material->code ?? '';
+        $this->supplier_name = $material->supplier?->name ?? '';
+        $this->category_id = $material->category_id ?? '';
+        $this->unit = $material->unit;
+        $this->unit_price = $material->unit_price;
+        $this->warehouse_id = $material->warehouse_id ?? '';
+        $this->stock = 1;
+        $this->receiptReceivedAt = now()->format('Y-m-d\\TH:i');
+        $this->receiptSubmissionKey = (string) Str::uuid();
+        $this->image = null;
+        $this->restockProofImage = null;
+        $this->restockNotes = '';
+        $this->restockMaterialId = $material->id;
+        $this->restockQuantity = 1;
+        $this->restockUnitPrice = $material->unit_price;
+        $this->restockSupplierName = $material->supplier?->name ?? '';
+        $this->restockReceivedAt = $this->receiptReceivedAt;
+        $this->restockSubmissionKey = $this->receiptSubmissionKey;
     }
 
     public function showMaterialImage($id)
@@ -197,15 +290,53 @@ class Materials extends Component
         $this->unit = $material->unit;
         $this->unit_price = $material->unit_price;
         $this->stock = $material->stock;
+        $this->receiptReceivedAt = '';
+        $this->stockAdjustmentReason = '';
+        $this->warehouse_id = $material->warehouse_id ?? '';
         $this->image = null;
         $this->existingImage = $material->image;
+        $this->saveSuccess = '';
         $this->editMode = true;
         $this->showModal = true;
     }
 
     public function save()
     {
+        if (! $this->editMode && $this->createMode === 'existing') {
+            $this->validate([
+                'existingMaterialId' => 'required|exists:materials,id',
+                'warehouse_id' => 'required|exists:warehouses,id',
+                'stock' => 'required|numeric|min:0.01',
+                'unit_price' => 'required|numeric|min:0',
+                'supplier_name' => 'nullable|string|max:255',
+                'receiptReceivedAt' => 'required|date|before_or_equal:now',
+                'receiptSubmissionKey' => 'required|uuid',
+                'restockNotes' => 'nullable|string|max:500',
+                'restockProofImage' => 'nullable|image|max:5120',
+            ]);
+            $this->restockMaterialId = $this->existingMaterialId;
+            $this->restockQuantity = $this->stock;
+            $this->restockUnitPrice = $this->unit_price;
+            $this->restockSupplierName = $this->supplier_name;
+            $this->restockReceivedAt = $this->receiptReceivedAt;
+            $this->restockSubmissionKey = $this->receiptSubmissionKey;
+            $this->saveRestock();
+            return;
+        }
+
+        if (! $this->editMode) {
+            $this->validate([
+                'receiptReceivedAt' => 'required|date|before_or_equal:now',
+                'receiptSubmissionKey' => 'required|uuid',
+            ]);
+        }
         $this->validate();
+        $existing = $this->editMode ? Material::findOrFail($this->materialId) : null;
+        $stockChanged = $existing && abs((float) $existing->stock - (float) $this->stock) > 0.0001;
+        if ($existing && (int) $existing->warehouse_id !== (int) $this->warehouse_id && $existing->hasTransactionHistory()) {
+            $this->addError('warehouse_id', 'Gudang tidak dapat diubah karena material sudah memiliki riwayat transaksi.');
+            return;
+        }
 
         $final_supplier_id = null;
         if (!empty(trim($this->supplier_name))) {
@@ -226,6 +357,7 @@ class Materials extends Component
             'unit' => $this->unit,
             'unit_price' => $this->unit_price,
             'stock' => $this->stock,
+            'warehouse_id' => $this->warehouse_id,
         ];
 
         if ($this->image) {
@@ -233,43 +365,40 @@ class Materials extends Component
         }
 
         if ($this->editMode) {
-            $existing = Material::findOrFail($this->materialId);
-            $oldPrice = (float) $existing->unit_price;
-            $newPrice = (float) $this->unit_price;
-            $newStock = (float) $this->stock;
-
             // Protect existing proof image from being overwritten once recorded
             if ($existing->image && isset($data['image'])) {
                 unset($data['image']);
             }
 
-            DB::transaction(function () use ($existing, $data, $oldPrice, $newPrice, $newStock, $final_supplier_id) {
-                $existing->update($data);
+            // Receipt and usage records retain their original quantities and prices.
+            DB::transaction(function () use ($existing, $data): void {
+                $material = Material::lockForUpdate()->findOrFail($existing->id);
+                $beforeStock = (float) $material->stock;
+                $stockChanged = abs($beforeStock - (float) $data['stock']) > 0.0001;
 
-                // Rekonsiliasi harga: jika harga satuan dikoreksi, perbarui seluruh catatan pemakaian material aktif
-                if ($oldPrice !== $newPrice) {
-                    $usages = MaterialUsage::where('material_id', $existing->id)
-                        ->whereNull('voided_at')
-                        ->get();
-
-                    foreach ($usages as $usage) {
-                        $usage->unit_price_at_usage = $newPrice;
-                        $usage->total_cost = round($usage->quantity * $newPrice, 2);
-                        $usage->save();
+                if ($stockChanged) {
+                    $reserved = MaterialToolRequest::where('material_id', $material->id)
+                        ->where('type', 'material')
+                        ->where('status', 'pending')
+                        ->sum('quantity');
+                    if ((float) $data['stock'] + 0.001 < (float) $reserved) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'stock' => 'Stok tidak dapat dikoreksi di bawah '.number_format((float) $reserved, 2, ',', '.').' unit yang sedang dicadangkan.',
+                        ]);
                     }
                 }
 
-                // Perbarui log stok awal jika ada
-                $initialStockIn = StockIn::where('material_id', $existing->id)
-                    ->where('notes', 'Stok awal')
-                    ->first();
+                $material->update($data);
 
-                if ($initialStockIn) {
-                    $initialStockIn->update([
-                        'quantity' => $newStock,
-                        'unit_price' => $newPrice,
-                        'total_cost' => round($newStock * $newPrice, 2),
-                        'supplier_id' => $final_supplier_id,
+                if ($stockChanged) {
+                    InventoryAdjustment::create([
+                        'user_id' => auth()->id(),
+                        'adjustable' => $material,
+                        'field' => 'stock',
+                        'before_value' => $beforeStock,
+                        'after_value' => $data['stock'],
+                        'delta' => (float) $data['stock'] - $beforeStock,
+                        'reason' => trim($this->stockAdjustmentReason) ?: 'Koreksi manual melalui formulir',
                     ]);
                 }
             });
@@ -279,38 +408,76 @@ class Materials extends Component
             cache()->forget('dashboard_total_cost');
             cache()->forget('dashboard_low_stock_count');
 
-            session()->flash('success', 'Data material dan seluruh perhitungan biaya terkait berhasil diperbarui.');
-        } else {
-            $material = Material::create($data);
+            session()->flash('success', 'Data material berhasil diperbarui. Riwayat transaksi tetap tersimpan tanpa perubahan.');
+            $this->showModal = false;
+            $this->resetForm();
 
-            // Log initial stock as stock_in
-            if ($this->stock > 0) {
-                StockIn::create([
-                    'material_id' => $material->id,
-                    'supplier_id' => $final_supplier_id,
-                    'user_id' => auth()->id(),
-                    'quantity' => $this->stock,
-                    'unit_price' => $this->unit_price,
-                    'total_cost' => $this->stock * $this->unit_price,
-                    'date' => now()->toDateString(),
-                    'notes' => 'Stok awal',
-                ]);
-            }
-
-            // Bersihkan cache
-            cache()->forget('dashboard_low_stock_count');
-
-            session()->flash('success', 'Material berhasil ditambahkan.');
+            return;
         }
 
-        $this->showModal = false;
+        $created = DB::transaction(function () use ($data, $final_supplier_id): bool {
+            if (StockIn::where('submission_key', $this->receiptSubmissionKey)->exists()) {
+                return false;
+            }
+
+            $data['stock'] = 0;
+            $material = Material::create($data);
+            $receivedAt = \Illuminate\Support\Carbon::parse($this->receiptReceivedAt);
+            $receipt = StockIn::firstOrCreate([
+                'submission_key' => $this->receiptSubmissionKey,
+            ], [
+                'material_id' => $material->id,
+                'warehouse_id' => $this->warehouse_id,
+                'supplier_id' => $final_supplier_id,
+                'user_id' => auth()->id(),
+                'quantity' => $this->stock,
+                'unit_price' => $this->unit_price,
+                'total_cost' => $this->stock * $this->unit_price,
+                'date' => $receivedAt->toDateString(),
+                'received_at' => $receivedAt,
+                'notes' => 'Penerimaan awal',
+            ]);
+
+            if (! $receipt->wasRecentlyCreated) {
+                $material->delete();
+                return false;
+            }
+
+            $material->update(['stock' => $this->stock]);
+
+            return true;
+        });
+
+        if (! $created) {
+            $this->resetForm();
+            $this->stock = 1;
+            $this->receiptReceivedAt = now()->format('Y-m-d\\TH:i');
+            $this->saveSuccess = 'Penerimaan material sudah tercatat.';
+            $this->showModal = true;
+
+            return;
+        }
+
+        cache()->forget('dashboard_low_stock_count');
         $this->resetForm();
+        $this->stock = 1;
+        $this->receiptReceivedAt = now()->format('Y-m-d\\TH:i');
+        $this->saveSuccess = 'Material berhasil ditambahkan.';
+        $this->showModal = true;
     }
 
     public function delete($id)
     {
-        Material::findOrFail($id)->delete();
-        session()->flash('success', 'Material berhasil dihapus.');
+        $this->resetValidation('delete');
+        DB::transaction(function () use ($id) {
+            $material = Material::lockForUpdate()->findOrFail($id);
+            if ($material->hasTransactionHistory()) {
+                $this->addError('delete', 'Material tidak dapat dihapus karena memiliki riwayat stok, pemakaian, permintaan, atau transfer gudang. Riwayat transaksi harus tetap tersimpan.');
+                return;
+            }
+            $material->delete();
+            session()->flash('success', 'Material berhasil dihapus.');
+        });
     }
 
     public function resetForm()
@@ -323,6 +490,11 @@ class Materials extends Component
         $this->unit = '';
         $this->unit_price = 0;
         $this->stock = 0;
+        $this->receiptReceivedAt = '';
+        $this->receiptSubmissionKey = (string) Str::uuid();
+        $this->saveSuccess = '';
+        $this->stockAdjustmentReason = '';
+        $this->warehouse_id = Warehouse::orderBy('id')->value('id') ?? '';
         $this->image = null;
         $this->existingImage = null;
         $this->resetValidation();
@@ -330,27 +502,21 @@ class Materials extends Component
 
     public function restock($id)
     {
-        $material = Material::with('supplier')->findOrFail($id);
-        $this->restockMaterialId = $material->id;
-        $this->restockMaterialName = $material->name;
-        $this->restockMaterialUnit = $material->unit;
-        $this->restockQuantity = 1;
-        $this->restockUnitPrice = $material->unit_price;
-        $this->restockSupplierName = $material->supplier?->name ?? '';
-        $this->restockDate = now()->format('Y-m-d');
-        $this->restockNotes = '';
-        $this->resetValidation();
-        $this->showRestockModal = true;
+        $this->create();
+        $this->createMode = 'existing';
+        $this->selectExistingMaterial($id);
     }
 
     public function saveRestock()
     {
         $this->validate([
             'restockMaterialId' => 'required|exists:materials,id',
+            'warehouse_id' => 'required|exists:warehouses,id',
             'restockQuantity' => 'required|numeric|min:0.01',
             'restockUnitPrice' => 'required|numeric|min:0',
             'restockSupplierName' => 'nullable|string|max:255',
-            'restockDate' => 'required|date',
+            'restockReceivedAt' => 'required|date|before_or_equal:now',
+            'restockSubmissionKey' => 'required|uuid',
             'restockNotes' => 'nullable|string|max:500',
             'restockProofImage' => 'nullable|image|max:5120',
         ]);
@@ -361,82 +527,104 @@ class Materials extends Component
         }
 
         try {
-            DB::transaction(function () use ($proofImagePath) {
-                $sourceMaterial = Material::findOrFail($this->restockMaterialId);
+            $created = DB::transaction(function () use ($proofImagePath): bool {
+                if (StockIn::where('submission_key', $this->restockSubmissionKey)->exists()) {
+                    return false;
+                }
 
-                // Resolve supplier
+                $sourceMaterial = Material::lockForUpdate()->findOrFail($this->restockMaterialId);
+
                 $supplierId = null;
                 if (!empty(trim($this->restockSupplierName))) {
                     $supplier = Supplier::firstOrCreate(['name' => trim($this->restockSupplierName)]);
                     $supplierId = $supplier->id;
                 }
 
-                $totalCost = $this->restockQuantity * $this->restockUnitPrice;
-
-                // Check if a matching material row exists (same name, unit, category, supplier, price)
-                $existingMaterial = Material::where('name', $sourceMaterial->name)
+                $destinationMaterial = Material::where('warehouse_id', $this->warehouse_id)
+                    ->where('name', $sourceMaterial->name)
                     ->where('unit', $sourceMaterial->unit)
                     ->where('category_id', $sourceMaterial->category_id)
-                    ->where('unit_price', $this->restockUnitPrice)
-                    ->when($supplierId, fn ($q) => $q->where('supplier_id', $supplierId), fn ($q) => $q->whereNull('supplier_id'))
+                    ->where('code', $sourceMaterial->code)
+                    ->lockForUpdate()
                     ->first();
 
-                if ($existingMaterial) {
-                    // Same price + supplier combo exists: just add stock
-                    $existingMaterial->increment('stock', $this->restockQuantity);
-                    $targetMaterialId = $existingMaterial->id;
-                } else {
-                    // Different price or supplier: create a new material row
-                    $newMaterial = Material::create([
+                if (! $destinationMaterial) {
+                    $destinationMaterial = Material::create([
+                        'warehouse_id' => $this->warehouse_id,
+                        'code' => $sourceMaterial->code,
+                        'supplier_id' => $supplierId,
+                        'category_id' => $sourceMaterial->category_id,
                         'name' => $sourceMaterial->name,
                         'unit' => $sourceMaterial->unit,
-                        'category_id' => $sourceMaterial->category_id,
-                        'supplier_id' => $supplierId,
                         'unit_price' => $this->restockUnitPrice,
-                        'stock' => $this->restockQuantity,
+                        'stock' => 0,
+                        'image' => $sourceMaterial->image,
                     ]);
-                    $targetMaterialId = $newMaterial->id;
                 }
 
-                // Log the restock
-                StockIn::create([
-                    'material_id' => $targetMaterialId,
+                $totalCost = $this->restockQuantity * $this->restockUnitPrice;
+
+                $receivedAt = \Illuminate\Support\Carbon::parse($this->restockReceivedAt);
+                $receipt = StockIn::firstOrCreate(['submission_key' => $this->restockSubmissionKey], [
+                    'material_id' => $destinationMaterial->id,
+                    'warehouse_id' => $this->warehouse_id,
                     'supplier_id' => $supplierId,
                     'user_id' => auth()->id(),
                     'quantity' => $this->restockQuantity,
                     'unit_price' => $this->restockUnitPrice,
                     'total_cost' => $totalCost,
-                    'date' => $this->restockDate,
+                    'date' => $receivedAt->toDateString(),
+                    'received_at' => $receivedAt,
                     'notes' => $this->restockNotes,
                     'proof_image' => $proofImagePath,
                 ]);
 
-                session()->flash('success', 'Restock berhasil dicatat: ' . $this->restockQuantity . ' ' . $sourceMaterial->unit . ' ' . $sourceMaterial->name . '.');
+                if (! $receipt->wasRecentlyCreated) {
+                    return false;
+                }
+
+                $destinationMaterial->increment('stock', $this->restockQuantity);
+                return true;
             });
 
-            $this->showRestockModal = false;
-            $this->resetRestockForm();
+            if (! $created && $proofImagePath) {
+                Storage::disk('public')->delete($proofImagePath);
+            }
+            $materialId = StockIn::where('submission_key', $this->restockSubmissionKey)->value('material_id')
+                ?? $this->restockMaterialId;
+            $message = $created ? 'Stok masuk berhasil dicatat. Kode masuk baru sudah dibuat.' : 'Penerimaan material sudah tercatat.';
+            if ($this->showModal && $this->createMode === 'existing') {
+                $this->selectExistingMaterial($materialId);
+                $this->saveSuccess = $message;
+            } else {
+                session()->flash('success', $message);
+                $this->resetRestockForm();
+            }
+            cache()->forget('dashboard_low_stock_count');
         } catch (\Exception $e) {
-            $this->addError('restockQuantity', 'Gagal menyimpan restock: ' . $e->getMessage());
+            if ($proofImagePath) {
+                Storage::disk('public')->delete($proofImagePath);
+            }
+            $this->addError($this->showModal ? 'stock' : 'restockQuantity', 'Gagal menyimpan stok masuk: ' . $e->getMessage());
         }
     }
 
     public function resetRestockForm()
     {
         $this->restockMaterialId = null;
-        $this->restockMaterialName = '';
-        $this->restockMaterialUnit = '';
         $this->restockQuantity = 1;
         $this->restockUnitPrice = 0;
         $this->restockSupplierName = '';
-        $this->restockDate = '';
+        $this->restockReceivedAt = '';
+        $this->restockSubmissionKey = (string) Str::uuid();
         $this->restockNotes = '';
+        $this->restockProofImage = null;
         $this->resetValidation();
     }
 
     public function openImportModal()
     {
-        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) return;
         $this->importFile = null;
         $this->importResultSummary = null;
         $this->resetValidation();
@@ -445,7 +633,7 @@ class Materials extends Component
 
     public function importExcel()
     {
-        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) return;
 
         $this->validate([
             'importFile' => 'required|file|mimes:xlsx,xls,csv|max:10240',
@@ -481,9 +669,9 @@ class Materials extends Component
 
     public function exportExcel()
     {
-        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) return;
 
-        $export = new MaterialInventoryExport($this->search, $this->filterCategory);
+        $export = new MaterialInventoryExport($this->search, $this->filterCategory, $this->filterWarehouse);
         $filename = 'material-inventory-' . now()->format('Ymd') . '.xlsx';
 
         return response()->streamDownload(function () use ($export) {
@@ -493,10 +681,13 @@ class Materials extends Component
 
     public function render()
     {
-        $materials = Material::with(['supplier', 'category'])
-            ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%"))
+        $materials = Material::with(['supplier', 'category', 'warehouse'])
+            ->when($this->search, fn ($q) => $q->where(fn ($sub) => $sub
+                ->where('name', 'like', "%{$this->search}%")
+                ->orWhereHas('stockIns', fn ($receipts) => $receipts->where('entry_code', 'like', "%{$this->search}%"))))
             ->when($this->filterCategory, fn ($q) => $q->where('category_id', $this->filterCategory))
             ->when($this->filterSupplier, fn ($q) => $q->where('supplier_id', $this->filterSupplier))
+            ->when($this->filterWarehouse, fn ($q) => $q->where('warehouse_id', $this->filterWarehouse))
             ->when($this->filterPhoto === 'has_photo', fn ($q) => $q->whereNotNull('image')->where('image', '!=', ''))
             ->when($this->filterPhoto === 'no_photo', fn ($q) => $q->where(fn ($sub) => $sub->whereNull('image')->orWhere('image', '')))
             ->when($this->filterStock, function ($q) {
@@ -508,23 +699,16 @@ class Materials extends Component
                     $q->where('stock', '<=', 0);
                 }
             }, fn ($q) => $q->where('stock', '>', 0)) // Default: hide depleted
-            ->when($this->sort, function ($q) {
-                match ($this->sort) {
-                    'name_asc' => $q->orderBy('name', 'asc'),
-                    'name_desc' => $q->orderBy('name', 'desc'),
-                    'stock_desc' => $q->orderBy('stock', 'desc'),
-                    'stock_asc' => $q->orderBy('stock', 'asc'),
-                    'unit_price_desc' => $q->orderBy('unit_price', 'desc'),
-                    'unit_price_asc' => $q->orderBy('unit_price', 'asc'),
-                    'date_desc' => $q->orderBy('created_at', 'desc'),
-                    'date_asc' => $q->orderBy('created_at', 'asc'),
-                    default => $q->orderBy('name', 'asc'),
-                };
-            }, fn($q) => $q->orderBy('name', 'asc'))
+            ->tap(fn ($query) => $this->applyTableSort($query))
+            ->orderBy('materials.id')
             ->paginate(10);
 
         $suppliers = Supplier::select('id', 'name')->orderBy('name')->get()->unique('name');
         $categories = Category::where('type', 'material')->orderBy('name')->get()->unique('name');
+        $warehouses = Warehouse::orderBy('name')->get();
+        $materialChoices = $this->showModal && ! $this->editMode && $this->createMode === 'existing'
+            ? Material::with('warehouse')->orderBy('name')->orderBy('code')->get(['id', 'name', 'code', 'warehouse_id'])
+            : collect();
 
         // Summary stats
         $totalValue = Material::where('stock', '>', 0)
@@ -532,7 +716,7 @@ class Materials extends Component
             ->value('total') ?? 0;
         $totalItems = Material::where('stock', '>', 0)->count();
 
-        return view('livewire.logistik.materials', compact('materials', 'suppliers', 'categories', 'totalValue', 'totalItems'))
+        return view('livewire.logistik.materials', compact('materials', 'suppliers', 'categories', 'warehouses', 'materialChoices', 'totalValue', 'totalItems'))
             ->layout('layouts.app', ['title' => 'Material']);
     }
 }

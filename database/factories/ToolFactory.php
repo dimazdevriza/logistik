@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Tool;
 use App\Models\Category;
+use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ToolFactory extends Factory
@@ -17,6 +18,7 @@ class ToolFactory extends Factory
         $qty = fake()->numberBetween(1, 20);
 
         return [
+            'warehouse_id' => Warehouse::query()->orderBy('id')->value('id'),
             'category_id' => Category::factory()->tool(),
             'name' => fake()->words(2, true),
             'code' => 'TL-' . str_pad(++self::$codeCounter, 4, '0', STR_PAD_LEFT),

@@ -2,37 +2,37 @@
 
 namespace App\Exports;
 
-use App\Models\MaterialUsage;
 use App\Models\House;
-use Maatwebsite\Excel\Concerns\FromQuery;
+use App\Models\MaterialUsage;
 use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use Maatwebsite\Excel\Events\AfterSheet;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, WithEvents, ShouldAutoSize, WithTitle
+class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormatting, WithEvents, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     use Exportable;
 
     private $rowNumber = 0;
 
     public function __construct(
-        private int $houseId
+        private int $houseId,
+        private string $sheetTitle = 'Penggunaan Material',
     ) {}
 
     public function title(): string
     {
-        return 'Penggunaan Material';
+        return $this->sheetTitle;
     }
 
     public function query()
@@ -47,11 +47,11 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
     public function headings(): array
     {
         $house = House::find($this->houseId);
-        
+
         return [
-            ['Laporan Penggunaan Material - ' . ($house->name ?? 'D\'Royal Village')],
-            ['Diekspor pada: ' . now()->format('d F Y H:i')],
-            ['Proyek: ' . ($house->house_code ?? '-') . ' (' . ($house->type ?? '-') . ')'],
+            ['Laporan Penggunaan Material - '.($house->name ?? 'D\'Royal Village')],
+            ['Diekspor pada: '.now()->format('d F Y H:i')],
+            ['Proyek: '.($house->house_code ?? '-').' ('.($house->type ?? '-').')'],
             [], // Empty row
             [
                 'No',
@@ -64,17 +64,18 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
                 'Harga Satuan',
                 'Total Biaya',
                 'Pencatat',
-            ]
+                'Dicatat pada',
+            ],
         ];
     }
 
     public function map($usage): array
     {
         $this->rowNumber++;
-        
+
         return [
             $this->rowNumber,
-            $usage->usage_date->format('d/m/Y H:i'),
+            $usage->usage_date->format('d/m/Y'),
             $usage->notes ?? '-',
             $usage->material->code ?? '-',
             $usage->material->name,
@@ -84,6 +85,7 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
             (float) ($usage->unit_price_at_usage ?? 0),
             (float) ($usage->total_cost ?? 0),
             $usage->user->name,
+            $usage->created_at?->format('d/m/Y H:i') ?? '-',
         ];
     }
 
@@ -91,8 +93,8 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
     {
         return [
             'F' => '#,##0.00',
-            'H' => '"Rp "#,##0',
-            'I' => '"Rp "#,##0',
+            'H' => '[$Rp-421] #,##0.00',
+            'I' => '[$Rp-421] #,##0.00',
         ];
     }
 
@@ -122,8 +124,8 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
             ],
         ];
 
-        $sheet->getStyle('A5:J5')->applyFromArray($headerStyle);
-        
+        $sheet->getStyle('A5:K5')->applyFromArray($headerStyle);
+
         // Alignment
         $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -137,23 +139,23 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
+            AfterSheet::class => function (AfterSheet $event) {
                 $lastRow = $event->sheet->getHighestRow();
                 $footerRow = $lastRow + 1;
-                
+
                 // Calculate Total
                 $totalCost = MaterialUsage::where('house_id', $this->houseId)->whereNull('voided_at')->sum('total_cost');
 
                 // Add Footer Row
                 $event->sheet->append([
                     [], // Blank Row
-                    ['', '', '', '', '', '', '', 'Total Biaya Proyek', $totalCost]
+                    ['', '', '', '', '', '', '', 'Total Biaya Proyek', $totalCost],
                 ]);
 
                 $finalRow = $event->sheet->getHighestRow();
 
                 // Styling the total row
-                $event->sheet->getStyle('H' . $finalRow . ':I' . $finalRow)->applyFromArray([
+                $event->sheet->getStyle('H'.$finalRow.':I'.$finalRow)->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'color' => ['rgb' => 'FFFFFF'],
@@ -170,7 +172,7 @@ class MaterialUsageExport implements FromQuery, WithHeadings, WithMapping, WithC
                 ]);
 
                 // Format the total cell
-                $event->sheet->getStyle('I' . $finalRow)->getNumberFormat()->setFormatCode('"Rp "#,##0');
+                $event->sheet->getStyle('I'.$finalRow)->getNumberFormat()->setFormatCode('[$Rp-421] #,##0.00');
             },
         ];
     }

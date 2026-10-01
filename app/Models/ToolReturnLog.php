@@ -10,13 +10,19 @@ class ToolReturnLog extends Model
     protected $table = 'tool_return_logs';
 
     protected $fillable = [
+        'transaction_code',
         'tool_id',
         'house_id',
         'tool_usage_id',
         'reported_by',
+        'receiving_warehouse_id',
+        'received_at',
+        'received_by_id',
+        'resolved_by_id',
+        'resolved_at',
         'quantity',
-        'report_type',  // normal, repair, broken, lost
-        'status',       // pending, fixed, discarded
+        'report_type',
+        'status',
         'replacement_cost',
         'notes',
     ];
@@ -26,6 +32,8 @@ class ToolReturnLog extends Model
         return [
             'replacement_cost' => 'decimal:2',
             'quantity' => 'integer',
+            'received_at' => 'datetime',
+            'resolved_at' => 'datetime',
         ];
     }
 
@@ -48,4 +56,15 @@ class ToolReturnLog extends Model
     {
         return $this->belongsTo(User::class, 'reported_by');
     }
+
+    public function receivingWarehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'receiving_warehouse_id');
+    }
+
+    public function receivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by_id');
+    }
+
 }

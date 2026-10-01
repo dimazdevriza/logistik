@@ -2,10 +2,14 @@
 
 namespace App\Livewire;
 
+use App\Traits\WithTableSorting;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class Playground extends Component
 {
+    use WithPagination, WithTableSorting;
+
     public $activeTab = 'components';
 
     // Table playground state
@@ -14,6 +18,20 @@ class Playground extends Component
     public $filterStatus = '';
     public $filterHouse = '';
     public $showFilterModal = false;
+    public $sort = 'code_asc';
+
+    protected function sortableColumns(): array
+    {
+        return [
+            'code' => 'code',
+            'item' => 'item_name',
+            'house' => 'house',
+            'quantity' => 'qty',
+            'unit_price' => 'unit_price',
+            'total' => 'total_cost',
+            'status' => 'status',
+        ];
+    }
 
     public function resetFilters()
     {
@@ -45,7 +63,7 @@ class Playground extends Component
                 'unit_price' => 75000,
                 'total_cost' => 3750000,
                 'status' => 'approved',
-                'status_label' => '✓ Approved',
+                'status_label' => 'Approved',
                 'status_badge' => 'bg-success-subtle text-success border-success-subtle',
             ],
             [
@@ -98,7 +116,7 @@ class Playground extends Component
             ],
         ]);
 
-        return $data->filter(function ($row) {
+        $filtered = $data->filter(function ($row) {
             if ($this->search) {
                 $term = strtolower($this->search);
                 $match = str_contains(strtolower($row['code']), $term)
@@ -117,6 +135,11 @@ class Playground extends Component
             }
             return true;
         });
+
+        [$field, $direction] = $this->tableSortParts();
+        $column = $this->sortableColumns()[$field];
+
+        return $filtered->{$direction === 'asc' ? 'sortBy' : 'sortByDesc'}($column)->values();
     }
 
     public function render()

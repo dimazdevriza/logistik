@@ -4,15 +4,17 @@ namespace App\Livewire\Logistik;
 
 use App\Models\Category;
 use App\Traits\WithFilterModal;
+use App\Traits\WithTableSorting;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class Categories extends Component
 {
-    use WithPagination, WithFilterModal;
+    use WithPagination, WithFilterModal, WithTableSorting;
 
     public $search = '';
     public $filterType = '';
+    public $sort = 'type_asc';
     public $showModal = false;
     public $editMode = false;
     public $categoryId;
@@ -113,13 +115,22 @@ class Categories extends Component
         $this->resetPage();
     }
 
+    protected function sortableColumns(): array
+    {
+        return [
+            'type' => 'categories.type',
+            'name' => 'categories.name',
+        ];
+    }
+
     public function render()
     {
         $categories = Category::query()
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%"))
             ->when($this->filterType, fn ($q) => $q->where('type', $this->filterType))
-            ->orderBy('type')
-            ->orderBy('name')
+            ->tap(fn ($query) => $this->applyTableSort($query))
+            ->orderBy('categories.name')
+            ->orderBy('categories.id')
             ->paginate(10);
 
         return view('livewire.logistik.categories', compact('categories'))

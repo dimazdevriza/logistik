@@ -13,7 +13,7 @@
                 syncTheme() {
                     this.theme = document.documentElement.getAttribute('data-bs-theme') || localStorage.getItem('theme') || 'light';
                 },
-                set(v) {
+                chooseTheme(v) {
                     this.theme = v;
                     document.documentElement.setAttribute('data-bs-theme', v);
                     try { localStorage.setItem('theme', v); } catch (e) {}
@@ -24,11 +24,13 @@
         >
             <div class="row g-4">
                 <div class="col-md-6">
-                    <div
-                        class="card rounded-4 p-4 p-lg-5 cursor-pointer transition-all border-2 text-start h-100 position-relative"
+                    <button
+                        type="button"
+                        class="card theme-choice rounded-4 p-4 p-lg-5 cursor-pointer transition-all border-2 text-start h-100 position-relative"
                         :class="theme === 'light' ? 'border-success bg-success-subtle bg-opacity-25 shadow-sm' : 'border-secondary border-opacity-25 bg-body hover-bg'"
-                        @click="set('light')"
-                        style="cursor: pointer;"
+                        x-on:click="chooseTheme('light')"
+                        :aria-pressed="theme === 'light'"
+                        aria-label="Pilih mode terang"
                     >
                         <div class="d-flex align-items-center justify-content-between mb-4">
                             <div class="rounded-circle p-3 bg-warning-subtle text-warning d-flex align-items-center justify-content-center shadow-xs" style="width: 52px; height: 52px;">
@@ -40,15 +42,17 @@
                         </div>
                         <h5 class="fw-bold text-body font-outfit mb-2">{{ __('Mode Terang') }}</h5>
                         <p class="text-secondary small mb-0 lh-base">Antarmuka putih bersih dengan kontras tinggi, ideal untuk lingkungan kerja siang hari.</p>
-                    </div>
+                    </button>
                 </div>
 
                 <div class="col-md-6">
-                    <div
-                        class="card rounded-4 p-4 p-lg-5 cursor-pointer transition-all border-2 text-start h-100 position-relative"
+                    <button
+                        type="button"
+                        class="card theme-choice rounded-4 p-4 p-lg-5 cursor-pointer transition-all border-2 text-start h-100 position-relative"
                         :class="theme === 'dark' ? 'border-success bg-success-subtle bg-opacity-25 shadow-sm' : 'border-secondary border-opacity-25 bg-body hover-bg'"
-                        @click="set('dark')"
-                        style="cursor: pointer;"
+                        x-on:click="chooseTheme('dark')"
+                        :aria-pressed="theme === 'dark'"
+                        aria-label="Pilih mode gelap"
                     >
                         <div class="d-flex align-items-center justify-content-between mb-4">
                             <div class="rounded-circle p-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center shadow-xs" style="width: 52px; height: 52px;">
@@ -60,7 +64,7 @@
                         </div>
                         <h5 class="fw-bold text-body font-outfit mb-2">{{ __('Mode Gelap') }}</h5>
                         <p class="text-secondary small mb-0 lh-base">Antarmuka gelap elegan yang nyaman di mata pada malam hari dan menghemat baterai.</p>
-                    </div>
+                    </button>
                 </div>
             </div>
         </div>

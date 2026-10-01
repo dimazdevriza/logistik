@@ -26,11 +26,14 @@
                         type="button"
                         class="btn btn-outline-danger font-semibold px-4 py-2 rounded-3 d-inline-flex align-items-center gap-2"
                         wire:click="disable"
+                        wire:loading.attr="disabled"
+                        wire:target="disable"
                     >
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                             <path d="M5.338 1.59a61 61 0 0 0-2.837.856.48.48 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.7 10.7 0 0 0 2.287 2.233.45.45 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.5 1.5 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.8 11.8 0 0 1-2.517 2.453 1.95 1.95 0 0 1-2.748 0 11.8 11.8 0 0 1-2.517-2.453C1.428 10.487.045 7.169.641 2.692A1.5 1.5 0 0 1 1.685 1.43c.658-.215 1.777-.57 2.887-.87z"/>
                         </svg>
-                        <span>Nonaktifkan 2FA</span>
+                        <span wire:loading.remove wire:target="disable">Nonaktifkan 2FA</span>
+                        <span wire:loading wire:target="disable">Menonaktifkan…</span>
                     </button>
                 </div>
             @else
@@ -48,11 +51,14 @@
                             type="button"
                             class="btn btn-success font-semibold px-4 py-2 rounded-3 d-inline-flex align-items-center gap-2"
                             wire:click="enable"
+                            wire:loading.attr="disabled"
+                            wire:target="enable"
                         >
                             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
                             </svg>
-                            <span>Aktifkan Google 2FA</span>
+                            <span wire:loading.remove wire:target="enable">Aktifkan Google 2FA</span>
+                            <span wire:loading wire:target="enable">Menyiapkan 2FA…</span>
                         </button>
                     </div>
                 </div>
@@ -125,12 +131,14 @@
                         @endif
 
                         @if (! $showVerificationStep)
-                            <button type="button" class="btn btn-success font-semibold px-4 py-2 rounded-3" wire:click="showVerificationIfNecessary">
-                                {{ __('Lanjut ke Verifikasi') }}
+                            <button type="button" class="btn btn-success font-semibold px-4 py-2 rounded-3" wire:click="showVerificationIfNecessary" wire:loading.attr="disabled" wire:target="showVerificationIfNecessary">
+                                <span wire:loading.remove wire:target="showVerificationIfNecessary">{{ __('Lanjut ke Verifikasi') }}</span>
+                                <span wire:loading wire:target="showVerificationIfNecessary">{{ __('Memuat verifikasi…') }}</span>
                             </button>
                         @else
-                            <button type="button" class="btn btn-success font-semibold px-4 py-2 rounded-3" wire:click="confirmTwoFactor">
-                                {{ __('Konfirmasi & Simpan') }}
+                            <button type="button" class="btn btn-success font-semibold px-4 py-2 rounded-3" wire:click="confirmTwoFactor" wire:loading.attr="disabled" wire:target="confirmTwoFactor">
+                                <span wire:loading.remove wire:target="confirmTwoFactor">{{ __('Konfirmasi & Simpan') }}</span>
+                                <span wire:loading wire:target="confirmTwoFactor">{{ __('Menyimpan 2FA…') }}</span>
                             </button>
                         @endif
                     </div>

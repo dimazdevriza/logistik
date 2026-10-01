@@ -39,11 +39,12 @@
                                 <label for="del-password" class="form-label font-semibold small text-secondary">{{ __('Kata Sandi Konfirmasi') }}</label>
                                 <input id="del-password" wire:model="password" type="password" class="form-control rounded-3" placeholder="Masukkan kata sandi akun Anda..." />
                                 @error('password') <span class="text-danger small mt-1 d-block">{{ $message }}</span> @enderror
+                                @error('account') <span class="text-danger small mt-1 d-block">{{ $message }}</span> @enderror
                             </div>
                         </div>
                         <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 py-3 px-4">
                             <button type="button" class="btn btn-outline-secondary font-semibold" @click="show = false">{{ __('Batal') }}</button>
-                            <button type="submit" class="btn btn-danger font-semibold">{{ __('Ya, Hapus Akun') }}</button>
+                            <button type="submit" class="btn btn-danger font-semibold" wire:loading.attr="disabled" wire:target="deleteUser"><span wire:loading.remove wire:target="deleteUser">{{ __('Ya, Hapus Akun') }}</span><span wire:loading wire:target="deleteUser">{{ __('Menghapus…') }}</span></button>
                         </div>
                     </form>
                 </div>

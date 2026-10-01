@@ -29,19 +29,24 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
     public function __construct(
         private ?string $search = null,
         private ?string $filterStatus = null,
-        ?int $year = null
+        ?int $year = null,
+        private ?string $filterCluster = null,
+        private ?int $clusterScope = null,
+        private ?string $sheetTitle = null,
+        private ?string $reportTitle = null,
     ) {
         $this->year = $year ?: (int) now()->year;
     }
 
     public function title(): string
     {
-        return 'Biaya Rumah ' . $this->year;
+        return $this->sheetTitle ?? 'Biaya Rumah ' . $this->year;
     }
 
     public function query()
     {
         $query = House::query()
+            ->with('cluster')
             ->withSum(['materialUsages' => fn ($q) => $q->whereNull('voided_at')], 'total_cost')
             ->withCount(['materialUsages' => fn ($q) => $q->whereNull('voided_at')]);
 
@@ -62,19 +67,22 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
                     ->orWhere('house_code', 'like', "%{$this->search}%");
             }))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
+            ->when($this->filterCluster, fn ($q) => $q->where('cluster_id', $this->filterCluster))
+            ->when($this->clusterScope !== null, fn ($q) => $q->where('cluster_id', $this->clusterScope))
             ->orderBy('name');
     }
 
     public function headings(): array
     {
         return [
-            ['D\'ROYAL VILLAGE - LAPORAN MONITORING BIAYA RUMAH PER BULAN (TAHUN ' . $this->year . ')'],
+            [$this->reportTitle ?? 'D\'ROYAL VILLAGE - LAPORAN MONITORING BIAYA RUMAH PER BULAN (TAHUN ' . $this->year . ')'],
             ['Diekspor pada: ' . now()->format('d F Y H:i')],
             [],
             [
                 'No.',
                 'Kode Rumah',
                 'Nama / Blok',
+                'Cluster',
                 'Tipe',
                 'Status',
                 'Jan',
@@ -112,6 +120,7 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
                 $this->rowNumber,
                 $house->house_code ?? '-',
                 $house->name,
+                $house->cluster?->name ?? 'Tanpa Cluster',
                 $house->type,
                 ucfirst($house->status),
             ],
@@ -126,27 +135,27 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
     public function columnFormats(): array
     {
         return [
-            'F' => '#,##0',
-            'G' => '#,##0',
-            'H' => '#,##0',
-            'I' => '#,##0',
-            'J' => '#,##0',
-            'K' => '#,##0',
-            'L' => '#,##0',
-            'M' => '#,##0',
-            'N' => '#,##0',
-            'O' => '#,##0',
-            'P' => '#,##0',
-            'Q' => '#,##0',
-            'R' => '#,##0',
-            'S' => '#,##0',
+            'G' => '[$Rp-421] #,##0.00',
+            'H' => '[$Rp-421] #,##0.00',
+            'I' => '[$Rp-421] #,##0.00',
+            'J' => '[$Rp-421] #,##0.00',
+            'K' => '[$Rp-421] #,##0.00',
+            'L' => '[$Rp-421] #,##0.00',
+            'M' => '[$Rp-421] #,##0.00',
+            'N' => '[$Rp-421] #,##0.00',
+            'O' => '[$Rp-421] #,##0.00',
+            'P' => '[$Rp-421] #,##0.00',
+            'Q' => '[$Rp-421] #,##0.00',
+            'R' => '[$Rp-421] #,##0.00',
+            'S' => '[$Rp-421] #,##0.00',
+            'T' => '[$Rp-421] #,##0.00',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->mergeCells('A1:S1');
-        $sheet->mergeCells('A2:S2');
+        $sheet->mergeCells('A1:T1');
+        $sheet->mergeCells('A2:T2');
 
         return [
             1 => [
@@ -178,7 +187,7 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
                 $sheet = $event->sheet->getDelegate();
                 $highestRow = $sheet->getHighestRow();
 
-                $sheet->getStyle("A4:S{$highestRow}")->applyFromArray([
+                $sheet->getStyle("A4:T{$highestRow}")->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -190,13 +199,12 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
                 // Alignment for columns
                 $sheet->getStyle("A5:A{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $sheet->getStyle("B5:B{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("E5:E{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("F5:S{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("F5:F{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("G5:T{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
                 // Add summary footer row
                 $totalRow = $highestRow + 1;
-                $sheet->setCellValue("E{$totalRow}", 'TOTAL:');
-                $sheet->setCellValue("F{$totalRow}", "=SUM(F5:F{$highestRow})");
+                $sheet->setCellValue("F{$totalRow}", 'TOTAL:');
                 $sheet->setCellValue("G{$totalRow}", "=SUM(G5:G{$highestRow})");
                 $sheet->setCellValue("H{$totalRow}", "=SUM(H5:H{$highestRow})");
                 $sheet->setCellValue("I{$totalRow}", "=SUM(I5:I{$highestRow})");
@@ -210,14 +218,14 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
                 $sheet->setCellValue("Q{$totalRow}", "=SUM(Q5:Q{$highestRow})");
                 $sheet->setCellValue("R{$totalRow}", "=SUM(R5:R{$highestRow})");
                 $sheet->setCellValue("S{$totalRow}", "=SUM(S5:S{$highestRow})");
+                $sheet->setCellValue("T{$totalRow}", "=SUM(T5:T{$highestRow})");
 
-                $sheet->getStyle("E{$totalRow}:S{$totalRow}")->applyFromArray([
+                $sheet->getStyle("F{$totalRow}:T{$totalRow}")->applyFromArray([
                     'font' => ['bold' => true],
                 ]);
-                $sheet->getStyle("E{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle("F{$totalRow}:S{$totalRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $sheet->getStyle("F{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("G{$totalRow}:T{$totalRow}")->getNumberFormat()->setFormatCode('[$Rp-421] #,##0.00');
             },
         ];
     }
 }
-

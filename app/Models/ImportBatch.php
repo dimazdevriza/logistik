@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ImportReconciliation;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
@@ -17,11 +18,16 @@ class ImportBatch extends Model
         'import_type',
         'file_name',
         'file_hash',
+        'cutoff_date',
+        'migration_mode',
         'user_id',
         'status',
         'total_rows',
         'successful_rows',
         'skipped_rows',
+        'reconciliation_before',
+        'reconciliation_after',
+        'reconciliation_delta',
         'error_message',
         'completed_at',
     ];
@@ -30,6 +36,10 @@ class ImportBatch extends Model
     {
         return [
             'completed_at' => 'datetime',
+            'cutoff_date' => 'date',
+            'reconciliation_before' => 'array',
+            'reconciliation_after' => 'array',
+            'reconciliation_delta' => 'array',
         ];
     }
 
@@ -55,6 +65,8 @@ class ImportBatch extends Model
                 'status' => 'processing',
                 'error_message' => null,
                 'completed_at' => null,
+                'cutoff_date' => config('logistics.migration_cutoff_date'),
+                'migration_mode' => config('logistics.migration_mode'),
             ]);
         } else {
             try {
@@ -62,6 +74,8 @@ class ImportBatch extends Model
                     'import_type' => $type,
                     'file_name' => $file->getClientOriginalName(),
                     'file_hash' => $hash,
+                    'cutoff_date' => config('logistics.migration_cutoff_date'),
+                    'migration_mode' => config('logistics.migration_mode'),
                     'user_id' => Auth::id(),
                     'status' => 'processing',
                 ]);
@@ -74,15 +88,22 @@ class ImportBatch extends Model
             }
         }
 
+        $before = ImportReconciliation::snapshot();
+        $batch->update(['reconciliation_before' => $before]);
+
         try {
-            return DB::transaction(function () use ($batch, $callback, $path) {
+            return DB::transaction(function () use ($batch, $callback, $path, $before) {
                 $result = $callback($path);
+                $after = ImportReconciliation::snapshot();
 
                 $batch->update([
                     'status' => 'completed',
                     'total_rows' => (int) ($result->totalRows ?? 0),
                     'successful_rows' => (int) ($result->successfulRows ?? 0),
                     'skipped_rows' => (int) ($result->skippedRows ?? 0),
+                    'reconciliation_before' => $before,
+                    'reconciliation_after' => $after,
+                    'reconciliation_delta' => ImportReconciliation::delta($before, $after),
                     'completed_at' => now(),
                 ]);
 

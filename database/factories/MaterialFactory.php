@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Material;
 use App\Models\Supplier;
 use App\Models\Category;
+use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class MaterialFactory extends Factory
@@ -14,6 +15,7 @@ class MaterialFactory extends Factory
     public function definition(): array
     {
         return [
+            'warehouse_id' => Warehouse::query()->orderBy('id')->value('id'),
             'supplier_id' => Supplier::factory(),
             'category_id' => Category::factory()->material(),
             'name' => fake()->words(3, true),

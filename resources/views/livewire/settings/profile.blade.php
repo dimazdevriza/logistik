@@ -44,9 +44,10 @@
             </div>
 
             <div class="d-flex align-items-center gap-3 pt-2">
-                <button type="submit" class="btn btn-success font-semibold px-4 py-2 rounded-3 shadow-xs d-inline-flex align-items-center gap-2">
+                <button type="submit" class="btn btn-success font-semibold px-4 py-2 rounded-3 shadow-xs d-inline-flex align-items-center gap-2" wire:loading.attr="disabled" wire:target="updateProfileInformation">
                     <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/></svg>
-                    <span>Simpan Perubahan</span>
+                    <span wire:loading.remove wire:target="updateProfileInformation">Simpan Perubahan</span>
+                    <span wire:loading wire:target="updateProfileInformation">Menyimpan perubahan…</span>
                 </button>
                 <x-action-message class="text-success small fw-semibold" on="profile-updated">
                     {{ __('Perubahan berhasil disimpan.') }}

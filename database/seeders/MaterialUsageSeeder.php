@@ -5,45 +5,55 @@ namespace Database\Seeders;
 use App\Models\House;
 use App\Models\Material;
 use App\Models\MaterialUsage;
+use App\Models\StockIn;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class MaterialUsageSeeder extends Seeder
 {
     public function run(): void
     {
-        $houses = House::all();
-        $materials = Material::all();
-        $user = User::where('role', 'logistik')->first() ?? User::first();
-
-        if ($houses->isEmpty() || $materials->isEmpty()) {
-            return;
-        }
-
-        $sampleUsages = [
-            ['house' => $houses[0] ?? null, 'material' => $materials->where('name', 'Baja Ringan C75')->first() ?? $materials[0], 'qty' => 20, 'notes' => 'Pemasangan Rangka Atap Utama'],
-            ['house' => $houses[0] ?? null, 'material' => $materials->where('name', 'Semen Portland 50kg')->first() ?? $materials[1], 'qty' => 15, 'notes' => 'Pekerjaan Cor Pondasi'],
-            ['house' => $houses[1] ?? null, 'material' => $materials->where('name', 'Bata Ringan / Hebel')->first() ?? $materials[2], 'qty' => 120, 'notes' => 'Pemasangan Dinding Lantai 1'],
-            ['house' => $houses[1] ?? null, 'material' => $materials->where('name', 'Pasir Pasang')->first() ?? $materials[3], 'qty' => 5, 'notes' => 'Plesteran Dinding Depan'],
-            ['house' => $houses[2] ?? null, 'material' => $materials->where('name', 'Besi Beton 10mm')->first() ?? $materials[4], 'qty' => 30, 'notes' => 'Perakitan Kolom Struktur'],
+        $userId = User::where('role', 'logistik')->value('id');
+        $entries = [
+            ['Blok A-01', 'MAT-0001', 35, 10, 'Pengecoran sloof dan kolom'],
+            ['Blok A-02', 'MAT-0010', 48, 8, 'Pemasangan tulangan pondasi'],
+            ['Blok B-01', 'MAT-0027', 4.5, 6, 'Pekerjaan pasangan bata dan plester'],
+            ['Blok B-02', 'MAT-0001', 22, 3, 'Pengecoran lantai kerja'],
+            ['Blok A-03', 'MAT-0010', 32, 2, 'Perakitan tulangan balok'],
         ];
 
-        foreach ($sampleUsages as $item) {
-            if (!$item['house'] || !$item['material']) continue;
+        foreach ($entries as [$houseName, $materialCode, $quantity, $daysAgo, $notes]) {
+            $house = House::where('name', $houseName)->first();
+            $material = Material::where('code', $materialCode)->first();
+            if (! $house || ! $material || ! $userId) continue;
 
-            $unitPrice = $item['material']->unit_price ?? 50000;
-            $totalCost = $unitPrice * $item['qty'];
+            DB::transaction(function () use ($house, $material, $quantity, $daysAgo, $notes, $userId): void {
+                $batch = StockIn::where('material_id', $material->id)
+                    ->where('entry_type', 'receipt')->where('remaining_quantity', '>=', $quantity)
+                    ->orderBy('received_at')->lockForUpdate()->first();
+                if (! $batch) return;
 
-            MaterialUsage::create([
-                'house_id' => $item['house']->id,
-                'material_id' => $item['material']->id,
-                'user_id' => $user->id ?? 1,
-                'quantity' => $item['qty'],
-                'unit_price_at_usage' => $unitPrice,
-                'total_cost' => $totalCost,
-                'usage_date' => now()->subDays(rand(1, 10)),
-                'notes' => $item['notes'],
-            ]);
+                $date = now()->subDays($daysAgo)->toDateString();
+                $cost = (float) $batch->unit_price * $quantity;
+                MaterialUsage::create([
+                    'transaction_code' => 'KLR-'.Str::ulid(),
+                    'house_id' => $house->id,
+                    'material_id' => $material->id,
+                    'stock_in_id' => $batch->id,
+                    'user_id' => $userId,
+                    'quantity' => $quantity,
+                    'unit_price_at_usage' => $batch->unit_price,
+                    'total_cost' => $cost,
+                    'usage_date' => $date,
+                    'notes' => $notes,
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ]);
+                $batch->decrement('remaining_quantity', $quantity);
+                $material->decrement('stock', $quantity);
+            });
         }
     }
 }

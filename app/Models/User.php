@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -26,6 +27,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'cluster_id',
     ];
 
     /**
@@ -66,9 +68,9 @@ class User extends Authenticatable
             ->implode('');
     }
 
-    public function isMandor(): bool
+    public function cluster(): BelongsTo
     {
-        return $this->role === 'mandor';
+        return $this->belongsTo(Cluster::class);
     }
 
     public function materialUsages(): HasMany
@@ -79,5 +81,22 @@ class User extends Authenticatable
     public function toolUsages(): HasMany
     {
         return $this->hasMany(ToolUsage::class);
+    }
+
+    public function hasOperationalHistory(): bool
+    {
+        return $this->materialUsages()->exists()
+            || $this->toolUsages()->exists()
+            || StockIn::where('user_id', $this->id)->exists()
+            || Tool::where('recorded_by_id', $this->id)->exists()
+            || ToolReturnLog::where('reported_by', $this->id)->exists()
+            || MaterialUsage::where('voided_by', $this->id)->exists()
+            || ToolUsage::where('voided_by', $this->id)->exists()
+            || InventoryAdjustment::where('user_id', $this->id)->exists()
+            || MaterialToolRequest::where(function ($query) {
+                $query->where('requester_id', $this->id)
+                    ->orWhere('dispatcher_id', $this->id)
+                    ->orWhere('approver_id', $this->id);
+            })->exists();
     }
 }

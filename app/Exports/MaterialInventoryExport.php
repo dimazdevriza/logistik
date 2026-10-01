@@ -25,14 +25,16 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
 
     public function __construct(
         private string $search = '',
-        private string $filterCategory = ''
+        private string $filterCategory = '',
+        private string $filterWarehouse = ''
     ) {}
 
     public function query()
     {
-        return Material::with(['category', 'supplier'])
+        return Material::with(['category', 'supplier', 'warehouse'])
             ->when($this->search, fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
             ->when($this->filterCategory, fn($q) => $q->where('category_id', $this->filterCategory))
+            ->when($this->filterWarehouse, fn($q) => $q->where('warehouse_id', $this->filterWarehouse))
             ->orderBy('name');
     }
 
@@ -51,6 +53,7 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
                 'Nama Material',
                 'Kategori',
                 'Supplier',
+                'Gudang',
                 'Sisa Stok',
                 'Satuan',
                 'Harga Satuan',
@@ -70,6 +73,7 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
             $material->name,
             $material->category?->name ?? 'Tanpa Kategori',
             $material->supplier?->name ?? '-',
+            $material->warehouse?->name ?? 'Belum ditetapkan',
             // Rule 4: Zero substitution
             (float) ($material->stock ?? 0),
             $material->unit,
@@ -81,9 +85,9 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
     public function columnFormats(): array
     {
         return [
-            'F' => '#,##0.00',
-            'H' => '"Rp "#,##0',
-            'I' => '"Rp "#,##0',
+            'G' => '#,##0.00',
+            'I' => '[$Rp-421] #,##0.00',
+            'J' => '[$Rp-421] #,##0.00',
         ];
     }
 
@@ -113,12 +117,12 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
             ],
         ];
 
-        $sheet->getStyle('A5:I5')->applyFromArray($headerStyle);
+        $sheet->getStyle('A5:J5')->applyFromArray($headerStyle);
         
         // Alignment for data
         $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('F')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle('H:I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('I:J')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
         return [];
     }

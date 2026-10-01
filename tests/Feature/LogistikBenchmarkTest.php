@@ -151,6 +151,7 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('material_id', $material->id)
                 ->set('material_quantity', 5)
                 ->set('usage_date', now()->format('Y-m-d'))
+                ->set('material_notes', 'Benchmark allocation')
                 ->call('saveMaterial');
         });
 
@@ -185,6 +186,7 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('material_id', $material->id)
                 ->set('material_quantity', 10)
                 ->set('usage_date', now()->format('Y-m-d'))
+                ->set('material_notes', 'Benchmark allocation')
                 ->call('saveMaterial');
         }, 5);
 
@@ -244,6 +246,7 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('tool_id', $tool->id)
                 ->set('tool_quantity', 3)
                 ->set('checkout_date', now()->format('Y-m-d'))
+                ->set('tool_notes', 'Benchmark checkout')
                 ->call('saveTool');
         }, 5);
 
@@ -274,6 +277,7 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('tool_id', $tool->id)
                 ->set('tool_quantity', 2)
                 ->set('checkout_date', now()->format('Y-m-d'))
+                ->set('tool_notes', 'Benchmark checkout')
                 ->call('saveTool');
         }, 5);
 
@@ -440,7 +444,7 @@ class LogistikBenchmarkTest extends TestCase
             ->set('restockQuantity', 50)
             ->set('restockUnitPrice', 50000)
             ->set('restockSupplierName', $this->supplier->name)
-            ->set('restockDate', now()->format('Y-m-d'))
+            ->set('restockReceivedAt', now()->format('Y-m-d\\TH:i'))
             ->call('saveRestock');
 
         $material->refresh();
@@ -455,7 +459,7 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('restockQuantity', 50)
                 ->set('restockUnitPrice', 50000)
                 ->set('restockSupplierName', $this->supplier->name)
-                ->set('restockDate', now()->format('Y-m-d'))
+                ->set('restockReceivedAt', now()->format('Y-m-d\\TH:i'))
                 ->call('saveRestock');
         }, 5);
 
@@ -473,11 +477,8 @@ class LogistikBenchmarkTest extends TestCase
             'unit_price'  => 50000,
         ]);
 
-        $result = $this->benchmark('Restock — different price (creates new row)', function () use ($material) {
-            Material::where('name', $material->name)
-                ->where('unit_price', '!=', 50000)
-                ->delete();
-            $material->update(['stock' => 100]);
+        $result = $this->benchmark('Restock — different price (same material, new batch)', function () use ($material) {
+            $material->update(['stock' => 100, 'unit_price' => 50000]);
             StockIn::where('material_id', $material->id)->delete();
 
             return Livewire::test(Materials::class)
@@ -485,20 +486,15 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('restockQuantity', 30)
                 ->set('restockUnitPrice', 65000)
                 ->set('restockSupplierName', $this->supplier->name)
-                ->set('restockDate', now()->format('Y-m-d'))
+                ->set('restockReceivedAt', now()->format('Y-m-d\\TH:i'))
                 ->call('saveRestock');
         }, 5);
 
-        // Original stock unchanged
         $material->refresh();
-        $this->assertEquals(100, $material->stock);
-
-        // New row created with different price
-        $newRow = Material::where('name', $material->name)
-            ->where('unit_price', 65000)
-            ->first();
-        $this->assertNotNull($newRow);
-        $this->assertEquals(30, $newRow->stock);
+        $this->assertEquals(130, $material->stock);
+        $this->assertEquals(65000, $material->unit_price);
+        $this->assertSame(1, Material::where('name', $material->name)->count());
+        $this->assertEquals(65000, StockIn::where('material_id', $material->id)->sole()->unit_price);
     }
 
     // ─────────────────────────────────────────────
@@ -632,6 +628,7 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('tool_id', $tool->id)
                 ->set('tool_quantity', 1)
                 ->set('checkout_date', now()->format('Y-m-d'))
+                ->set('tool_notes', 'Benchmark checkout')
                 ->call('saveTool');
         }, 3);
 

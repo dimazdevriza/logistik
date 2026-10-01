@@ -4,14 +4,16 @@ namespace App\Livewire\Logistik;
 
 use App\Models\Supplier;
 use App\Traits\WithFilterModal;
+use App\Traits\WithTableSorting;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class Suppliers extends Component
 {
-    use WithPagination, WithFilterModal;
+    use WithPagination, WithFilterModal, WithTableSorting;
 
     public $search = '';
+    public $sort = 'name_asc';
     public $showModal = false;
     public $editMode = false;
     public $supplierId;
@@ -124,11 +126,22 @@ class Suppliers extends Component
         $this->resetPage();
     }
 
+    protected function sortableColumns(): array
+    {
+        return [
+            'name' => 'suppliers.name',
+            'contact' => 'suppliers.contact_person',
+            'phone' => 'suppliers.phone',
+            'address' => 'suppliers.address',
+        ];
+    }
+
     public function render()
     {
         $suppliers = Supplier::query()
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%"))
-            ->orderBy('name')
+            ->tap(fn ($query) => $this->applyTableSort($query))
+            ->orderBy('suppliers.id')
             ->paginate(10);
 
         return view('livewire.logistik.suppliers', compact('suppliers'))

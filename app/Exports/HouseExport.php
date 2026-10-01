@@ -16,8 +16,10 @@ class HouseExport implements WithMultipleSheets
     public function sheets(): array
     {
         return [
-            new MaterialUsageExport($this->houseId),
-            new ToolUsageExport($this->houseId),
+            new MaterialUsageExport($this->houseId, 'Material'),
+            new ToolUsageExport($this->houseId, 'Alat'),
+            new HouseVendorServiceExport($this->houseId),
+            new HouseVendorRentalExport($this->houseId),
         ];
     }
 }

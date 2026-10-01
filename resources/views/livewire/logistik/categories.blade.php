@@ -4,7 +4,6 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 text-uppercase mb-2 font-geist small">Pengelolaan Kategori</span>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
                         Kategori <span class="text-success">Inventaris</span>
                     </h1>
@@ -33,7 +32,7 @@
                         <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama kategori..." class="form-control" style="height: 42px;" />
                     </div>
                     <div style="min-width: 160px;">
-                        <select wire:model.live="filterType" class="form-select" style="height: 42px;">
+                        <select id="category-filter-type" aria-label="Filter tipe inventaris" wire:model.live="filterType" class="form-select" style="height: 42px;">
                             <option value="">Semua Tipe</option>
                             <option value="material">Material</option>
                             <option value="tool">Alat Kerja</option>
@@ -56,23 +55,22 @@
         </div>
 
         <!-- Categories Table -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-body-tertiary">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light border-bottom text-uppercase extra-small font-geist tracking-wider text-secondary">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 data-table-card">
+            <div class="table-responsive data-table-scroll management-table-scroll" tabindex="0" role="region" aria-label="Daftar kategori">
+                <table class="table table-hover align-middle mb-0 data-table management-card-table">
+                    <thead class="table-light text-uppercase small font-geist">
                         <tr>
                             <th class="text-center py-3" style="width: 60px;">No.</th>
-                            <th class="py-3">Nama Kategori</th>
-                            <th class="py-3 text-center" style="width: 160px;">Tipe Inventaris</th>
+                            <x-sortable-th field="name" :sort="$sort" class="py-3">Nama Kategori</x-sortable-th>
+                            <x-sortable-th field="type" :sort="$sort" class="py-3 text-center" style="width: 160px;">Tipe Inventaris</x-sortable-th>
                             <th class="text-end py-3 pe-4" style="width: 140px;">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="border-top-0">
+                    <tbody>
                         @forelse ($categories as $category)
                         <tr wire:key="cat-{{ $category->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $category->id }}) }">
-                            <td class="text-center text-secondary small font-mono">{{ ($categories->currentPage() - 1) * $categories->perPage() + $loop->iteration }}</td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2.5">
+                            <td data-label="No." class="text-center text-secondary small font-mono"><span class="management-cell-value">{{ ($categories->currentPage() - 1) * $categories->perPage() + $loop->iteration }}</span></td>
+                            <td data-label="Nama kategori"><span class="management-cell-value"><span class="d-flex align-items-center gap-2.5">
                                     <div class="d-inline-flex align-items-center justify-content-center rounded-3 {{ $category->type === 'material' ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary' }}" style="width: 32px; height: 32px; flex-shrink: 0;">
                                         @if($category->type === 'material')
                                             <svg width="16" height="16" fill="currentColor"><use href="#i-box"/></svg>
@@ -80,28 +78,25 @@
                                             <svg width="16" height="16" fill="currentColor"><use href="#i-wrench"/></svg>
                                         @endif
                                     </div>
-                                    <span class="fw-bold text-body font-outfit fs-6">{{ $category->name }}</span>
-                                </div>
-                            </td>
-                            <td class="text-center">
+                                    <span class="fw-bold text-body font-outfit fs-6 data-cell-truncate" title="{{ $category->name }}">{{ $category->name }}</span>
+                                </span></span></td>
+                            <td data-label="Tipe inventaris" class="text-center"><span class="management-cell-value">
                                 <span class="badge {{ $category->type === 'material' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' }} rounded-pill px-3 py-1.5 font-mono extra-small text-uppercase">
                                     {{ $category->type === 'material' ? 'Material' : 'Alat Kerja' }}
                                 </span>
-                            </td>
-                            <td class="text-end pe-4">
-                                <div class="d-inline-flex align-items-center gap-1">
-                                    <button type="button" wire:click="edit({{ $category->id }})" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center p-2 rounded-3 shadow-xs" title="Edit Kategori">
+                            </span></td>
+                            <td data-label="Aksi" class="text-end pe-4"><span class="management-cell-value"><span class="btn-group btn-group-sm data-row-actions">
+                                    <button type="button" wire:click="edit({{ $category->id }})" class="btn log-row-action log-row-action--edit d-inline-flex align-items-center justify-content-center" title="Edit Kategori" aria-label="Edit kategori {{ $category->name }}">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>
                                     </button>
-                                    <button type="button" wire:click="confirm('delete', {{ $category->id }}, 'Hapus Kategori?', 'Yakin ingin menghapus kategori ini? Seluruh data material dan alat di dalamnya akan tetap ada namun referensi kategori akan hilang.')" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center p-2 rounded-3 shadow-xs" title="Hapus Kategori">
+                                    <button type="button" wire:click="confirm('delete', {{ $category->id }}, 'Hapus Kategori?', 'Yakin ingin menghapus kategori ini? Seluruh data material dan alat di dalamnya akan tetap ada namun referensi kategori akan hilang.')" class="btn log-row-action log-row-action--danger d-inline-flex align-items-center justify-content-center" title="Hapus Kategori" aria-label="Hapus kategori {{ $category->name }}">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
                                     </button>
-                                </div>
-                            </td>
+                                </span></span></td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="text-center py-5 text-secondary">
+                            <td colspan="4" class="management-table-empty text-center py-5 text-secondary">
                                 <div class="d-flex flex-column align-items-center justify-content-center py-3">
                                     <svg width="40" height="40" fill="currentColor" class="text-secondary opacity-50 mb-3" viewBox="0 0 16 16"><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/><path d="M6 5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5z"/></svg>
                                     <div class="fw-bold text-body font-outfit mb-1">Belum Ada Kategori Ditemukan</div>
@@ -126,7 +121,6 @@
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                 <div class="modal-header border-bottom p-4 bg-body-tertiary">
                     <div>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 extra-small text-uppercase mb-1 font-geist">Formulir Kategori</span>
                         <h5 class="modal-title font-outfit fw-bold mb-0 text-body">{{ $editMode ? 'Edit Data Kategori' : 'Tambah Kategori Baru' }}</h5>
                     </div>
                     <button type="button" class="btn-close" wire:click="$set('showModal', false)"></button>
@@ -148,7 +142,7 @@
                 </div>
                 <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 p-3 px-4 d-flex justify-content-end gap-2">
                     <button type="button" class="btn btn-outline-secondary fw-semibold px-4" wire:click="$set('showModal', false)">Batal</button>
-                    <button type="button" class="btn btn-success fw-semibold px-4 shadow-xs" wire:click="save" wire:loading.attr="disabled" wire:target="save">{{ $editMode ? 'Simpan Perubahan' : 'Simpan Kategori' }}</button>
+                    <button type="button" class="btn btn-success fw-semibold px-4 shadow-xs" wire:click="save" wire:loading.attr="disabled" wire:target="save"><span wire:loading.remove wire:target="save">{{ $editMode ? 'Simpan Perubahan' : 'Simpan Kategori' }}</span><span wire:loading wire:target="save">Menyimpan kategori…</span></button>
                 </div>
             </div>
         </div>

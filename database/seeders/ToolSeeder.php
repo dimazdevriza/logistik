@@ -3,12 +3,15 @@
 namespace Database\Seeders;
 
 use App\Models\Tool;
+use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
 
 class ToolSeeder extends Seeder
 {
     public function run(): void
     {
+        $warehouseId = Warehouse::firstOrCreate(['name' => 'Gudang Utama'])->id;
+
         $tools = [
             // Alat Berat (category 10)
             ['category_id' => 10, 'name' => 'Molen Beton', 'code' => 'AB-001', 'condition' => 'baik', 'purchase_price' => 15000000, 'total_qty' => 2, 'available_qty' => 2],
@@ -36,7 +39,7 @@ class ToolSeeder extends Seeder
         ];
 
         foreach ($tools as $index => $tool) {
-            Tool::create($tool);
+            Tool::create($tool + ['warehouse_id' => $warehouseId]);
         }
     }
 }

@@ -19,13 +19,25 @@
                     autofocus
                     autocomplete="email"
                     placeholder="admin@droyal.com"
+                    @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
                 />
-                @error('email') <span class="text-danger extra-small mt-1 d-block">{{ $message }}</span> @enderror
+                @error('email')
+                    <div id="email-error" class="alert alert-danger py-2 px-3 mt-2 mb-0 small" role="alert">
+                        {{ $message }}
+                    </div>
+                @enderror
             </div>
 
             <!-- Password -->
             <div class="mb-3">
-                <label for="password" class="form-label font-semibold small text-body">{{ __('Kata Sandi') }}</label>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label for="password" class="form-label font-semibold small text-body mb-0">{{ __('Kata Sandi') }}</label>
+                    @if (Route::has('password.request'))
+                        <a href="{{ route('password.request') }}" class="small text-success text-decoration-none" wire:navigate>
+                            {{ __('Lupa kata sandi?') }}
+                        </a>
+                    @endif
+                </div>
                 <input
                     id="password"
                     name="password"
