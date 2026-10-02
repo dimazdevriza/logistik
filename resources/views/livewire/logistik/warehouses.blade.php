@@ -6,7 +6,9 @@
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">Daftar <span class="text-success">Gudang</span></h1>
                     <p class="text-secondary mb-0 max-w-xl">Kelola lokasi penyimpanan material dan alat proyek.</p>
                 </div>
-                <button type="button" wire:click="create" class="btn btn-success fw-semibold">+ Tambah Gudang</button>
+                @if (auth()->user()?->role === 'admin')
+                    <button type="button" wire:click="create" class="btn btn-success fw-semibold">+ Tambah Gudang</button>
+                @endif
             </div>
         </div>
 
@@ -20,16 +22,21 @@
             <div class="alert alert-danger" role="alert">{{ $message }}</div>
         @enderror
 
-        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
-            <input type="search" wire:model.live.debounce.300ms="search" class="form-control" placeholder="Cari nama atau alamat gudang..." aria-label="Cari gudang" />
-        </div>
+        <div class="card border shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary standard-table-panel data-table-card">
+            <div class="standard-table-toolbar">
+                <h2 class="h5 fw-bold mb-0 font-outfit">Daftar gudang</h2>
+                <div class="standard-table-toolbar-controls">
+                    <input type="search" wire:model.live.debounce.300ms="search" class="form-control standard-table-toolbar-search" placeholder="Cari nama atau alamat gudang..." aria-label="Cari gudang" />
+                </div>
+            </div>
 
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             @if ($warehouses->isEmpty())
-                <div class="text-center py-5 px-3 text-secondary">{{ trim($search) !== '' ? 'Tidak ada gudang yang cocok dengan pencarian.' : 'Belum ada gudang. Tambahkan gudang pertama untuk menyimpan inventaris.' }}</div>
+                <div class="text-center py-5 px-3 text-secondary">
+                    {{ trim($search) !== '' ? 'Tidak ada gudang yang cocok dengan pencarian.' : (auth()->user()?->role === 'admin' ? 'Belum ada gudang. Tambahkan gudang pertama untuk menyimpan inventaris.' : 'Belum ada gudang terdaftar. Hubungi Admin untuk menambahkan gudang.') }}
+                </div>
             @else
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+            <div class="table-responsive standard-table-frame">
+                <table class="table table-hover align-middle mb-0 standard-data-table">
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
                             <th class="text-center" style="width: 60px;">No.</th>
@@ -70,7 +77,7 @@
         <div class="mt-3">{{ $warehouses->links('vendor.livewire.bootstrap') }}</div>
     </div>
 
-    @if ($showModal)
+    @if ($showModal && ($editMode || auth()->user()?->role === 'admin'))
         @teleport('body')
             <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog" wire:keydown.escape.window="$set('showModal', false)">
                 <div class="modal-dialog modal-dialog-centered modal-md">

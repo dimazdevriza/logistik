@@ -15,7 +15,7 @@
                     </p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-body border px-3 py-2 text-body font-mono">Rute: /admin/playground</span>
+                    <span class="badge bg-body border px-3 py-2 text-body font-mono">Rute: /playground</span>
                 </div>
             </div>
         </div>

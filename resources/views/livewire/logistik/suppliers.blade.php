@@ -24,12 +24,11 @@
             </div>
         @endif
 
-        <!-- Search Controls -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
-            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
-                <div class="position-relative w-100 max-w-md">
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama supplier, kontak, atau telepon..." class="form-control ps-4" style="height: 42px;" />
-                </div>
+        <div class="card border shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary standard-table-panel">
+            <div class="standard-table-toolbar">
+                <h2 class="h5 fw-bold mb-0 font-outfit">Daftar supplier</h2>
+                <div class="standard-table-toolbar-controls">
+                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Cari nama supplier, kontak, atau telepon..." aria-label="Cari nama supplier, kontak, atau telepon" class="form-control standard-table-toolbar-search" />
                 @if ($search)
                     <button 
                         type="button" 
@@ -42,13 +41,11 @@
                         <span>Reset</span>
                     </button>
                 @endif
+                </div>
             </div>
-        </div>
 
-        <!-- Suppliers Table -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 data-table-card">
-            <div class="table-responsive data-table-scroll management-table-scroll" tabindex="0" role="region" aria-label="Daftar supplier">
-                <table class="table table-hover align-middle mb-0 data-table management-card-table">
+            <div class="table-responsive data-table-scroll management-table-scroll standard-table-frame" tabindex="0" role="region" aria-label="Daftar supplier">
+                <table class="table table-hover align-middle mb-0 data-table management-card-table standard-data-table">
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
                             <th class="text-center py-3" style="width: 60px;">No.</th>

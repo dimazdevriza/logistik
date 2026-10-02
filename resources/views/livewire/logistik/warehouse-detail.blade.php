@@ -20,7 +20,7 @@
         </div>
 
         <div class="row g-4 mb-4">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="card border-0 border-start border-4 border-success shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
                     <div class="small fw-bold text-secondary text-uppercase tracking-wider mb-2">Material di gudang</div>
                     <div class="d-flex align-items-end gap-2">
@@ -29,7 +29,14 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <div class="card border-0 border-start border-4 border-warning shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
+                    <div class="small fw-bold text-secondary text-uppercase tracking-wider mb-2">Total biaya material</div>
+                    <h2 class="fs-5 fw-black text-warning mb-1 font-mono text-nowrap">Rp {{ number_format($materialValue, 0, ',', '.') }}</h2>
+                    <span class="text-secondary small">Nilai stok material saat ini</span>
+                </div>
+            </div>
+            <div class="col-md-4">
                 <div class="card border-0 border-start border-4 border-primary shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
                     <div class="small fw-bold text-secondary text-uppercase tracking-wider mb-2">Alat tersimpan</div>
                     <div class="d-flex align-items-end gap-2">
@@ -43,46 +50,50 @@
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary data-table-card">
             <div wire:loading.delay class="data-table-status" role="status">Memuat inventaris gudang...</div>
             <div wire:offline class="data-table-status is-error" role="alert">Koneksi terputus. Data mungkin tidak terbaru.</div>
-            <ul class="nav nav-tabs mb-4">
-                <li class="nav-item">
-                    <button type="button" class="nav-link font-semibold" :class="$wire.activeTab === 'material' ? 'active text-success border-success' : 'text-secondary'" wire:click="$set('activeTab', 'material')">
-                        Material ({{ $materialCount }})
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button type="button" class="nav-link font-semibold" :class="$wire.activeTab === 'tool' ? 'active text-success border-success' : 'text-secondary'" wire:click="$set('activeTab', 'tool')">
-                        Alat ({{ $toolCount }})
-                    </button>
-                </li>
-            </ul>
+            <div class="house-log-period-tabs" role="group" aria-label="Inventaris gudang">
+                <button type="button" class="house-log-period-tab {{ $activeTab === 'material' ? 'active' : '' }}" aria-pressed="{{ $activeTab === 'material' ? 'true' : 'false' }}" wire:click="$set('activeTab', 'material')">
+                    <span>Material</span>
+                    <span class="house-log-period-count">{{ $materialCount }}</span>
+                </button>
+                <button type="button" class="house-log-period-tab {{ $activeTab === 'tool' ? 'active' : '' }}" aria-pressed="{{ $activeTab === 'tool' ? 'true' : 'false' }}" wire:click="$set('activeTab', 'tool')">
+                    <span>Alat</span>
+                    <span class="house-log-period-count">{{ $toolCount }}</span>
+                </button>
+            </div>
 
             @if ($activeTab === 'material')
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                    <h5 class="fw-bold mb-0 font-outfit">Daftar material gudang</h5>
+                    <div class="flex-grow-1" style="max-width: 340px;">
+                        <input type="search" wire:model.live.debounce.300ms="search" class="form-control" placeholder="Cari material, kode, atau kategori..." aria-label="Cari material berdasarkan nama, kode, atau kategori" autocomplete="off">
+                    </div>
+                </div>
                 @if ($materials->isEmpty())
-                    <div class="text-center py-5 text-body-secondary">Belum ada material di gudang ini.</div>
+                    <div class="text-center py-5 text-body-secondary">{{ trim($search) !== '' ? 'Tidak ada material yang cocok dengan pencarian.' : 'Belum ada material di gudang ini.' }}</div>
                 @else
-                <div class="table-responsive data-table-scroll" tabindex="0" role="region" aria-label="Material di {{ $warehouse->name }}">
-                    <table class="table table-hover align-middle mb-0 data-table data-table--detail data-table--sticky-identity">
+                <div class="table-responsive mb-3 house-detail-log-table-scroll standard-table-frame" tabindex="0" role="region" aria-label="Material di {{ $warehouse->name }}">
+                    <table class="table table-hover align-middle mb-0 house-detail-material-table standard-data-table">
                         <thead class="table-light text-uppercase small font-geist">
                             <tr>
-                                <th class="text-center" style="width: 60px;">No.</th>
-                                <x-sortable-th field="code" :sort="$sort" class="data-key-code">Kode</x-sortable-th>
-                                <x-sortable-th field="name" :sort="$sort" class="data-key-name">Material</x-sortable-th>
+                                <th class="text-center" style="width: 50px;">No.</th>
+                                <x-sortable-th field="code" :sort="$sort">Kode</x-sortable-th>
+                                <x-sortable-th field="name" :sort="$sort">Material</x-sortable-th>
                                 <x-sortable-th field="category" :sort="$sort">Kategori</x-sortable-th>
-                                <x-sortable-th field="stock" :sort="$sort" class="text-end data-number">Stok</x-sortable-th>
+                                <x-sortable-th field="stock" :sort="$sort" class="text-end">Stok</x-sortable-th>
                                 <x-sortable-th field="unit" :sort="$sort">Satuan</x-sortable-th>
-                                <x-sortable-th field="unit_price" :sort="$sort" class="text-end data-number">Harga Satuan</x-sortable-th>
+                                <x-sortable-th field="unit_price" :sort="$sort" class="text-end">Harga Satuan</x-sortable-th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($materials as $material)
                                 <tr wire:key="warehouse-material-{{ $material->id }}">
-                                    <td class="text-center text-secondary small">{{ ($materials->currentPage() - 1) * $materials->perPage() + $loop->iteration }}</td>
-                                    <td class="font-mono text-secondary small data-key-code" title="{{ $material->code ?: 'Kode tidak tersedia' }}">{{ $material->code ?: '-' }}</td>
-                                    <td class="fw-bold text-body data-key-name" title="{{ $material->name }}">{{ $material->name }}</td>
-                                    <td class="text-secondary small data-cell-truncate" title="{{ $material->category?->name ?: 'Kategori tidak tersedia' }}">{{ $material->category?->name ?: '-' }}</td>
-                                    <td class="text-end fw-semibold data-number">{{ rtrim(rtrim(number_format((float) $material->stock, 2, ',', '.'), '0'), ',') }}</td>
-                                    <td class="text-secondary small">{{ $material->unit }}</td>
-                                    <td class="text-end font-mono text-secondary data-number">Rp {{ number_format($material->unit_price, 0, ',', '.') }}</td>
+                                    <td class="text-center text-secondary small data-mobile-secondary">{{ ($materials->currentPage() - 1) * $materials->perPage() + $loop->iteration }}</td>
+                                    <td data-label="Kode" class="font-mono text-secondary small data-key-code" title="{{ $material->code ?: 'Kode tidak tersedia' }}"><span class="house-detail-cell-value">{{ $material->code ?: '-' }}</span></td>
+                                    <td data-label="Material" class="fw-bold text-body data-key-name" title="{{ $material->name }}"><span class="house-detail-cell-value">{{ $material->name }}</span></td>
+                                    <td data-label="Kategori" class="text-secondary small data-cell-truncate" title="{{ $material->category?->name ?: 'Kategori tidak tersedia' }}"><span class="house-detail-cell-value">{{ $material->category?->name ?: '-' }}</span></td>
+                                    <td data-label="Stok" class="text-end fw-semibold data-number"><span class="house-detail-cell-value">{{ rtrim(rtrim(number_format((float) $material->stock, 2, ',', '.'), '0'), ',') }}</span></td>
+                                    <td data-label="Satuan" class="text-secondary small"><span class="house-detail-cell-value">{{ $material->unit }}</span></td>
+                                    <td data-label="Harga Satuan" class="text-end font-mono text-secondary data-number"><span class="house-detail-cell-value">Rp {{ number_format($material->unit_price, 0, ',', '.') }}</span></td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -93,32 +104,38 @@
             @endif
 
             @if ($activeTab === 'tool')
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                    <h5 class="fw-bold mb-0 font-outfit">Daftar alat gudang</h5>
+                    <div class="flex-grow-1" style="max-width: 340px;">
+                        <input type="search" wire:model.live.debounce.300ms="search" class="form-control" placeholder="Cari alat, kode, atau kategori..." aria-label="Cari alat berdasarkan nama, kode, kategori, atau kondisi" autocomplete="off">
+                    </div>
+                </div>
                 @if ($tools->isEmpty())
-                    <div class="text-center py-5 text-body-secondary">Belum ada alat di gudang ini.</div>
+                    <div class="text-center py-5 text-body-secondary">{{ trim($search) !== '' ? 'Tidak ada alat yang cocok dengan pencarian.' : 'Belum ada alat di gudang ini.' }}</div>
                 @else
-                <div class="table-responsive data-table-scroll" tabindex="0" role="region" aria-label="Alat di {{ $warehouse->name }}">
-                    <table class="table table-hover align-middle mb-0 data-table data-table--detail data-table--sticky-identity">
+                <div class="table-responsive mb-3 house-detail-log-table-scroll standard-table-frame" tabindex="0" role="region" aria-label="Alat di {{ $warehouse->name }}">
+                    <table class="table table-hover align-middle mb-0 house-detail-tool-table standard-data-table">
                         <thead class="table-light text-uppercase small font-geist">
                             <tr>
-                                <th class="text-center" style="width: 60px;">No.</th>
-                                <x-sortable-th field="code" :sort="$sort" class="data-key-code">Kode</x-sortable-th>
-                                <x-sortable-th field="name" :sort="$sort" class="data-key-name">Alat</x-sortable-th>
+                                <th class="text-center" style="width: 50px;">No.</th>
+                                <x-sortable-th field="code" :sort="$sort">Kode</x-sortable-th>
+                                <x-sortable-th field="name" :sort="$sort">Alat</x-sortable-th>
                                 <x-sortable-th field="category" :sort="$sort">Kategori</x-sortable-th>
                                 <x-sortable-th field="condition" :sort="$sort">Kondisi</x-sortable-th>
-                                <x-sortable-th field="available" :sort="$sort" class="text-end data-number">Tersedia</x-sortable-th>
-                                <x-sortable-th field="total" :sort="$sort" class="text-end data-number">Total</x-sortable-th>
+                                <x-sortable-th field="available" :sort="$sort" class="text-end">Tersedia</x-sortable-th>
+                                <x-sortable-th field="total" :sort="$sort" class="text-end">Total</x-sortable-th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($tools as $tool)
                                 <tr wire:key="warehouse-tool-{{ $tool->id }}">
-                                    <td class="text-center text-secondary small">{{ ($tools->currentPage() - 1) * $tools->perPage() + $loop->iteration }}</td>
-                                    <td class="font-mono text-secondary small data-key-code" title="{{ $tool->code }}">{{ $tool->code }}</td>
-                                    <td class="fw-bold text-body data-key-name" title="{{ $tool->name }}">{{ $tool->name }}</td>
-                                    <td class="text-secondary small data-cell-truncate" title="{{ $tool->category?->name ?: 'Kategori tidak tersedia' }}">{{ $tool->category?->name ?: '-' }}</td>
-                                    <td><span class="badge bg-secondary-subtle text-secondary">{{ ucfirst($tool->condition) }}</span></td>
-                                    <td class="text-end fw-semibold data-number">{{ $tool->warehouse_available_qty }}</td>
-                                    <td class="text-end text-secondary data-number">{{ $tool->warehouse_available_qty + $tool->warehouse_broken_qty }}</td>
+                                    <td class="text-center text-secondary small data-mobile-secondary">{{ ($tools->currentPage() - 1) * $tools->perPage() + $loop->iteration }}</td>
+                                    <td data-label="Kode" class="font-mono text-secondary small data-key-code" title="{{ $tool->code }}"><span class="house-detail-cell-value">{{ $tool->code }}</span></td>
+                                    <td data-label="Alat" class="fw-bold text-body data-key-name" title="{{ $tool->name }}"><span class="house-detail-cell-value">{{ $tool->name }}</span></td>
+                                    <td data-label="Kategori" class="text-secondary small data-cell-truncate" title="{{ $tool->category?->name ?: 'Kategori tidak tersedia' }}"><span class="house-detail-cell-value">{{ $tool->category?->name ?: '-' }}</span></td>
+                                    <td data-label="Kondisi"><span class="house-detail-cell-value"><span class="badge bg-secondary-subtle text-secondary">{{ ucfirst($tool->condition) }}</span></span></td>
+                                    <td data-label="Tersedia" class="text-end fw-semibold data-number"><span class="house-detail-cell-value">{{ $tool->warehouse_available_qty }}</span></td>
+                                    <td data-label="Total" class="text-end text-secondary data-number"><span class="house-detail-cell-value">{{ $tool->warehouse_available_qty + $tool->warehouse_broken_qty }}</span></td>
                                 </tr>
                             @endforeach
                         </tbody>

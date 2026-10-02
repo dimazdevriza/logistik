@@ -46,7 +46,7 @@ class MaterialLogSupplierTest extends TestCase
             try {
                 fwrite($file, Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX));
                 $sheet = IOFactory::load(stream_get_meta_data($file)['uri'])->getActiveSheet();
-                $totalColumn = $type === 'keluar' ? 'L' : 'J';
+                $totalColumn = $type === 'keluar' ? 'M' : 'J';
                 $this->assertEquals($count * 200, $sheet->getCell($totalColumn.$sheet->getHighestRow())->getValue());
             } finally {
                 fclose($file);

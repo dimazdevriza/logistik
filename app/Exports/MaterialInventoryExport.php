@@ -11,13 +11,18 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithDrawings;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Shared\Drawing as ColumnDrawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
-class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, ShouldAutoSize
+class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, ShouldAutoSize, WithTitle, WithDrawings
 {
     use Exportable;
 
@@ -43,10 +48,11 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
         $categoryName = $this->filterCategory ? (Category::find($this->filterCategory)?->name ?? 'Semua') : 'Semua';
         
         return [
+            [' '],
             ['Laporan Inventaris Material - D\'Royal Village'],
             ['Diekspor pada: ' . now()->format('d F Y H:i')],
             ['Filter aktif: Kategori = ' . $categoryName . ($this->search ? ' | Cari = ' . $this->search : '')],
-            [], // Empty row
+            [],
             [
                 'No',
                 'Kode',
@@ -60,6 +66,24 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
                 'Total Nilai Sisa Stok',
             ]
         ];
+    }
+
+    public function title(): string
+    {
+        return 'Material';
+    }
+
+    public function drawings(): array
+    {
+        $drawing = new Drawing();
+        $drawing->setName('D\'Royal Village');
+        $drawing->setDescription('D\'Royal Village logo');
+        $drawing->setPath(public_path('images/logo-light.png'));
+        $drawing->setHeight(48);
+        $drawing->setCoordinates('A1');
+        $drawing->setOffsetY(4);
+
+        return [$drawing];
     }
 
     public function map($material): array
@@ -93,9 +117,14 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
 
     public function styles(Worksheet $sheet)
     {
-        // Styling metadata rows
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A2:A3')->getFont()->setItalic(true)->setSize(10);
+        $sheet->mergeCells('A1:J1');
+        $sheet->mergeCells('A2:J2');
+        $sheet->mergeCells('A3:J3');
+        $sheet->mergeCells('A4:J4');
+        $sheet->getRowDimension(1)->setRowHeight(52);
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
+        $sheet->getStyle('A1:J4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Header Styling (Rule 2: Dark Slate Grey #334155)
         $headerStyle = [
@@ -117,7 +146,28 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
             ],
         ];
 
-        $sheet->getStyle('A5:J5')->applyFromArray($headerStyle);
+        $sheet->getStyle('A6:J6')->applyFromArray($headerStyle);
+
+        $sheet->calculateColumnWidths();
+        $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
+        $columnWidths = [];
+        $totalWidth = 0;
+        for ($column = 1; $column <= 10; $column++) {
+            $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
+            $columnWidths[] = $width;
+            $totalWidth += $width;
+        }
+
+        $offset = max(0, (int) (($totalWidth - $sheet->getDrawingCollection()[0]->getWidth()) / 2));
+        foreach ($columnWidths as $index => $width) {
+            if ($offset < $width) {
+                $sheet->getDrawingCollection()[0]
+                    ->setCoordinates(Coordinate::stringFromColumnIndex($index + 1) . '1')
+                    ->setOffsetX($offset);
+                break;
+            }
+            $offset -= $width;
+        }
         
         // Alignment for data
         $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);

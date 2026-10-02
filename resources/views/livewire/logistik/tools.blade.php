@@ -80,13 +80,11 @@
             </div>
         </div>
 
-        <!-- Search & Filter Controls -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
-            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
-                <div class="w-100 max-w-sm">
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama atau kode alat..." class="form-control" />
-                </div>
-                <div class="d-flex align-items-center gap-2">
+        <div class="card border shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary standard-table-panel data-table-card">
+            <div class="standard-table-toolbar">
+                <h2 class="h5 fw-bold mb-0 font-outfit">Daftar alat</h2>
+                <div class="standard-table-toolbar-controls">
+                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Cari nama atau kode alat..." aria-label="Cari nama atau kode alat" class="form-control standard-table-toolbar-search" />
                     <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-secondary">Kategori</label>
@@ -135,14 +133,11 @@
                 </x-filter-modal>
                 </div>
             </div>
-        </div>
 
-        <!-- Tools Table -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 data-table-card">
             <div wire:loading.delay class="data-table-status" role="status">Memuat alat...</div>
             <div wire:offline class="data-table-status is-error" role="alert">Koneksi terputus. Data mungkin tidak terbaru.</div>
-            <div class="table-responsive data-table-scroll" tabindex="0" role="region" aria-label="Daftar alat">
-                <table class="table table-hover align-middle mb-0 data-table data-table--inventory data-table--sticky-identity">
+            <div class="table-responsive data-table-scroll standard-table-frame" tabindex="0" role="region" aria-label="Daftar alat">
+                <table class="table table-hover align-middle mb-0 data-table data-table--inventory data-table--sticky-identity standard-data-table">
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
                             <th class="text-center data-mobile-secondary" style="width: 50px;">No.</th>

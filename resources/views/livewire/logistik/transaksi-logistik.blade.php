@@ -21,11 +21,25 @@
         materials: @js($materials->keyBy('id')->map(fn($m) => ['id' => $m->id, 'name' => $m->name, 'code' => $m->code, 'unit' => $m->unit, 'stock' => $m->stock])),
         materialBatches: @entangle('materialBatchMap').live,
         materialSourceId: @entangle('material_batch_id').live,
-        tools: @js($tools->keyBy('id')->map(fn($t) => ['id' => $t->id, 'name' => $t->name, 'available_qty' => $t->available_qty, 'code' => $t->code, 'warehouse' => $t->warehouse?->name ?? 'Belum ada gudang'])),
+        tools: @js($tools->keyBy('id')->map(fn($t) => [
+            'id' => $t->id,
+            'name' => $t->name,
+            'available_qty' => $t->available_qty,
+            'code' => $t->code,
+            'warehouseBalances' => $t->warehouseBalances->map(fn($balance) => [
+                'warehouseId' => (int) $balance->warehouse_id,
+                'name' => $balance->warehouse?->name ?? 'Gudang tidak tersedia',
+                'availableQty' => (int) $balance->allocation_available_qty,
+            ])->values(),
+        ])),
         get houseCount() { return $wire.house_ids.length },
         get mat() { return this.materials[$wire.material_id] ?? null },
         get matBatch() { return this.materialBatches[this.materialSourceId] ?? null },
         get tool() { return this.tools[$wire.tool_id] ?? null },
+        get toolWarehouseBalance() {
+            return this.tool?.warehouseBalances.find(balance => balance.warehouseId === Number($wire.tool_warehouse_id)) ?? null
+        },
+        get toolAvailableAtWarehouse() { return this.toolWarehouseBalance?.availableQty ?? 0 },
         get matQty() { return parseFloat($wire.material_quantity) || 0 },
         get toolQty() { return parseInt($wire.tool_quantity) || 0 },
         get matReady() { return this.houseCount > 0 && this.mat && this.matBatch && this.matQty > 0 },
@@ -33,7 +47,7 @@
         get totalQty() { return this.matQty * this.houseCount },
         get totalCost() { return this.matBatch ? this.totalQty * parseFloat(this.matBatch.unit_price) : 0 },
         get totalTools() { return this.toolQty * this.houseCount },
-        get toolShortfall() { return this.tool ? this.tool.available_qty - this.totalTools : 0 },
+        get toolShortfall() { return this.tool ? this.toolAvailableAtWarehouse - this.totalTools : 0 },
         get returnCount() {
             return Object.values($wire.returnSelections ?? {}).filter(s => s.selected).length
         },
@@ -655,7 +669,7 @@
                         <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
                             <label for="transaction-tool" class="form-label fw-semibold mb-0">Alat kerja</label>
                             <span x-show="tool" class="extra-small font-mono text-secondary">
-                                Tersedia: <strong class="text-body" x-text="tool ? tool.available_qty + ' unit' : ''"></strong>
+                                Tersedia di gudang asal: <strong class="text-body" x-text="tool && toolWarehouseBalance ? toolAvailableAtWarehouse + ' unit' : ''"></strong>
                             </span>
                         </div>
                         <div class="position-relative" @click.outside="toolPickerOpen = false">
@@ -706,8 +720,8 @@
                                                 <span class="extra-small font-mono opacity-75 flex-shrink-0">{{ $t->code }}</span>
                                             </div>
                                             <div class="d-flex align-items-center justify-content-between extra-small opacity-75 font-mono mt-0.5">
-                                                <span>{{ $t->warehouse?->name ?? 'Belum ada gudang' }}</span>
-                                                <span>sisa: {{ $t->available_qty }}</span>
+                                                <span>{{ $t->warehouseBalances->count() }} gudang</span>
+                                                <span>Total tersedia: {{ $t->available_qty }} unit</span>
                                             </div>
                                         </button>
                                     @empty
@@ -768,8 +782,8 @@
                     <div class="col-12">
                         <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
                             <label for="tool-quantity" class="form-label fw-semibold mb-0">Jumlah / rumah</label>
-                            <span x-show="tool" class="extra-small font-mono text-secondary" :class="tool && tool.available_qty < totalTools ? 'text-danger fw-bold' : ''">
-                                Maks: <span x-text="tool ? (houseCount ? Math.floor(tool.available_qty / houseCount) : tool.available_qty) : 0"></span>
+                            <span x-show="tool" class="extra-small font-mono text-secondary" :class="tool && toolAvailableAtWarehouse < totalTools ? 'text-danger fw-bold' : ''">
+                                Maks: <span x-text="tool ? (houseCount ? Math.floor(toolAvailableAtWarehouse / houseCount) : toolAvailableAtWarehouse) : 0"></span>
                             </span>
                         </div>
                         <div class="input-group">
@@ -838,7 +852,7 @@
 
                 </div>
 
-                <div x-show="toolShortfall < 0" x-cloak class="alert alert-danger py-2 small fw-semibold mt-3 mb-0">
+                <div x-show="tool && toolShortfall < 0" x-cloak class="alert alert-danger py-2 small fw-semibold mt-3 mb-0">
                     Jumlah melebihi stok tersedia sebanyak <span x-text="Math.abs(toolShortfall)"></span> unit.
                 </div>
             </div>
@@ -1026,11 +1040,11 @@
                         </div>
                         <div x-show.important="activeTab === 'allocation' && allocationType === 'tool' && tool" class="d-flex align-items-center justify-content-between mb-1 text-secondary">
                                 <span>Gudang asal</span>
-                                <span class="text-body fw-semibold text-end ms-2" x-text="tool ? tool.warehouse : ''"></span>
+                                <span class="text-body fw-semibold text-end ms-2" x-text="toolWarehouseBalance ? toolWarehouseBalance.name : ''"></span>
                         </div>
                         <div x-show.important="activeTab === 'allocation' && allocationType === 'tool' && tool" class="d-flex align-items-center justify-content-between text-secondary">
                                 <span>Sisa di gudang</span>
-                                <span :class="tool && toolShortfall < 0 ? 'text-danger fw-bold' : 'text-success fw-bold'" x-text="tool ? (tool.available_qty - totalTools) + ' unit' : ''"></span>
+                                <span :class="tool && toolShortfall < 0 ? 'text-danger fw-bold' : 'text-success fw-bold'" x-text="tool && toolWarehouseBalance ? toolShortfall + ' unit' : ''"></span>
                         </div>
                     </div>
 

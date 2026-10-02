@@ -38,6 +38,8 @@ class Warehouses extends Component
 
     public function create(): void
     {
+        abort_unless(auth()->user()?->role === 'admin', 403);
+
         $this->resetForm();
         $this->showModal = true;
     }
@@ -54,8 +56,11 @@ class Warehouses extends Component
 
     public function save(): void
     {
-        $data = $this->validate();
+        if (! $this->editMode) {
+            abort_unless(auth()->user()?->role === 'admin', 403, 'Hanya Admin yang dapat menambahkan gudang.');
+        }
 
+        $data = $this->validate();
         if ($this->editMode) {
             Warehouse::findOrFail($this->warehouseId)->update($data);
             session()->flash('success', 'Gudang berhasil diperbarui.');

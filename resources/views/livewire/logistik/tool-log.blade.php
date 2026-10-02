@@ -63,13 +63,15 @@
         @error('void')
             <div class="alert alert-danger" role="alert">{{ $message }}</div>
         @enderror
-        <!-- Search & Filter Controls -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
-            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
-                <div class="w-100 max-w-sm">
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari alat / kode masuk / pengiriman..." aria-label="Cari alat, kode masuk, atau pengiriman" class="form-control" />
-                </div>
-                <div class="d-flex align-items-center gap-2">
+        @php
+            $monthNames = [1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL', 5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS', 9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER'];
+        @endphp
+
+        <div class="card border shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary standard-table-panel data-table-card">
+            <div class="standard-table-toolbar">
+                <h2 class="h5 fw-bold mb-0 font-outfit">Riwayat alat</h2>
+                <div class="standard-table-toolbar-controls">
+                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Cari alat / kode masuk / pengiriman..." aria-label="Cari alat, kode masuk, atau pengiriman" class="form-control standard-table-toolbar-search" />
                     <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase text-secondary">Status Peminjaman</label>
@@ -91,17 +93,11 @@
                     </x-filter-modal>
                 </div>
             </div>
-        </div>
-
-        @php
-            $monthNames = [1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL', 5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS', 9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER'];
-        @endphp
 
         <!-- Tool Log Table -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 data-table-card">
             <div wire:loading.delay class="data-table-status" role="status">Memuat catatan alat...</div>
             <div wire:offline class="data-table-status is-error" role="alert">Koneksi terputus. Data mungkin tidak terbaru.</div>
-            <div class="table-responsive data-table-scroll tool-log-table-scroll" tabindex="0" role="region" aria-label="Catatan alat">
+            <div class="table-responsive data-table-scroll standard-table-frame tool-log-table-scroll" tabindex="0" role="region" aria-label="Catatan alat">
                 <table class="table table-hover table-striped align-middle mb-0 excel-log-table data-table data-table--compact data-table--sticky-history tool-log-table">
                     <colgroup>
                         <col style="width: 220px"><col style="width: 120px"><col style="width: 75px"><col style="width: 130px">

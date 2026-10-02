@@ -2,25 +2,31 @@
 
 namespace App\Exports;
 
+use App\Models\House;
 use App\Models\MaterialUsage;
 use App\Models\StockIn;
+use App\Models\Supplier;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Shared\Drawing as ColumnDrawing;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFormatting, WithEvents, WithHeadings, WithMapping, WithStyles
+class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFormatting, WithDrawings, WithEvents, WithHeadings, WithMapping, WithStyles
 {
     use Exportable;
 
@@ -91,6 +97,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 'material_usages.unit_price_at_usage as unit_price',
                 'material_usages.total_cost',
                 'users.name as user_name',
+                'material_usages.taken_by as pengambil',
                 'material_usages.created_at as created_at',
                 'material_usages.transaction_code as event_code'
             )
@@ -120,6 +127,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 'stock_ins.unit_price',
                 'stock_ins.total_cost',
                 DB::raw("COALESCE(users.name, 'Tidak tercatat') as user_name"),
+                DB::raw("'-' as pengambil"),
                 'stock_ins.created_at as created_at',
                 'stock_ins.entry_code as event_code'
             )
@@ -149,25 +157,31 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
 
     public function headings(): array
     {
-        if ($this->filterType === 'keluar') {
+        if (in_array($this->filterType, ['masuk', 'keluar'], true)) {
+            $isOutgoing = $this->filterType === 'keluar';
+            $typeLabel = $isOutgoing ? 'Barang Keluar' : 'Barang Masuk';
+            $filterLabel = $isOutgoing
+                ? 'Rumah = '.(House::find($this->filterHouse)?->name ?? 'Semua')
+                : 'Supplier = '.(Supplier::find($this->filterSupplier)?->name ?? 'Semua');
+            $columnHeadings = $isOutgoing
+                ? [
+                    'Tanggal', 'Bulan', 'Tahun', 'Pencatat', 'Pengambil', 'Blok Rumah',
+                    'Keterangan Pekerjaan', 'Kode Barang', 'Nama Barang', 'Volume',
+                    'Satuan', 'Harga Satuan', 'Jumlah', 'Toko/Supplier',
+                ]
+                : [
+                    'No', 'Tanggal', 'Tipe', 'Kode Barang', 'Nama Material',
+                    'Satuan', 'Supplier', 'Jumlah', 'Harga Satuan',
+                    'Total Biaya', 'Pencatat',
+                ];
+
             return [
-                [
-                    'TANGGAL',
-                    'BULAN',
-                    'TAHUN',
-                    'PENANGGUNG JAWAB',
-                    'BLOK RUMAH',
-                    'KETERANGAN PEKERJAAN',
-                    'KODE BARANG',
-                    'NAMA BARANG',
-                    'VOLUME',
-                    'SATUAN',
-                    'HARGA SATUAN',
-                    'JUMLAH',
-                    'TOKO/SUPPLIER',
-                    'KODE PENGIRIMAN / TRANSAKSI',
-                    'DICATAT PADA',
-                ],
+                [' '],
+                ["Laporan Catatan Riwayat {$typeLabel} - D'Royal Village"],
+                ['Diekspor pada: '.now()->format('d F Y H:i')],
+                ['Filter aktif: Tipe = '.$typeLabel.' | '.$filterLabel.($this->search ? ' | Cari = '.$this->search : '')],
+                [],
+                $columnHeadings,
             ];
         }
 
@@ -186,11 +200,28 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 'Jumlah',
                 'Harga Satuan',
                 'Total Biaya',
-                'Penanggung Jawab',
+                'Pencatat',
                 'Kode Penerimaan / Transaksi',
                 'Dicatat pada',
             ],
         ];
+    }
+
+    public function drawings(): array
+    {
+        if (! in_array($this->filterType, ['masuk', 'keluar'], true)) {
+            return [];
+        }
+
+        $drawing = new Drawing();
+        $drawing->setName("D'Royal Village");
+        $drawing->setDescription("D'Royal Village logo");
+        $drawing->setPath(public_path('images/logo-light.png'));
+        $drawing->setHeight(48);
+        $drawing->setCoordinates('A1');
+        $drawing->setOffsetY(4);
+
+        return [$drawing];
     }
 
     public function map($record): array
@@ -209,6 +240,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 $monthNames[$dt->month] ?? strtoupper($dt->format('F')),
                 $dt->year,
                 $record->user_name,
+                $record->pengambil ?? '-',
                 $record->blok_rumah ?? '-',
                 $record->keterangan_pekerjaan ?? '-',
                 $record->material_code ?? '-',
@@ -218,14 +250,12 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 (float) ($record->unit_price ?? 0),
                 (float) ($record->total_cost ?? 0),
                 $record->supplier_name ?? '-',
-                $record->event_code ?? '-',
-                $record->created_at ? Carbon::parse($record->created_at)->format('d/m/Y H:i') : '-',
             ];
         }
 
         $this->rowNumber++;
 
-        return [
+        $row = [
             $this->rowNumber,
             $dt->format('d/m/Y'),
             match ($record->type) {
@@ -237,11 +267,19 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
             $record->material_code ?? '-',
             $record->material_name,
             $record->material_unit,
-            $record->reference,
+            $this->filterType === 'masuk' ? ($record->supplier_name ?? '-') : $record->reference,
             (float) ($record->quantity ?? 0),
             (float) ($record->unit_price ?? 0),
             (float) ($record->total_cost ?? 0),
             $record->user_name,
+        ];
+
+        if ($this->filterType === 'masuk') {
+            return $row;
+        }
+
+        return [
+            ...$row,
             $record->event_code ?? '-',
             $record->created_at ? Carbon::parse($record->created_at)->format('d/m/Y H:i') : '-',
         ];
@@ -252,9 +290,9 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
         if ($this->filterType === 'keluar') {
             return [
                 'A' => '@',
-                'I' => '#,##0.00',
-                'K' => '[$Rp-421] #,##0.00',
+                'J' => '#,##0.00',
                 'L' => '[$Rp-421] #,##0.00',
+                'M' => '[$Rp-421] #,##0.00',
             ];
         }
 
@@ -267,22 +305,30 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
 
     public function styles(Worksheet $sheet)
     {
-        if ($this->filterType === 'keluar') {
-            // Header Styling (Company Style Soft Steel Blue #8EAADB or #6C8EBF)
+        if (in_array($this->filterType, ['masuk', 'keluar'], true)) {
+            $lastColumn = $this->filterType === 'masuk' ? 'K' : 'N';
+            $columnCount = $this->filterType === 'masuk' ? 11 : 14;
+            $sheet->mergeCells("A1:{$lastColumn}1");
+            $sheet->mergeCells("A2:{$lastColumn}2");
+            $sheet->mergeCells("A3:{$lastColumn}3");
+            $sheet->mergeCells("A4:{$lastColumn}4");
+            $sheet->getRowDimension(1)->setRowHeight(52);
+            $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
+            $sheet->getStyle("A1:{$lastColumn}4")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            // Match the standard inventory export header.
             $headerStyle = [
                 'font' => [
                     'bold' => true,
-                    'color' => ['rgb' => '000000'],
-                    'size' => 10,
+                    'color' => ['rgb' => 'FFFFFF'],
                 ],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '8EAADB'],
+                    'startColor' => ['rgb' => '334155'],
                 ],
                 'alignment' => [
                     'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER,
-                    'wrapText' => true,
                 ],
                 'borders' => [
                     'allBorders' => [
@@ -291,18 +337,44 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 ],
             ];
 
-            $sheet->getStyle('A1:O1')->applyFromArray($headerStyle);
-            $sheet->getRowDimension(1)->setRowHeight(28);
+            $sheet->getStyle("A6:{$lastColumn}6")->applyFromArray($headerStyle);
 
-            // Alignment
-            $sheet->getStyle('A:D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('E:F')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-            $sheet->getStyle('G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('H')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-            $sheet->getStyle('I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-            $sheet->getStyle('J')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('K:L')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-            $sheet->getStyle('M')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->calculateColumnWidths();
+            $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
+            $columnWidths = [];
+            $totalWidth = 0;
+            for ($column = 1; $column <= $columnCount; $column++) {
+                $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
+                $columnWidths[] = $width;
+                $totalWidth += $width;
+            }
+
+            $offset = max(0, (int) (($totalWidth - $sheet->getDrawingCollection()[0]->getWidth()) / 2));
+            foreach ($columnWidths as $index => $width) {
+                if ($offset < $width) {
+                    $sheet->getDrawingCollection()[0]
+                        ->setCoordinates(Coordinate::stringFromColumnIndex($index + 1).'1')
+                        ->setOffsetX($offset);
+                    break;
+                }
+                $offset -= $width;
+            }
+
+            if ($this->filterType === 'keluar') {
+                $sheet->getStyle('A:D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('E:G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $sheet->getStyle('H')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $sheet->getStyle('J')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle('K')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('L:M')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle('N')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            } else {
+                $sheet->getStyle('A:D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('E:G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $sheet->getStyle('H:J')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle('K')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            }
 
             return [];
         }
@@ -348,9 +420,10 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
             AfterSheet::class => function (AfterSheet $event) {
                 $lastRow = $event->sheet->getHighestRow();
 
-                if ($this->filterType === 'keluar') {
+                if (in_array($this->filterType, ['masuk', 'keluar'], true)) {
+                    $lastColumn = $this->filterType === 'masuk' ? 'K' : 'N';
                     // Auto grid borders for all data rows
-                    $event->sheet->getStyle('A1:O'.$lastRow)->applyFromArray([
+                    $event->sheet->getStyle('A6:'.$lastColumn.$lastRow)->applyFromArray([
                         'borders' => [
                             'allBorders' => [
                                 'borderStyle' => Border::BORDER_THIN,
@@ -358,7 +431,9 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                             ],
                         ],
                     ]);
+                }
 
+                if ($this->filterType === 'keluar') {
                     // Calculate Total
                     $totalCost = MaterialUsage::query()
                         ->join('materials', 'material_usages.material_id', '=', 'materials.id')
@@ -370,12 +445,12 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                         ->sum('material_usages.total_cost');
 
                     $event->sheet->append([
-                        ['', '', '', '', '', '', '', '', '', '', 'TOTAL', $totalCost],
+                        ['', '', '', '', '', '', '', '', '', '', '', 'TOTAL', $totalCost, ''],
                     ]);
 
                     $finalRow = $event->sheet->getHighestRow();
 
-                    $event->sheet->getStyle('K'.$finalRow.':L'.$finalRow)->applyFromArray([
+                    $event->sheet->getStyle('L'.$finalRow.':M'.$finalRow)->applyFromArray([
                         'font' => [
                             'bold' => true,
                             'color' => ['rgb' => 'FFFFFF'],
@@ -391,7 +466,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                         ],
                     ]);
 
-                    $event->sheet->getStyle('L'.$finalRow)->getNumberFormat()->setFormatCode('[$Rp-421] #,##0.00');
+                    $event->sheet->getStyle('M'.$finalRow)->getNumberFormat()->setFormatCode('[$Rp-421] #,##0.00');
 
                     return;
                 }

@@ -127,17 +127,17 @@ class Materials extends Component
                 $direction
             ),
             'supplier' => fn ($query, $direction) => $query->orderBy(
-                Supplier::select('name')->whereColumn('suppliers.id', 'materials.supplier_id'),
+                Supplier::select('name')->whereColumn('suppliers.id', 'stock_ins.supplier_id'),
                 $direction
             ),
             'warehouse' => fn ($query, $direction) => $query->orderBy(
-                Warehouse::select('name')->whereColumn('warehouses.id', 'materials.warehouse_id'),
+                Warehouse::select('name')->whereColumn('warehouses.id', 'stock_ins.warehouse_id'),
                 $direction
             ),
-            'stock' => 'materials.stock',
-            'unit_price' => 'materials.unit_price',
-            'value' => fn ($query, $direction) => $query->orderByRaw('(materials.stock * materials.unit_price) ' . $direction),
-            'date' => 'materials.created_at',
+            'stock' => 'stock_ins.remaining_quantity',
+            'unit_price' => 'stock_ins.unit_price',
+            'value' => fn ($query, $direction) => $query->orderByRaw('(stock_ins.remaining_quantity * stock_ins.unit_price) ' . $direction),
+            'date' => fn ($query, $direction) => $query->orderByRaw('COALESCE(stock_ins.received_at, stock_ins.date) ' . $direction),
         ];
     }
 
@@ -681,27 +681,39 @@ class Materials extends Component
 
     public function render()
     {
-        $materials = Material::with(['supplier', 'category', 'warehouse'])
+        $materialBatches = StockIn::query()
+            ->join('materials', 'materials.id', '=', 'stock_ins.material_id')
+            ->select('stock_ins.*')
+            ->with(['material.supplier', 'material.category', 'material.warehouse', 'supplier', 'warehouse'])
             ->when($this->search, fn ($q) => $q->where(fn ($sub) => $sub
-                ->where('name', 'like', "%{$this->search}%")
-                ->orWhereHas('stockIns', fn ($receipts) => $receipts->where('entry_code', 'like', "%{$this->search}%"))))
-            ->when($this->filterCategory, fn ($q) => $q->where('category_id', $this->filterCategory))
-            ->when($this->filterSupplier, fn ($q) => $q->where('supplier_id', $this->filterSupplier))
-            ->when($this->filterWarehouse, fn ($q) => $q->where('warehouse_id', $this->filterWarehouse))
-            ->when($this->filterPhoto === 'has_photo', fn ($q) => $q->whereNotNull('image')->where('image', '!=', ''))
-            ->when($this->filterPhoto === 'no_photo', fn ($q) => $q->where(fn ($sub) => $sub->whereNull('image')->orWhere('image', '')))
+                ->whereHas('material', fn ($material) => $material
+                    ->where('name', 'like', "%{$this->search}%")
+                    ->orWhere('code', 'like', "%{$this->search}%"))
+                ->orWhere('entry_code', 'like', "%{$this->search}%")))
+            ->when($this->filterCategory, fn ($q) => $q->whereHas('material', fn ($material) => $material->where('category_id', $this->filterCategory)))
+            ->when($this->filterSupplier, fn ($q) => $q->where(fn ($sub) => $sub
+                ->where('stock_ins.supplier_id', $this->filterSupplier)
+                ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.supplier_id')
+                    ->whereHas('material', fn ($material) => $material->where('supplier_id', $this->filterSupplier)))))
+            ->when($this->filterWarehouse, fn ($q) => $q->where(fn ($sub) => $sub
+                ->where('stock_ins.warehouse_id', $this->filterWarehouse)
+                ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.warehouse_id')
+                    ->whereHas('material', fn ($material) => $material->where('warehouse_id', $this->filterWarehouse)))))
+            ->when($this->filterPhoto === 'has_photo', fn ($q) => $q->whereHas('material', fn ($material) => $material->whereNotNull('image')->where('image', '!=', '')))
+            ->when($this->filterPhoto === 'no_photo', fn ($q) => $q->whereHas('material', fn ($material) => $material->where(fn ($sub) => $sub->whereNull('image')->orWhere('image', ''))))
             ->when($this->filterStock, function ($q) {
                 if ($this->filterStock === 'low') {
-                    $q->where('stock', '<=', 10)->where('stock', '>', 0);
+                    $q->where('stock_ins.remaining_quantity', '<=', 10)->where('stock_ins.remaining_quantity', '>', 0);
                 } elseif ($this->filterStock === 'safe') {
-                    $q->where('stock', '>', 10);
+                    $q->where('stock_ins.remaining_quantity', '>', 10);
                 } elseif ($this->filterStock === 'empty') {
-                    $q->where('stock', '<=', 0);
+                    $q->where(fn ($sub) => $sub->whereNull('stock_ins.remaining_quantity')->orWhere('stock_ins.remaining_quantity', '<=', 0));
                 }
-            }, fn ($q) => $q->where('stock', '>', 0)) // Default: hide depleted
+            })
             ->tap(fn ($query) => $this->applyTableSort($query))
             ->orderBy('materials.id')
-            ->paginate(10);
+            ->orderBy('stock_ins.id')
+            ->get();
 
         $suppliers = Supplier::select('id', 'name')->orderBy('name')->get()->unique('name');
         $categories = Category::where('type', 'material')->orderBy('name')->get()->unique('name');
@@ -711,12 +723,12 @@ class Materials extends Component
             : collect();
 
         // Summary stats
-        $totalValue = Material::where('stock', '>', 0)
-            ->selectRaw('SUM(unit_price * stock) as total')
+        $totalValue = StockIn::where('remaining_quantity', '>', 0)
+            ->selectRaw('SUM(unit_price * remaining_quantity) as total')
             ->value('total') ?? 0;
         $totalItems = Material::where('stock', '>', 0)->count();
 
-        return view('livewire.logistik.materials', compact('materials', 'suppliers', 'categories', 'warehouses', 'materialChoices', 'totalValue', 'totalItems'))
+        return view('livewire.logistik.materials', compact('materialBatches', 'suppliers', 'categories', 'warehouses', 'materialChoices', 'totalValue', 'totalItems'))
             ->layout('layouts.app', ['title' => 'Material']);
     }
 }

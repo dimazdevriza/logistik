@@ -20,6 +20,7 @@ use App\Livewire\Logistik\WarehouseDetail;
 use App\Livewire\Logistik\Warehouses;
 use App\Models\House;
 use App\Models\Material;
+use App\Models\StockIn;
 use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,17 +36,27 @@ class TableSortingTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'admin']));
         $warehouse = Warehouse::firstOrFail();
 
-        Material::factory()->create([
+        $alpha = Material::factory()->create([
             'warehouse_id' => $warehouse->id,
             'name' => 'Alpha Material',
             'code' => 'MAT-ALPHA',
             'stock' => 20,
         ]);
-        Material::factory()->create([
+        $zulu = Material::factory()->create([
             'warehouse_id' => $warehouse->id,
             'name' => 'Zulu Material',
             'code' => 'MAT-ZULU',
             'stock' => 5,
+        ]);
+        StockIn::factory()->create([
+            'material_id' => $alpha->id,
+            'quantity' => 20,
+            'remaining_quantity' => 20,
+        ]);
+        StockIn::factory()->create([
+            'material_id' => $zulu->id,
+            'quantity' => 5,
+            'remaining_quantity' => 5,
         ]);
 
         $component = Livewire::test(Materials::class)

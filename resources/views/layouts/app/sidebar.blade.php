@@ -47,7 +47,7 @@
             'show' => $role === 'logistik',
             'links' => array_values(array_filter([
                 $role === 'logistik' && $user?->cluster_id
-                    ? ['route' => 'logistik.cluster-expenses', 'query' => [$user->cluster_id], 'active' => 'logistik.cluster-expenses', 'icon' => 'i-chart', 'label' => 'Biaya Cluster']
+                    ? ['route' => 'clusters.expenses', 'query' => [$user->cluster_id], 'active' => 'clusters.expenses', 'icon' => 'i-chart', 'label' => 'Biaya Cluster']
                     : null,
             ])),
         ],

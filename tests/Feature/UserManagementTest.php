@@ -21,7 +21,7 @@ class UserManagementTest extends TestCase
 
     public function test_user_management_page_renders_successfully()
     {
-        $this->get('/admin/users')
+        $this->followingRedirects()->get('/admin/users')
             ->assertOk()
             ->assertSee('Manajemen User');
     }

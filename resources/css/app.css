@@ -1874,6 +1874,104 @@ html.is-rail-initial .user-profile-card > div,
     min-width: 0;
 }
 
+.cluster-cost-growth-panel {
+    min-height: 13.75rem;
+}
+
+.cluster-cost-growth-chart {
+    display: grid;
+    grid-template-columns: 5.25rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.cluster-cost-growth-scale {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 9.25rem;
+    overflow: hidden;
+    color: var(--bs-secondary-color);
+    font-family: var(--bs-font-monospace);
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.cluster-cost-growth-plot {
+    position: relative;
+    height: 9.25rem;
+    min-width: 0;
+}
+
+.cluster-cost-growth-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.cluster-cost-growth-gridline {
+    stroke: var(--bs-border-color);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.cluster-cost-growth-line {
+    fill: none;
+    stroke: var(--color-leaf-green);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+}
+
+.cluster-cost-growth-point {
+    position: absolute;
+    width: 0.6rem;
+    height: 0.6rem;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--color-leaf-green);
+    border-radius: 50%;
+    background-color: var(--bs-body-bg);
+}
+
+.cluster-cost-growth-months {
+    display: grid;
+    grid-column: 2;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    margin-top: 0.4rem;
+    color: var(--bs-secondary-color);
+    font-family: var(--font-geist);
+    font-size: 0.7rem;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.cluster-cost-growth-empty {
+    margin-top: 1.5rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 575.98px) {
+    .cluster-cost-growth-chart {
+        grid-template-columns: 4.5rem minmax(0, 1fr);
+        column-gap: 0.5rem;
+    }
+
+    .cluster-cost-growth-scale {
+        font-size: 0.6rem;
+    }
+
+    .cluster-cost-growth-months {
+        font-size: 0.6rem;
+    }
+}
+
 .cluster-expense-panel-heading p {
     max-width: 60rem;
     line-height: 1.5;
@@ -1893,6 +1991,59 @@ html.is-rail-initial .user-profile-card > div,
 }
 
 @media (min-width: 768px) {
+    .cluster-cost-table > thead > tr > th.data-key-name .table-sort-button,
+    .cluster-cost-table > tbody > tr > td.data-key-name {
+        padding-right: 0.5rem;
+    }
+
+    .cluster-cost-table > thead > tr > th.cluster-cost-house-column .table-sort-button,
+    .cluster-cost-table > tbody > tr > td.cluster-cost-house-column {
+        padding-left: 0.5rem;
+    }
+
+    .cluster-cost-table > thead > tr > th:first-child,
+    .cluster-cost-table > tbody > tr > td:first-child:not([colspan]) {
+        position: sticky;
+        left: 0;
+        z-index: 3;
+        width: 45px;
+        min-width: 45px;
+        max-width: 45px;
+        background-color: var(--bs-tertiary-bg);
+    }
+
+    .cluster-cost-table > thead > tr > th:first-child {
+        z-index: 7;
+    }
+
+    .cluster-cost-table.data-table--sticky-identity .data-key-name {
+        left: 45px;
+    }
+
+    .cluster-cost-table .cluster-cost-house-column .data-cell-truncate {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .cluster-cost-table > thead > tr > th:nth-child(3),
+    .cluster-cost-table > tbody > tr > td:nth-child(3) {
+        position: sticky;
+        left: calc(45px + 10rem);
+        z-index: 2;
+        background-color: var(--bs-tertiary-bg);
+    }
+
+    .cluster-cost-table > thead > tr > th:nth-child(3) {
+        z-index: 8;
+    }
+
+    .cluster-cost-table tfoot .cluster-cost-total-label {
+        position: sticky;
+        left: 0;
+        z-index: 4;
+        background-color: var(--bs-tertiary-bg);
+    }
+
     .cluster-expenses-page .house-cost-table tfoot .cluster-total-label {
         position: sticky;
         left: 0;
@@ -1921,7 +2072,7 @@ html.is-rail-initial .user-profile-card > div,
     }
 }
 
-.data-table tbody tr {
+.table:not(.table-sm):not(.house-bulk-preview-table) tbody tr {
     height: 3.5rem;
 }
 
@@ -2298,6 +2449,21 @@ html.is-rail-initial .user-profile-card > div,
 [data-bs-theme="dark"] .main-card-container .table-hover > tbody > tr:hover > * {
     --bs-table-accent-bg: rgba(143, 227, 163, 0.08);
     background-color: rgba(143, 227, 163, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .main-card-container .cluster-cost-table > tbody > tr > td:first-child,
+[data-bs-theme="dark"] .main-card-container .cluster-cost-table > tbody > tr > .cluster-cost-house-column {
+    background-color: var(--ledger-surface) !important;
+}
+
+[data-bs-theme="dark"] .main-card-container .cluster-cost-table > tbody > tr:hover > td:first-child,
+[data-bs-theme="dark"] .main-card-container .cluster-cost-table > tbody > tr:hover > .data-key-name,
+[data-bs-theme="dark"] .main-card-container .cluster-cost-table > tbody > tr:hover > .cluster-cost-house-column {
+    background-color: var(--ledger-surface-raised) !important;
+}
+
+[data-bs-theme="dark"] .main-card-container .cluster-cost-table > tfoot > tr > .cluster-cost-total-label {
+    background-color: var(--ledger-surface-raised) !important;
 }
 
 [data-bs-theme="dark"] .main-card-container .form-control,
@@ -2849,6 +3015,22 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 1rem;
 }
 
+.house-cost-period-filter {
+    gap: 0.75rem 1rem;
+}
+
+.house-cost-status-tabs {
+    flex-wrap: wrap;
+}
+
+.house-cost-year-select {
+    width: 9rem;
+}
+
+.house-cost-search {
+    max-width: 26rem;
+}
+
 .house-log-period-tab {
     display: inline-flex;
     align-items: center;
@@ -2938,6 +3120,21 @@ h1, h2, h3, h4, h5, h6 {
     background: rgba(var(--bs-success-rgb), 0.12);
 }
 
+@media (max-width: 767.98px) {
+    .card.house-cost-overview-panel {
+        padding: 1rem !important;
+    }
+
+    .house-cost-status-tabs {
+        gap: 0 1rem;
+    }
+
+    .house-cost-search {
+        flex-basis: 100%;
+        max-width: none;
+    }
+}
+
 .back-link {
     min-height: 44px;
     display: inline-flex;
@@ -2971,6 +3168,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .table tbody tr {
     transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.table:not(.table-sm):not(.house-bulk-preview-table) td:has(.data-row-actions) {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
 }
 
 .table-hover > tbody > tr:hover > * {
@@ -5808,5 +6010,91 @@ h1, h2, h3, h4, h5, h6 {
 
     .spreadsheet-action-cell {
         padding: 0.75rem !important;
+    }
+}
+
+.table-responsive.standard-table-frame {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 1rem !important;
+}
+
+.standard-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.standard-table-toolbar-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex: 1 1 32rem;
+    min-width: 0;
+}
+
+.standard-table-toolbar-controls .form-control,
+.standard-table-toolbar-controls .form-select,
+.standard-table-toolbar-controls > .btn {
+    min-height: 44px;
+}
+
+.standard-table-toolbar-search {
+    flex: 1 1 24rem;
+    width: 100%;
+    max-width: 32rem;
+}
+
+.standard-table-toolbar-filter {
+    flex: 0 0 10rem;
+}
+
+@media (min-width: 768px) {
+    .standard-data-table > thead > tr > th {
+        padding: 1rem 1.25rem !important;
+        font-family: var(--font-geist), system-ui, sans-serif;
+        font-size: 0.875rem !important;
+        letter-spacing: normal;
+        text-transform: none !important;
+    }
+
+    .standard-data-table > tbody > tr {
+        height: 4.25rem;
+    }
+
+    .standard-data-table > tbody > tr > td {
+        padding: 1.25rem !important;
+        border-bottom-color: var(--bs-border-color-translucent);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .standard-table-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .standard-table-toolbar-controls {
+        align-items: stretch;
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+    }
+
+    .standard-table-toolbar-search {
+        flex-basis: 100%;
+        max-width: none;
+    }
+
+    .standard-table-toolbar-filter {
+        flex-basis: 100%;
+    }
+
+    .house-detail-log-table-scroll.standard-table-frame,
+    .house-cost-table-scroll.standard-table-frame,
+    .management-table-scroll.standard-table-frame {
+        border: 0;
+        border-radius: 0 !important;
     }
 }

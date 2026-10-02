@@ -19,6 +19,7 @@ use App\Models\StockIn;
 use App\Models\Supplier;
 use App\Models\Tool;
 use App\Models\ToolReturnLog;
+use App\Models\ToolWarehouseBalance;
 use App\Models\ToolUsage;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -535,6 +536,35 @@ test('tool allocation requires a purpose but no checkout date', function () {
 
     expect((int) $tool->fresh()->available_qty)->toBe(10);
     expect(ToolUsage::count())->toBe(0);
+});
+
+test('tool allocation form shows availability for the selected warehouse', function () {
+    $otherWarehouse = Warehouse::create(['name' => 'TEST Transaction Secondary']);
+    $tool = Tool::factory()->create([
+        'warehouse_id' => $this->warehouse->id,
+        'total_qty' => 4,
+        'available_qty' => 1,
+    ]);
+    ToolWarehouseBalance::create([
+        'tool_id' => $tool->id,
+        'warehouse_id' => $otherWarehouse->id,
+        'available_qty' => 3,
+        'qty_broken' => 0,
+    ]);
+    $house = House::factory()->create(['cluster_id' => $this->cluster->id, 'status' => 'pembangunan']);
+
+    $component = Livewire::test(TransaksiLogistik::class)
+        ->set('house_ids', [$house->id])
+        ->set('tool_id', $tool->id);
+
+    $selectedTool = $component->instance()->getTools()->firstWhere('id', $tool->id);
+    expect((int) $selectedTool->available_qty)->toBe(4)
+        ->and($selectedTool->warehouseBalances->pluck('allocation_available_qty')->all())->toBe([1, 3])
+        ->and($component->instance()->tool_warehouse_id)->toBe((string) $this->warehouse->id);
+
+    $component->assertSee('get toolWarehouseBalance()')
+        ->assertSee('get toolShortfall() { return this.tool ?')
+        ->assertSee('Total tersedia: 4 unit');
 });
 
 test('tool allocation creates one active loan per house and blocks duplicates', function () {

@@ -21,22 +21,29 @@ class LogResponsibilityTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_both_logs_show_the_recording_user_in_one_responsibility_column(): void
+    public function test_material_log_separates_recorder_and_taker_while_tool_log_keeps_one_responsibility_column(): void
     {
         $user = User::factory()->create(['role' => 'admin', 'name' => 'Recorder Example']);
         $this->actingAs($user);
         $house = House::factory()->create();
 
-        MaterialUsage::factory()->create(['user_id' => $user->id, 'house_id' => $house->id]);
+        MaterialUsage::factory()->create([
+            'user_id' => $user->id,
+            'house_id' => $house->id,
+            'taken_by' => 'Receiver Example',
+        ]);
         ToolUsage::factory()->create(['user_id' => $user->id, 'house_id' => $house->id]);
 
-        foreach ([MaterialLog::class, ToolLog::class] as $log) {
-            $component = Livewire::test($log)
-                ->assertSee('Penanggung Jawab')
-                ->assertDontSee('Pengambil');
+        $materialLog = Livewire::test(MaterialLog::class)
+            ->assertSee('Pencatat')
+            ->assertSee('Pengambil')
+            ->assertSee('Receiver Example');
+        $this->assertSame(1, substr_count($materialLog->html(), 'title="Recorder Example"'));
 
-            $this->assertSame(1, substr_count($component->html(), 'title="Recorder Example"'));
-        }
+        $toolLog = Livewire::test(ToolLog::class)
+            ->assertSee('Penanggung Jawab')
+            ->assertDontSee('Pengambil');
+        $this->assertSame(1, substr_count($toolLog->html(), 'title="Recorder Example"'));
     }
 
     public function test_tool_export_includes_incoming_records_and_loans_beyond_one_page(): void
@@ -71,7 +78,7 @@ class LogResponsibilityTest extends TestCase
         $this->assertSame(0, (new ToolLogExport($filtered))->query()->count());
     }
 
-    public function test_material_export_keeps_amount_under_jumlah_after_removing_duplicate_person(): void
+    public function test_material_export_includes_recorder_and_taker_in_separate_columns(): void
     {
         $user = User::factory()->create(['role' => 'admin', 'name' => 'Recorder Example']);
         $house = House::factory()->create(['name' => 'House Example']);
@@ -83,11 +90,12 @@ class LogResponsibilityTest extends TestCase
             'quantity' => 2,
             'unit_price_at_usage' => 250,
             'total_cost' => 500,
+            'taken_by' => 'Receiver Example',
         ]);
 
         $export = new MaterialLogExport('', 'keluar');
-        $this->assertCount(15, $export->headings()[0]);
-        $this->assertCount(15, $export->map($export->collection()->first()));
+        $this->assertCount(14, $export->headings()[5]);
+        $this->assertCount(14, $export->map($export->collection()->first()));
         $this->assertSame('Penanggung Jawab', (new ToolLogExport(\Illuminate\Support\Facades\DB::table('tool_usages')))->headings()[3][8]);
 
         $file = tmpfile();
@@ -95,13 +103,13 @@ class LogResponsibilityTest extends TestCase
             fwrite($file, Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX));
             $sheet = IOFactory::load(stream_get_meta_data($file)['uri'])->getActiveSheet();
 
-            $this->assertSame('PENANGGUNG JAWAB', $sheet->getCell('D1')->getValue());
-            $this->assertSame('Recorder Example', $sheet->getCell('D2')->getValue());
-            $this->assertSame('House Example', $sheet->getCell('E2')->getValue());
-            $this->assertSame('JUMLAH', $sheet->getCell('L1')->getValue());
-            $this->assertEquals(500, $sheet->getCell('L2')->getValue());
-            $this->assertSame('TOTAL', $sheet->getCell('K3')->getValue());
-            $this->assertEquals(500, $sheet->getCell('L3')->getValue());
+            $this->assertSame('Pencatat', $sheet->getCell('D6')->getValue());
+            $this->assertSame('Pengambil', $sheet->getCell('E6')->getValue());
+            $this->assertSame('Recorder Example', $sheet->getCell('D7')->getValue());
+            $this->assertSame('Receiver Example', $sheet->getCell('E7')->getValue());
+            $this->assertSame('House Example', $sheet->getCell('F7')->getValue());
+            $this->assertSame('TOTAL', $sheet->getCell('L8')->getValue());
+            $this->assertEquals(500, $sheet->getCell('M8')->getValue());
         } finally {
             fclose($file);
         }

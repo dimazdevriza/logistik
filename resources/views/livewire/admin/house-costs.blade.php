@@ -25,52 +25,49 @@
 
         <!-- Summary Card -->
         <div class="row g-4 mb-4">
-            <div class="col-md-6 col-lg-4">
-                <div class="card border-0 border-start border-4 border-warning shadow-sm rounded-4 p-4 bg-body-tertiary">
-                    <span class="small fw-bold text-secondary text-uppercase tracking-wider mb-2 d-block">Total Biaya Material ({{ $scopeLabel }})</span>
+            <div class="col-12">
+                <div class="card border-0 border-start border-4 border-warning shadow-sm rounded-4 p-4 bg-body-tertiary d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2">
+                    <span class="small fw-bold text-secondary text-uppercase tracking-wider mb-0">Total Biaya Material ({{ $scopeLabel }})</span>
                     <h2 class="fw-black text-warning font-mono mb-0">Rp {{ number_format($totalSpent, 0, ',', '.') }}</h2>
                 </div>
             </div>
         </div>
 
-        <!-- Search & Filter Controls -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
-            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
-                <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center flex-grow-1">
-                    <div class="w-100 max-w-sm">
-                        <input type="text" wire:model.live.debounce.300ms="search" aria-label="Cari rumah, kode, atau tipe" placeholder="Cari rumah, kode, atau tipe..." class="form-control" />
-                    </div>
-                    <div class="max-w-[170px]">
-                        <select id="house-cost-filter-status" aria-label="Filter status rumah" wire:model.live="filterStatus" class="form-select">
-                            <option value="">Semua Status</option>
-                            <option value="perencanaan">Perencanaan</option>
-                            <option value="pembangunan">Pembangunan</option>
-                            <option value="selesai">Selesai</option>
-                        </select>
-                    </div>
-                    <div class="max-w-[140px]">
-                        <select id="house-cost-filter-year" aria-label="Filter tahun biaya" wire:model.live="filterYear" class="form-select font-mono fw-bold">
-                            @foreach ($years as $yr)
-                                <option value="{{ $yr }}">Tahun {{ $yr }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @if ($search || $filterStatus || $filterYear != now()->year)
-                        <button type="button" wire:click="resetFilters" class="btn btn-link text-secondary text-decoration-none btn-sm d-inline-flex align-items-center gap-1"><svg width="13" height="13" fill="currentColor" aria-hidden="true"><use href="#i-x"/></svg> Reset Filter</button>
-                    @endif
-                </div>
-                <div class="text-secondary small font-mono">
-                    Menampilkan rincian biaya: <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">Tahun {{ $selectedYear }}</span>
+        <!-- House cost ledger -->
+        <div class="card border shadow-sm rounded-4 p-4 mb-4 bg-body-tertiary house-cost-overview-panel">
+            @php $statusFilters = ['' => 'Semua Status', 'perencanaan' => 'Perencanaan', 'pembangunan' => 'Pembangunan', 'selesai' => 'Selesai']; @endphp
+            <div class="house-log-period-tabs house-cost-status-tabs" role="group" aria-label="Filter status rumah">
+                @foreach ($statusFilters as $statusValue => $statusLabel)
+                    <button type="button" class="house-log-period-tab {{ $filterStatus === $statusValue ? 'active' : '' }}" aria-pressed="{{ $filterStatus === $statusValue ? 'true' : 'false' }}" wire:click="$set('filterStatus', '{{ $statusValue }}')">
+                        {{ $statusLabel }}
+                    </button>
+                @endforeach
+            </div>
+
+            <div class="house-log-filters house-cost-period-filter" role="group" aria-label="Tahun rincian biaya">
+                <span class="small text-secondary">Tampilkan rincian biaya</span>
+                <select id="house-cost-filter-year" aria-label="Filter tahun biaya" wire:model.live="filterYear" class="form-select font-mono fw-bold house-cost-year-select">
+                    @foreach ($years as $yr)
+                        <option value="{{ $yr }}">Tahun {{ $yr }}</option>
+                    @endforeach
+                </select>
+                @if ($search || $filterStatus || $filterYear != now()->year)
+                    <button type="button" wire:click="resetFilters" class="btn btn-link text-secondary text-decoration-none btn-sm d-inline-flex align-items-center gap-1"><svg width="13" height="13" fill="currentColor" aria-hidden="true"><use href="#i-x"/></svg> Reset Filter</button>
+                @endif
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 house-cost-table-heading">
+                <h2 class="h5 fw-bold mb-0 font-outfit">Rincian biaya rumah</h2>
+                <div class="flex-grow-1 house-cost-search">
+                    <input type="search" wire:model.live.debounce.300ms="search" aria-label="Cari rumah, kode, atau tipe" placeholder="Cari rumah, kode, atau tipe..." class="form-control" />
                 </div>
             </div>
-        </div>
 
-        <!-- House Costs Table -->
-        <div class="card border shadow-sm rounded-4 overflow-hidden mb-4 bg-body data-table-card">
+            <div class="data-table-card">
             <div wire:loading.delay class="data-table-status" role="status">Memuat biaya rumah...</div>
             <div wire:offline class="data-table-status is-error" role="alert">Koneksi terputus. Data mungkin tidak terbaru.</div>
-            <div class="table-responsive data-table-scroll house-cost-table-scroll" tabindex="0" role="region" aria-label="Rincian biaya rumah">
-                <table class="table table-hover align-middle mb-0 text-nowrap data-table data-table--sticky-identity house-cost-table">
+            <div class="table-responsive data-table-scroll house-cost-table-scroll standard-table-frame" tabindex="0" role="region" aria-label="Rincian biaya rumah">
+                <table class="table table-hover align-middle mb-0 text-nowrap data-table data-table--sticky-identity house-cost-table standard-data-table">
                     <thead class="text-uppercase small font-geist border-bottom">
                         <tr class="bg-body-tertiary">
                             <th class="text-center text-secondary py-3" style="width: 45px;">No.</th>
@@ -175,6 +172,7 @@
                 <strong class="font-mono text-success">Rp {{ number_format($mobileYearTotal, 0, ',', '.') }}</strong>
                 <span>Total keseluruhan</span>
                 <strong class="font-mono text-warning">Rp {{ number_format($totalSpent, 0, ',', '.') }}</strong>
+            </div>
             </div>
         </div>
 

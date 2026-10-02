@@ -55,7 +55,7 @@
                     </div>
                     <div>
                         <h2 class="fw-black text-warning mb-1">Rp {{ number_format($totalValue, 0, ',', '.') }}</h2>
-                        <span class="text-secondary small">Stok × harga acuan per material</span>
+                        <span class="text-secondary small">Sisa stok setiap batch × harga masuk</span>
                     </div>
                 </div>
             </div>
@@ -75,13 +75,11 @@
             </div>
         </div>
 
-        <!-- Search & Filter Controls -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-body-tertiary">
-            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
-                <div class="w-100 max-w-sm">
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari material..." class="form-control" />
-                </div>
-                <div class="d-flex align-items-center gap-2">
+        <div class="card border shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary standard-table-panel data-table-card">
+            <div class="standard-table-toolbar">
+                <h2 class="h5 fw-bold mb-0 font-outfit">Stok material per batch</h2>
+                <div class="standard-table-toolbar-controls">
+                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Cari material, kode, atau kode masuk..." aria-label="Cari material, kode, atau kode masuk" class="form-control standard-table-toolbar-search" />
                     <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-secondary">Kategori</label>
@@ -130,14 +128,11 @@
                 </x-filter-modal>
                 </div>
             </div>
-        </div>
 
-        <!-- Materials Table -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 data-table-card">
             <div wire:loading.delay class="data-table-status" role="status">Memuat material...</div>
             <div wire:offline class="data-table-status is-error" role="alert">Koneksi terputus. Data mungkin tidak terbaru.</div>
-            <div class="table-responsive data-table-scroll" tabindex="0" role="region" aria-label="Daftar material">
-                <table class="table table-hover align-middle mb-0 data-table data-table--inventory data-table--sticky-identity">
+            <div class="table-responsive data-table-scroll standard-table-frame" tabindex="0" role="region" aria-label="Daftar material per batch harga">
+                <table class="table table-hover align-middle mb-0 data-table data-table--inventory data-table--sticky-identity standard-data-table">
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
                             <th class="text-center data-mobile-secondary" style="width: 50px;">No.</th>
@@ -148,16 +143,17 @@
                             <x-sortable-th field="supplier" :sort="$sort">Supplier</x-sortable-th>
                             <x-sortable-th field="warehouse" :sort="$sort">Gudang</x-sortable-th>
                             <x-sortable-th field="stock" :sort="$sort" class="text-end data-number">Stok + Satuan</x-sortable-th>
-                            <x-sortable-th field="unit_price" :sort="$sort" class="text-end data-number">Harga Acuan</x-sortable-th>
+                            <x-sortable-th field="unit_price" :sort="$sort" class="text-end data-number">Harga Masuk</x-sortable-th>
                             <x-sortable-th field="value" :sort="$sort" class="text-end data-number">Estimasi Nilai</x-sortable-th>
-                            <x-sortable-th field="date" :sort="$sort" class="data-date">Dibuat</x-sortable-th>
+                            <x-sortable-th field="date" :sort="$sort" class="data-date">Tanggal Masuk</x-sortable-th>
                             <th class="text-end" style="width: 160px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($materials as $material)
-                        <tr wire:key="mat-{{ $material->id }}" style="cursor: pointer;" x-on:click="if (window.innerWidth >= 768 && !$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $material->id }}) }">
-                            <td class="text-center text-secondary small data-mobile-secondary">{{ ($materials->currentPage() - 1) * $materials->perPage() + $loop->iteration }}</td>
+                        @forelse ($materialBatches as $batch)
+                        @php($material = $batch->material)
+                        <tr wire:key="mat-stock-in-{{ $batch->id }}" style="cursor: pointer;" x-on:click="if (window.innerWidth >= 768 && !$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $material->id }}) }">
+                            <td class="text-center text-secondary small data-mobile-secondary">{{ $loop->iteration }}</td>
                             <td class="text-center data-mobile-secondary">
                                 @if($material->image)
                                     <button type="button" wire:click.stop="showMaterialImage({{ $material->id }})" class="btn btn-link p-0 border-0" title="Klik untuk memperbesar foto">
@@ -167,21 +163,24 @@
                                     <span class="badge bg-body-secondary text-secondary font-mono small" title="Belum ada foto">-</span>
                                 @endif
                             </td>
-                            <td class="font-mono text-secondary small data-key-code" title="{{ $material->code ?? 'Kode tidak tersedia' }}">{{ $material->code ?? '-' }}</td>
+                            <td class="font-mono text-secondary small data-key-code" title="{{ ($material->code ?? 'Kode tidak tersedia') . ' · ' . $batch->entry_code }}">
+                                <div>{{ $material->code ?? '-' }}</div>
+                                <small class="d-block text-secondary opacity-75 text-truncate">{{ $batch->entry_code }}</small>
+                            </td>
                             <td class="fw-bold text-body data-key-name" title="{{ $material->name }}">{{ $material->name }}</td>
                             <td class="text-secondary small data-cell-truncate" title="{{ $material->category?->name ?? 'Kategori tidak tersedia' }}">{{ $material->category?->name ?? '-' }}</td>
-                            <td class="text-secondary small data-cell-truncate" title="{{ $material->supplier?->name ?? 'Supplier tidak tersedia' }}">{{ $material->supplier?->name ?? '-' }}</td>
-                            <td class="text-secondary small data-cell-truncate" title="{{ $material->warehouse?->name ?? 'Belum ditetapkan' }}">{{ $material->warehouse?->name ?? 'Belum ditetapkan' }}</td>
+                            <td class="text-secondary small data-cell-truncate" title="{{ $batch->supplier?->name ?? $material->supplier?->name ?? 'Supplier tidak tersedia' }}">{{ $batch->supplier?->name ?? $material->supplier?->name ?? '-' }}</td>
+                            <td class="text-secondary small data-cell-truncate" title="{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}">{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}</td>
                             <td class="text-end fw-bold data-number">
-                                <span class="{{ $material->stock <= 10 ? 'badge bg-danger-subtle text-danger border border-danger-subtle' : '' }}">
-                                    {{ rtrim(rtrim(number_format((float) $material->stock, 2, ',', '.'), '0'), ',') }}
+                                <span class="{{ $batch->remaining_quantity <= 10 ? 'badge bg-danger-subtle text-danger border border-danger-subtle' : '' }}">
+                                    {{ rtrim(rtrim(number_format((float) $batch->remaining_quantity, 2, ',', '.'), '0'), ',') }}
                                 </span>
                                 <span class="text-secondary small font-normal ms-1">{{ $material->unit }}</span>
                             </td>
-                            <td class="text-end font-mono text-secondary data-number">Rp {{ number_format($material->unit_price, 0, ',', '.') }}</td>
-                            <td class="text-end font-mono fw-bold text-success data-number">Rp {{ number_format($material->unit_price * $material->stock, 0, ',', '.') }}</td>
+                            <td class="text-end font-mono text-secondary data-number">Rp {{ number_format($batch->unit_price, 0, ',', '.') }}</td>
+                            <td class="text-end font-mono fw-bold text-success data-number">Rp {{ number_format($batch->unit_price * (float) $batch->remaining_quantity, 0, ',', '.') }}</td>
                             <td class="font-mono text-secondary small data-date">
-                                <div>{{ $material->created_at ? $material->created_at->format('d/m/Y H:i') : '-' }}</div>
+                                <div>{{ $batch->received_at?->format('d/m/Y H:i') ?? $batch->date?->format('d/m/Y') ?? $batch->created_at?->format('d/m/Y H:i') ?? '-' }}</div>
                             </td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm data-row-actions d-none d-md-inline-flex">
@@ -213,7 +212,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="12" class="text-center py-4 text-secondary">Belum ada data material.</td>
+                            <td colspan="12" class="text-center py-4 text-secondary">Belum ada batch stok material.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -221,7 +220,6 @@
             </div>
         </div>
 
-        <div class="mt-3">{{ $materials->links('vendor.livewire.bootstrap') }}</div>
     </div>
 
     <!-- Modal: Create / Edit Material -->

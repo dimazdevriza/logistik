@@ -19,6 +19,7 @@ class WarehouseDetail extends Component
     public Warehouse $warehouse;
     public string $activeTab = 'material';
     public string $sort = 'name_asc';
+    public string $search = '';
 
     public function mount(Warehouse $warehouse): void
     {
@@ -28,6 +29,12 @@ class WarehouseDetail extends Component
     public function updatingActiveTab(string $value): void
     {
         $this->sort = $value === 'tool' ? 'code_asc' : 'name_asc';
+        $this->resetPage('materialsPage');
+        $this->resetPage('toolsPage');
+    }
+
+    public function updatingSearch(): void
+    {
         $this->resetPage('materialsPage');
         $this->resetPage('toolsPage');
     }
@@ -74,12 +81,24 @@ class WarehouseDetail extends Component
     public function render()
     {
         $materialCount = $this->warehouse->materials()->count();
+        $materialValue = (float) ($this->warehouse->materials()
+            ->where('stock', '>', 0)
+            ->selectRaw('COALESCE(SUM(stock * unit_price), 0) as total_value')
+            ->value('total_value') ?? 0);
         $toolCount = $this->warehouse->toolBalances()->distinct('tool_id')->count('tool_id');
         $toolTotal = $this->warehouse->toolBalances()->sum('available_qty') + $this->warehouse->toolBalances()->sum('qty_broken');
         $toolAvailable = $this->warehouse->toolBalances()->sum('available_qty');
 
         $materials = $this->activeTab === 'material'
-            ? $this->applyTableSort($this->warehouse->materials()->with(['category', 'supplier']))
+            ? $this->applyTableSort($this->warehouse->materials()
+                ->with(['category', 'supplier'])
+                ->when(trim($this->search) !== '', function ($query) {
+                    $search = '%'.trim($this->search).'%';
+                    $query->where(fn ($query) => $query
+                        ->where('materials.name', 'like', $search)
+                        ->orWhere('materials.code', 'like', $search)
+                        ->orWhereHas('category', fn ($category) => $category->where('name', 'like', $search)));
+                }))
                 ->orderBy('materials.id')
                 ->paginate(15, ['*'], 'materialsPage')
             : null;
@@ -87,6 +106,14 @@ class WarehouseDetail extends Component
             ? $this->applyTableSort(Tool::query()
                 ->join('tool_warehouse_balances', 'tools.id', '=', 'tool_warehouse_balances.tool_id')
                 ->where('tool_warehouse_balances.warehouse_id', $this->warehouse->id)
+                ->when(trim($this->search) !== '', function ($query) {
+                    $search = '%'.trim($this->search).'%';
+                    $query->where(fn ($query) => $query
+                        ->where('tools.name', 'like', $search)
+                        ->orWhere('tools.code', 'like', $search)
+                        ->orWhere('tools.condition', 'like', $search)
+                        ->orWhereHas('category', fn ($category) => $category->where('name', 'like', $search)));
+                })
                 ->with('category')
                 ->select('tools.*', 'tool_warehouse_balances.available_qty as warehouse_available_qty', 'tool_warehouse_balances.qty_broken as warehouse_broken_qty'))
                 ->orderBy('tools.id')
@@ -94,7 +121,7 @@ class WarehouseDetail extends Component
             : null;
 
         return view('livewire.logistik.warehouse-detail', compact(
-            'materialCount', 'toolCount', 'toolTotal', 'toolAvailable', 'materials', 'tools'
+            'materialCount', 'materialValue', 'toolCount', 'toolTotal', 'toolAvailable', 'materials', 'tools'
         ))->layout('layouts.app', ['title' => 'Detail Gudang: ' . $this->warehouse->name]);
     }
 }
