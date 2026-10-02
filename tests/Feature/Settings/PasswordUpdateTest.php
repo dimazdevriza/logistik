@@ -39,6 +39,9 @@ test('correct password must be provided to update password', function () {
         ->call('updatePassword');
 
     $response->assertHasErrors(['current_password']);
+
+    expect($response->errors()->first('current_password'))
+        ->toBe('Kata sandi saat ini tidak sesuai.');
 });
 
 test('password symbol requirement has a clear Indonesian message', function () {
