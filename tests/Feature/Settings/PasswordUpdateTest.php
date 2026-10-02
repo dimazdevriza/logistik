@@ -3,6 +3,8 @@
 use App\Livewire\Settings\Password;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Livewire\Livewire;
 
 test('password can be updated', function () {
@@ -37,4 +39,14 @@ test('correct password must be provided to update password', function () {
         ->call('updatePassword');
 
     $response->assertHasErrors(['current_password']);
+});
+
+test('password symbol requirement has a clear Indonesian message', function () {
+    $validator = Validator::make(
+        ['password' => 'Password1234'],
+        ['password' => [PasswordRule::min(12)->mixedCase()->letters()->numbers()->symbols()]],
+    );
+
+    expect($validator->errors()->first('password'))
+        ->toBe('Kata sandi harus memuat setidaknya satu tanda khusus, misalnya !, @, atau #.');
 });

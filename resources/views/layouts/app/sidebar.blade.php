@@ -56,7 +56,7 @@
             'show' => in_array($role, ['admin', 'keuangan'], true),
             'links' => [
                 ['route' => $role === 'admin' ? 'admin.house-costs' : 'logistik.house-costs', 'active' => $role === 'admin' ? 'admin.house-costs*' : 'logistik.house-costs*', 'icon' => 'i-chart', 'label' => 'Biaya Rumah'],
-                ['route' => 'logistik.clusters', 'active' => 'logistik.clusters', 'icon' => 'i-chart', 'label' => 'Biaya Cluster'],
+                ['route' => 'logistik.cluster-costs', 'active' => 'logistik.cluster-*', 'icon' => 'i-chart', 'label' => 'Biaya Cluster'],
             ],
         ],
         [

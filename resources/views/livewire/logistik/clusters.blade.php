@@ -3,10 +3,10 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">{{ auth()->user()->role === 'keuangan' ? 'Biaya' : 'Cluster' }} <span class="text-success">{{ auth()->user()->role === 'keuangan' ? 'Cluster' : 'Rumah' }}</span></h1>
-                    <p class="text-secondary mb-0 max-w-xl">{{ auth()->user()->role === 'keuangan' ? 'Pilih cluster untuk melihat dan mencatat biaya.' : 'Kelompokkan unit rumah berdasarkan area proyek atau tahap pembangunan.' }}</p>
+                    <h1 class="display-5 fw-black text-body mb-2 font-outfit">{{ $isCostPage ? 'Biaya' : 'Cluster' }} <span class="text-success">{{ $isCostPage ? 'Cluster' : 'Rumah' }}</span></h1>
+                    <p class="text-secondary mb-0 max-w-xl">{{ $isCostPage ? 'Pilih cluster untuk melihat dan mencatat biaya.' : 'Kelompokkan unit rumah berdasarkan area proyek atau tahap pembangunan.' }}</p>
                 </div>
-                @if (auth()->user()->role === 'admin')
+                @if (auth()->user()->role === 'admin' && ! $isCostPage)
                     <button type="button" wire:click="create" class="btn btn-success fw-semibold">+ Tambah Cluster</button>
                 @endif
             </div>
@@ -46,8 +46,8 @@
                                 <td data-label="Rumah"><span class="management-cell-value"><span class="fw-semibold">{{ $cluster->houses_count }} rumah</span>@if ($cluster->houses_count)<span class="d-block small text-secondary data-cell-truncate" title="{{ $cluster->houses->pluck('name')->join(', ') }}">{{ $cluster->houses->take(3)->pluck('name')->join(', ') }}@if ($cluster->houses_count > 3)<span>, +{{ $cluster->houses_count - 3 }} lainnya</span>@endif</span>@endif</span></td>
                                 <td data-label="Catatan" class="text-secondary small data-cell-truncate" title="{{ $cluster->description ?: '-' }}"><span class="management-cell-value">{{ $cluster->description ?: '-' }}</span></td>
                             <td data-label="Aksi" class="text-end"><span class="management-cell-value"><span class="btn-group btn-group-sm data-row-actions">
-                                        <a href="{{ route('logistik.cluster-expenses', $cluster) }}" wire:navigate class="btn log-row-action log-row-action--edit">Biaya</a>
-                                        @if (auth()->user()->role === 'admin')
+                                        <a href="{{ route('logistik.cluster-expenses', $isCostPage ? ['cluster' => $cluster, 'from' => 'costs'] : $cluster) }}" wire:navigate class="btn log-row-action log-row-action--edit">{{ $isCostPage ? 'Lihat' : 'Biaya' }}</a>
+                                        @if (auth()->user()->role === 'admin' && ! $isCostPage)
                                             <button type="button" wire:click="edit({{ $cluster->id }})" class="btn log-row-action log-row-action--quiet">Edit</button>
                                             <button type="button" wire:click="confirmDelete({{ $cluster->id }})" class="btn log-row-action log-row-action--danger">Hapus</button>
                                         @endif

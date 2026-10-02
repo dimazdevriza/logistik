@@ -14,6 +14,7 @@ class Clusters extends Component
 
     public string $search = '';
     public string $sort = 'name_asc';
+    public bool $isCostPage = false;
     public bool $showModal = false;
     public bool $showConfirmation = false;
     public bool $editMode = false;
@@ -25,6 +26,7 @@ class Clusters extends Component
     public function mount(): void
     {
         abort_unless(in_array(auth()->user()?->role, ['admin', 'keuangan'], true), 403);
+        $this->isCostPage = request()->routeIs('logistik.cluster-costs') || auth()->user()->role === 'keuangan';
     }
 
     public function updatingSearch(): void
@@ -135,7 +137,7 @@ class Clusters extends Component
             ->orderBy('clusters.id')
             ->paginate(10);
 
-        return view('livewire.logistik.clusters', compact('clusters'))
-            ->layout('layouts.app', ['title' => auth()->user()->role === 'keuangan' ? 'Biaya Cluster' : 'Cluster']);
+        return view('livewire.logistik.clusters', ['clusters' => $clusters, 'isCostPage' => $this->isCostPage])
+            ->layout('layouts.app', ['title' => $this->isCostPage ? 'Biaya Cluster' : 'Cluster']);
     }
 }

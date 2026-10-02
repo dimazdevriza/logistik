@@ -61,6 +61,7 @@ Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan'])->group(f
         Route::get('biaya-rumah/{house}', HouseCostDetail::class)->name('logistik.house-costs.detail');
         Route::get('clusters/{cluster}/expenses', ClusterExpenses::class)->name('logistik.cluster-expenses');
         Route::get('clusters', Clusters::class)->middleware('role:admin|keuangan')->name('logistik.clusters');
+        Route::get('biaya-cluster', Clusters::class)->middleware('role:admin|keuangan')->name('logistik.cluster-costs');
 
         // Lapangan stays available to admins and logistics staff only.
         Route::middleware('role:admin|logistik')->group(function () {

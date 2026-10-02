@@ -46,6 +46,9 @@ return [
     'not_in' => ':attribute yang dipilih tidak valid.',
     'not_regex' => 'Format :attribute tidak valid.',
     'numeric' => ':attribute harus berupa angka.',
+    'password' => [
+        'symbols' => 'Kata sandi harus memuat setidaknya satu tanda khusus, misalnya !, @, atau #.',
+    ],
     'regex' => 'Format :attribute tidak valid.',
     'required' => ':attribute wajib diisi.',
     'required_if' => ':attribute wajib diisi ketika :other bernilai :value.',
