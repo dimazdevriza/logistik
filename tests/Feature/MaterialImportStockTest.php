@@ -130,7 +130,7 @@ class MaterialImportStockTest extends TestCase
         $this->assertEquals(5, $openingBatch->remaining_quantity);
         $this->assertEquals(5, $material->stock);
         Livewire::test(TransaksiLogistik::class)
-            ->set('material_id', (string) $material->id)
+            ->call('selectMaterial', $material->id)
             ->assertSee($openingBatch->entry_code);
 
         $openingBatch->update(['remaining_quantity' => 0]);

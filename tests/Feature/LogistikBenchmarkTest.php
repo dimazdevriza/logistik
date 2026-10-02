@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Livewire\Logistik\Materials;
 use App\Livewire\Logistik\TransaksiLogistik;
 use App\Models\Category;
+use App\Models\Cluster;
 use App\Models\House;
 use App\Models\Material;
 use App\Models\MaterialUsage;
@@ -14,8 +15,11 @@ use App\Models\Tool;
 use App\Models\ToolReturnLog;
 use App\Models\ToolUsage;
 use App\Models\User;
+use App\Models\ToolWarehouseBalance;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -42,12 +46,15 @@ class LogistikBenchmarkTest extends TestCase
     protected Category $materialCategory;
     protected Category $toolCategory;
     protected Supplier $supplier;
+    protected Cluster $cluster;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->user = User::factory()->create(['role' => 'logistik']);
+        Storage::fake('public');
+        $this->cluster = Cluster::create(['name' => 'Benchmark cluster']);
+        $this->user = User::factory()->create(['role' => 'logistik', 'cluster_id' => $this->cluster->id]);
         $this->materialCategory = Category::factory()->material()->create();
         $this->toolCategory = Category::factory()->tool()->create();
         $this->supplier = Supplier::factory()->create();
@@ -126,7 +133,7 @@ class LogistikBenchmarkTest extends TestCase
 
     protected function seedHouses(int $count): void
     {
-        House::factory()->count($count)->create(['status' => 'pembangunan']);
+        House::factory()->count($count)->create(['status' => 'pembangunan', 'cluster_id' => $this->cluster->id]);
     }
 
     // ─────────────────────────────────────────────
@@ -143,14 +150,19 @@ class LogistikBenchmarkTest extends TestCase
             'stock'       => 5000,
             'unit_price'  => 75000,
         ]);
-        $house = House::factory()->create(['status' => 'pembangunan']);
+        $house = House::factory()->create(['status' => 'pembangunan', 'cluster_id' => $this->cluster->id]);
+        $batch = StockIn::create([
+            'material_id' => $material->id, 'warehouse_id' => $material->warehouse_id,
+            'quantity' => 5000, 'remaining_quantity' => 5000, 'unit_price' => 75000,
+            'total_cost' => 375000000, 'date' => now()->toDateString(),
+        ]);
 
-        $result = $this->benchmark('Material allocation — 1 house', function () use ($material, $house) {
+        $result = $this->benchmark('Material allocation — 1 house', function () use ($material, $house, $batch) {
             return Livewire::test(TransaksiLogistik::class)
                 ->set('house_ids', [$house->id])
-                ->set('material_id', $material->id)
+                ->call('selectMaterial', $material->id)
+                ->set('material_batch_id', $batch->id)
                 ->set('material_quantity', 5)
-                ->set('usage_date', now()->format('Y-m-d'))
                 ->set('material_notes', 'Benchmark allocation')
                 ->call('saveMaterial');
         });
@@ -172,20 +184,26 @@ class LogistikBenchmarkTest extends TestCase
             'stock'       => 50000,
             'unit_price'  => 45000,
         ]);
+        $batch = StockIn::create([
+            'material_id' => $material->id, 'warehouse_id' => $material->warehouse_id,
+            'quantity' => 50000, 'remaining_quantity' => 50000, 'unit_price' => 45000,
+            'total_cost' => 2250000000, 'date' => now()->toDateString(),
+        ]);
 
         $this->seedHouses(20);
         $houseIds = House::pluck('id')->toArray();
 
-        $result = $this->benchmark('Material allocation — 20 houses', function () use ($material, $houseIds) {
+        $result = $this->benchmark('Material allocation — 20 houses', function () use ($material, $houseIds, $batch) {
             // Reset stock each iteration to allow repeated allocation
             $material->update(['stock' => 50000]);
+            $batch->update(['remaining_quantity' => 50000]);
             MaterialUsage::where('material_id', $material->id)->delete();
 
             return Livewire::test(TransaksiLogistik::class)
                 ->set('house_ids', $houseIds)
-                ->set('material_id', $material->id)
+                ->call('selectMaterial', $material->id)
+                ->set('material_batch_id', $batch->id)
                 ->set('material_quantity', 10)
-                ->set('usage_date', now()->format('Y-m-d'))
                 ->set('material_notes', 'Benchmark allocation')
                 ->call('saveMaterial');
         }, 5);
@@ -205,15 +223,20 @@ class LogistikBenchmarkTest extends TestCase
             'stock'       => 5,
             'unit_price'  => 30000,
         ]);
-        $house = House::factory()->create(['status' => 'pembangunan']);
+        $batch = StockIn::create([
+            'material_id' => $material->id, 'warehouse_id' => $material->warehouse_id,
+            'quantity' => 5, 'remaining_quantity' => 5, 'unit_price' => 30000,
+            'total_cost' => 150000, 'date' => now()->toDateString(),
+        ]);
+        $house = House::factory()->create(['status' => 'pembangunan', 'cluster_id' => $this->cluster->id]);
 
-        $result = $this->benchmark('Material allocation — stock validation rejection', function () use ($material, $house) {
+        $result = $this->benchmark('Material allocation — stock validation rejection', function () use ($material, $house, $batch) {
             return Livewire::test(TransaksiLogistik::class)
                 ->set('house_ids', [$house->id])
-                ->set('material_id', $material->id)
+                ->call('selectMaterial', $material->id)
+                ->set('material_batch_id', $batch->id)
                 ->set('material_quantity', 999)
                 ->set('material_notes', 'Tes Peruntukkan')
-                ->set('usage_date', now()->format('Y-m-d'))
                 ->call('showMaterialConfirmationModal')
                 ->assertHasErrors(['material_quantity']);
         });
@@ -235,18 +258,19 @@ class LogistikBenchmarkTest extends TestCase
             'total_qty'     => 100,
             'available_qty' => 100,
         ]);
-        $house = House::factory()->create(['status' => 'pembangunan']);
+        $house = House::factory()->create(['status' => 'pembangunan', 'cluster_id' => $this->cluster->id]);
 
         $result = $this->benchmark('Tool checkout — 1 house', function () use ($tool, $house) {
-            $tool->update(['available_qty' => 100]);
+            ToolWarehouseBalance::where('tool_id', $tool->id)->update(['available_qty' => 100, 'qty_broken' => 0]);
+            $tool->update(['available_qty' => 100, 'qty_broken' => 0]);
             ToolUsage::where('tool_id', $tool->id)->delete();
 
             return Livewire::test(TransaksiLogistik::class)
                 ->set('house_ids', [$house->id])
                 ->set('tool_id', $tool->id)
                 ->set('tool_quantity', 3)
-                ->set('checkout_date', now()->format('Y-m-d'))
                 ->set('tool_notes', 'Benchmark checkout')
+                ->set('toolAllocationProofImage', UploadedFile::fake()->image('checkout.jpg'))
                 ->call('saveTool');
         }, 5);
 
@@ -269,15 +293,16 @@ class LogistikBenchmarkTest extends TestCase
         $houseIds = House::pluck('id')->toArray();
 
         $result = $this->benchmark('Tool checkout — 15 houses', function () use ($tool, $houseIds) {
-            $tool->update(['available_qty' => 500]);
+            ToolWarehouseBalance::where('tool_id', $tool->id)->update(['available_qty' => 500, 'qty_broken' => 0]);
+            $tool->update(['available_qty' => 500, 'qty_broken' => 0]);
             ToolUsage::where('tool_id', $tool->id)->delete();
 
             return Livewire::test(TransaksiLogistik::class)
                 ->set('house_ids', $houseIds)
                 ->set('tool_id', $tool->id)
                 ->set('tool_quantity', 2)
-                ->set('checkout_date', now()->format('Y-m-d'))
                 ->set('tool_notes', 'Benchmark checkout')
+                ->set('toolAllocationProofImage', UploadedFile::fake()->image('checkout.jpg'))
                 ->call('saveTool');
         }, 5);
 
@@ -295,7 +320,7 @@ class LogistikBenchmarkTest extends TestCase
             'total_qty'     => 2,
             'available_qty' => 2,
         ]);
-        $house = House::factory()->create(['status' => 'pembangunan']);
+        $house = House::factory()->create(['status' => 'pembangunan', 'cluster_id' => $this->cluster->id]);
 
         $result = $this->benchmark('Tool checkout — qty validation rejection', function () use ($tool, $house) {
             return Livewire::test(TransaksiLogistik::class)
@@ -303,7 +328,6 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('tool_id', $tool->id)
                 ->set('tool_quantity', 999)
                 ->set('tool_notes', 'Tes Peruntukkan')
-                ->set('checkout_date', now()->format('Y-m-d'))
                 ->call('showToolConfirmationModal')
                 ->assertHasErrors(['tool_quantity']);
         });
@@ -325,18 +349,21 @@ class LogistikBenchmarkTest extends TestCase
             'total_qty'     => 50,
             'available_qty' => 40,
         ]);
-        $house = House::factory()->create(['status' => 'pembangunan']);
+        $house = House::factory()->create(['status' => 'pembangunan', 'cluster_id' => $this->cluster->id]);
         $usage = ToolUsage::factory()->create([
             'house_id'     => $house->id,
             'tool_id'      => $tool->id,
             'user_id'      => $this->user->id,
             'quantity'     => 5,
+            'warehouse_id' => $tool->warehouse_id,
+            'warehouse_source_recorded' => true,
             'return_date'  => null,
         ]);
 
         $result = $this->benchmark('Tool return — full (normal condition)', function () use ($tool, $usage) {
             // Reset state
-            $tool->update(['available_qty' => 40, 'condition' => 'baik']);
+            $tool->update(['available_qty' => 40, 'qty_broken' => 0, 'condition' => 'baik']);
+            ToolWarehouseBalance::where('tool_id', $tool->id)->update(['available_qty' => 40, 'qty_broken' => 0]);
             $usage->update(['return_date' => null, 'quantity' => 5]);
             ToolReturnLog::where('tool_usage_id', $usage->id)->delete();
 
@@ -349,6 +376,7 @@ class LogistikBenchmarkTest extends TestCase
                         'qty_normal' => 5,
                         'qty_broken' => 0,
                         'qty_lost'   => 0,
+                        'receiving_warehouse_id' => $tool->warehouse_id,
                         'notes'      => '',
                     ],
                 ])
@@ -372,12 +400,14 @@ class LogistikBenchmarkTest extends TestCase
             'total_qty'     => 50,
             'available_qty' => 45,
         ]);
-        $house = House::factory()->create(['status' => 'pembangunan']);
+        $house = House::factory()->create(['status' => 'pembangunan', 'cluster_id' => $this->cluster->id]);
         $usage = ToolUsage::factory()->create([
             'house_id'    => $house->id,
             'tool_id'     => $tool->id,
             'user_id'     => $this->user->id,
             'quantity'    => 10,
+            'warehouse_id' => $tool->warehouse_id,
+            'warehouse_source_recorded' => true,
             'return_date' => null,
         ]);
 
@@ -391,6 +421,7 @@ class LogistikBenchmarkTest extends TestCase
                     'qty_normal' => 3,
                     'qty_broken' => 2,
                     'qty_lost'   => 1,
+                    'receiving_warehouse_id' => $tool->warehouse_id,
                     'notes'      => 'Kerusakan karena jatuh',
                 ],
             ])
@@ -403,8 +434,10 @@ class LogistikBenchmarkTest extends TestCase
 
         // Now benchmark the full confirmation+save flow
         $result = $this->benchmark('Tool return — partial (3 good, 2 broken, 1 lost)', function () use ($tool, $usage) {
-            $tool->update(['available_qty' => 45, 'total_qty' => 50, 'condition' => 'baik']);
+            $tool->update(['available_qty' => 45, 'qty_broken' => 0, 'total_qty' => 50, 'condition' => 'baik']);
+            ToolWarehouseBalance::where('tool_id', $tool->id)->update(['available_qty' => 45, 'qty_broken' => 0]);
             $usage->update(['return_date' => null, 'quantity' => 10]);
+            ToolUsage::where('parent_usage_id', $usage->id)->delete();
 
             return Livewire::test(TransaksiLogistik::class)
                 ->set('house_ids', [$usage->house_id])
@@ -415,6 +448,7 @@ class LogistikBenchmarkTest extends TestCase
                         'qty_normal' => 3,
                         'qty_broken' => 2,
                         'qty_lost'   => 1,
+                        'receiving_warehouse_id' => $tool->warehouse_id,
                         'notes'      => '',
                     ],
                 ])
@@ -488,11 +522,11 @@ class LogistikBenchmarkTest extends TestCase
                 ->set('restockSupplierName', $this->supplier->name)
                 ->set('restockReceivedAt', now()->format('Y-m-d\\TH:i'))
                 ->call('saveRestock');
-        }, 5);
+        });
 
         $material->refresh();
         $this->assertEquals(130, $material->stock);
-        $this->assertEquals(65000, $material->unit_price);
+        $this->assertEquals(50000, $material->unit_price);
         $this->assertSame(1, Material::where('name', $material->name)->count());
         $this->assertEquals(65000, StockIn::where('material_id', $material->id)->sole()->unit_price);
     }
@@ -612,6 +646,7 @@ class LogistikBenchmarkTest extends TestCase
                 'name'       => 'Blok B-' . str_pad($i, 3, '0', STR_PAD_LEFT),
                 'type'       => 'Tipe 36',
                 'status'     => 'pembangunan',
+                'cluster_id' => $this->cluster->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -620,15 +655,16 @@ class LogistikBenchmarkTest extends TestCase
         $houseIds = House::pluck('id')->toArray();
 
         $result = $this->benchmark('Tool checkout — 100 houses at once', function () use ($tool, $houseIds) {
-            $tool->update(['available_qty' => 1000]);
+            ToolWarehouseBalance::where('tool_id', $tool->id)->update(['available_qty' => 1000, 'qty_broken' => 0]);
+            $tool->update(['available_qty' => 1000, 'qty_broken' => 0]);
             ToolUsage::where('tool_id', $tool->id)->delete();
 
             return Livewire::test(TransaksiLogistik::class)
                 ->set('house_ids', $houseIds)
                 ->set('tool_id', $tool->id)
                 ->set('tool_quantity', 1)
-                ->set('checkout_date', now()->format('Y-m-d'))
                 ->set('tool_notes', 'Benchmark checkout')
+                ->set('toolAllocationProofImage', UploadedFile::fake()->image('checkout.jpg'))
                 ->call('saveTool');
         }, 3);
 

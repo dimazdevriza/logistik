@@ -86,8 +86,8 @@ class LogResponsibilityTest extends TestCase
         ]);
 
         $export = new MaterialLogExport('', 'keluar');
-        $this->assertCount(13, $export->headings()[0]);
-        $this->assertCount(13, $export->map($export->collection()->first()));
+        $this->assertCount(15, $export->headings()[0]);
+        $this->assertCount(15, $export->map($export->collection()->first()));
         $this->assertSame('Penanggung Jawab', (new ToolLogExport(\Illuminate\Support\Facades\DB::table('tool_usages')))->headings()[3][8]);
 
         $file = tmpfile();

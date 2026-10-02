@@ -8,6 +8,7 @@ use App\Livewire\Logistik\TransaksiLogistik;
 use App\Models\Cluster;
 use App\Models\House;
 use App\Models\Material;
+use App\Models\MaterialUsage;
 use App\Models\MaterialToolRequest;
 use App\Models\StockIn;
 use App\Models\Tool;
@@ -52,22 +53,17 @@ class LogistikBatchReservationTest extends TestCase
             ->set('material_notes', 'TEST selected batch reservation')
             ->call('showMaterialConfirmationModal')
             ->assertSet('showMaterialConfirmation', true)
-            ->set('materialDispatchProofImage', UploadedFile::fake()->create('TEST-material-dispatch.jpg', 100, 'image/jpeg'))
+            ->set('materialAllocationProofImage', UploadedFile::fake()->image('TEST-material-allocation.jpg'))
             ->call('saveMaterial')
             ->assertHasNoErrors()
-            ->assertSet('showMaterialConfirmation', false)
-            ->assertSet('noticeShowDispatchLink', true)
-            ->assertSee('Lihat alokasi di daftar pengiriman')
-            ->assertSee(route('logistik.dispatches'));
+            ->assertSet('showMaterialConfirmation', false);
 
-        $request = MaterialToolRequest::where('requester_id', $logistik->id)->sole();
-        $this->assertSame($batch->id, $request->stock_in_id);
-        $this->assertSame('dispatched', $request->status);
-        $this->assertSame($batch->id, $request->dispatchLines()->sole()->stock_in_id);
+        $usage = MaterialUsage::where('house_id', $house->id)->sole();
+        $this->assertSame($batch->id, $usage->stock_in_id);
         $this->assertSame(3.0, (float) $batch->fresh()->remaining_quantity);
         $this->assertSame(3.0, $batch->fresh()->available_quantity);
         $this->assertSame(3.0, (float) $material->fresh()->stock);
-        Storage::disk('public')->assertExists($request->dispatch_proof_image);
+        Storage::disk('public')->assertExists($usage->proof_image);
 
         $this->actingAs(User::factory()->create(['role' => 'admin']));
         $destination = Warehouse::create(['name' => 'TEST Reservation Destination']);
@@ -90,7 +86,7 @@ class LogistikBatchReservationTest extends TestCase
             ->set('material_notes', 'TEST over-reservation')
             ->call('showMaterialConfirmationModal')
             ->assertHasErrors(['material_quantity']);
-        $this->assertSame(1, MaterialToolRequest::where('requester_id', $logistik->id)->count());
+        $this->assertSame(1, MaterialUsage::where('house_id', $house->id)->count());
 
     }
 
@@ -132,19 +128,18 @@ class LogistikBatchReservationTest extends TestCase
             ->set('material_quantity', 6)
             ->set('material_notes', 'TEST dispatch selected batch')
             ->call('showMaterialConfirmationModal')
-            ->set('materialDispatchProofImage', UploadedFile::fake()->create('TEST-dispatch.jpg', 100, 'image/jpeg'))
+            ->set('materialAllocationProofImage', UploadedFile::fake()->image('TEST-allocation.jpg'))
             ->call('saveMaterial')
             ->assertHasNoErrors()
             ->assertSet('showMaterialConfirmation', false);
-        $request = MaterialToolRequest::where('requester_id', $logistik->id)->sole();
+        $usage = MaterialUsage::where('house_id', $house->id)->sole();
 
-        $line = $request->fresh()->dispatchLines()->sole();
-        $this->assertSame($chosenBatch->id, $line->stock_in_id);
-        $this->assertSame(200.0, (float) $line->unit_price);
+        $this->assertSame($chosenBatch->id, $usage->stock_in_id);
+        $this->assertSame(200.0, (float) $usage->unit_price_at_usage);
         $this->assertSame(4.0, (float) $olderBatch->fresh()->remaining_quantity);
         $this->assertSame(2.0, (float) $chosenBatch->fresh()->remaining_quantity);
         $this->assertSame(2.0, $chosenBatch->fresh()->available_quantity);
-        $this->assertSame('dispatched', $request->fresh()->status);
+        $this->assertSame(6.0, (float) $usage->quantity);
     }
 
     public function test_tool_allocation_dispatches_immediately_from_its_selected_warehouse(): void
@@ -169,20 +164,16 @@ class LogistikBatchReservationTest extends TestCase
             ->set('tool_notes', 'TEST reserved tool')
             ->call('showToolConfirmationModal')
             ->assertSet('showToolConfirmation', true)
-            ->set('toolDispatchProofImage', UploadedFile::fake()->create('TEST-tool-dispatch.jpg', 100, 'image/jpeg'))
+            ->set('toolAllocationProofImage', UploadedFile::fake()->image('TEST-tool-allocation.jpg'))
             ->call('saveTool')
             ->assertHasNoErrors()
-            ->assertSet('noticeShowDispatchLink', true)
-            ->assertSee('Lihat alokasi di daftar pengiriman')
-            ->assertSee(route('logistik.dispatches'));
+            ->assertSet('showToolConfirmation', false);
 
-        $request = MaterialToolRequest::where('requester_id', $logistik->id)->sole();
-        $this->assertSame($warehouse->id, $request->source_warehouse_id);
-        $this->assertSame('dispatched', $request->status);
+        $usage = ToolUsage::where('house_id', $house->id)->sole();
+        $this->assertSame($warehouse->id, $usage->warehouse_id);
         $this->assertSame(1, (int) $tool->fresh()->available_qty);
-        $this->assertSame(3, (int) $request->dispatchLines()->sole()->quantity);
-        Storage::disk('public')->assertExists($request->dispatch_proof_image);
-        $this->assertSame(0, ToolUsage::where('tool_id', $tool->id)->count());
+        $this->assertSame(3, (int) $usage->quantity);
+        Storage::disk('public')->assertExists($usage->proof_image);
 
         Livewire::test(TransaksiLogistik::class)
             ->set('house_ids', [$house->id])

@@ -20,6 +20,8 @@ class ToolReturnLog extends Model
         'received_by_id',
         'resolved_by_id',
         'resolved_at',
+        'resolution_notes',
+        'repair_cost',
         'quantity',
         'report_type',
         'status',
@@ -34,6 +36,7 @@ class ToolReturnLog extends Model
             'quantity' => 'integer',
             'received_at' => 'datetime',
             'resolved_at' => 'datetime',
+            'repair_cost' => 'decimal:2',
         ];
     }
 

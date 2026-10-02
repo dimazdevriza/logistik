@@ -41,7 +41,7 @@ class ToolReceiptIdentityTest extends TestCase
             ->assertHasNoErrors();
 
         $tool = Tool::where('submission_key', $submissionKey)->sole();
-        $this->assertStringStartsWith('ALT-MSK-', $tool->entry_code);
+        $this->assertStringStartsWith('MSK-', $tool->entry_code);
         $this->assertSame('2026-09-24 10:15', $tool->received_at->format('Y-m-d H:i'));
         $this->assertSame('2026-09-24', $tool->received_date->format('Y-m-d'));
         $this->assertSame(auth()->id(), $tool->recorded_by_id);

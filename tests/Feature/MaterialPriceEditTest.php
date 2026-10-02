@@ -27,6 +27,7 @@ class MaterialPriceEditTest extends TestCase
         $material = Material::factory()->create(['stock' => 8, 'unit_price' => 100]);
         $receipt = StockIn::create([
             'material_id' => $material->id, 'user_id' => $user->id,
+            'warehouse_id' => $material->warehouse_id,
             'quantity' => 10, 'unit_price' => 100, 'total_cost' => 1000,
             'date' => '2026-09-10', 'notes' => 'Stok awal',
         ]);
@@ -52,11 +53,10 @@ class MaterialPriceEditTest extends TestCase
         $this->assertEquals(200, $house->total_material_cost);
 
         Livewire::test(TransaksiLogistik::class)
-            ->set('material_id', $material->id)
+            ->call('selectMaterial', $material->id)
             ->set('material_batch_id', $receipt->id)
             ->set('house_ids', [$house->id])
             ->set('material_quantity', 1)
-            ->set('usage_date', now()->toDateString())
             ->set('material_notes', 'New allocation after price update')
             ->call('saveMaterial')
             ->assertHasNoErrors();

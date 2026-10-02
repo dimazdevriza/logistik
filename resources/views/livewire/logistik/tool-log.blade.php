@@ -28,6 +28,38 @@
         @if (session('success'))
             <div class="alert alert-success" role="alert">{{ session('success') }}</div>
         @endif
+        @if ($pendingBrokenReturns->isNotEmpty() && in_array(auth()->user()->role, ['admin', 'logistik'], true))
+            <section class="card border-warning-subtle shadow-sm rounded-4 mb-4" aria-labelledby="broken-tool-resolution-heading">
+                <div class="card-body p-4">
+                    <h2 id="broken-tool-resolution-heading" class="h5 mb-1">Alat rusak yang perlu ditindaklanjuti</h2>
+                    <p class="text-secondary small mb-3">Catat hasil pemeriksaan sebelum unit dikembalikan ke stok atau diafkir.</p>
+                    <div class="vstack gap-3">
+                        @foreach ($pendingBrokenReturns as $brokenReturn)
+                            <div class="border rounded-3 p-3" wire:key="broken-return-{{ $brokenReturn->id }}">
+                                <div class="fw-semibold">{{ $brokenReturn->tool->name }} · {{ $brokenReturn->quantity }} unit</div>
+                                <div class="small text-secondary mb-3">{{ $brokenReturn->house->name }} · {{ $brokenReturn->receivingWarehouse?->name ?? 'Gudang tidak tercatat' }} · {{ $brokenReturn->notes ?: 'Tanpa catatan' }}</div>
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-6">
+                                        <label class="form-label small" for="broken-return-note-{{ $brokenReturn->id }}">Catatan penyelesaian</label>
+                                        <input id="broken-return-note-{{ $brokenReturn->id }}" class="form-control" wire:model="resolutionNotesById.{{ $brokenReturn->id }}" maxlength="500" required>
+                                        @error('resolutionNotesById.'.$brokenReturn->id) <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small" for="broken-return-cost-{{ $brokenReturn->id }}">Biaya perbaikan (opsional)</label>
+                                        <input id="broken-return-cost-{{ $brokenReturn->id }}" type="number" min="0" step="0.01" class="form-control" wire:model="repairCostsById.{{ $brokenReturn->id }}">
+                                        @error('repairCostsById.'.$brokenReturn->id) <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-md-3 d-flex gap-2">
+                                        <button type="button" class="btn btn-success" wire:click="resolveBrokenReturn({{ $brokenReturn->id }}, 'fixed')">Sudah diperbaiki</button>
+                                        <button type="button" class="btn btn-outline-danger" wire:click="resolveBrokenReturn({{ $brokenReturn->id }}, 'discarded')" wire:confirm="Afkir unit rusak ini? Jumlah tercatat akan dikurangi.">Afkir</button>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
         @error('void')
             <div class="alert alert-danger" role="alert">{{ $message }}</div>
         @enderror

@@ -285,6 +285,7 @@ class FollowUpIntegrityTest extends TestCase
         Livewire::test(Dispatches::class)
             ->call('dispatchRequest', $request->id)
             ->set('dispatchLines', [['source_id' => (string) $batch->id, 'quantity' => '2']])
+            ->set('dispatchProofImage', UploadedFile::fake()->image('dispatch-proof.jpg'))
             ->call('submitDispatch')
             ->assertHasNoErrors();
 
@@ -303,8 +304,9 @@ class FollowUpIntegrityTest extends TestCase
         Livewire::test(Dispatches::class)
             ->call('dispatchRequest', $competingRequest->id)
             ->set('dispatchLines', [['source_id' => (string) $batch->id, 'quantity' => '9']])
+            ->set('dispatchProofImage', UploadedFile::fake()->image('dispatch-proof.jpg'))
             ->call('submitDispatch')
-            ->assertHasErrors('dispatchLines');
+            ->assertHasErrors('selectedRequestId');
 
         $this->assertSame('pending', $competingRequest->fresh()->status);
         $this->assertSame(8.0, (float) $material->fresh()->stock);
@@ -327,7 +329,7 @@ class FollowUpIntegrityTest extends TestCase
         $this->assertFalse($house->fresh()->hasOpenRequests());
     }
 
-    public function test_dispatch_records_each_selected_material_batch_and_rejects_repeat_submission(): void
+    public function test_dispatch_records_the_planned_material_batches_and_rejects_repeat_submission(): void
     {
         $warehouse = Warehouse::create(['name' => 'TEST Batch Dispatch Warehouse', 'address' => 'Test only']);
         $material = Material::factory()->create(['warehouse_id' => $warehouse->id, 'stock' => 10, 'unit_price' => 300]);
@@ -364,28 +366,26 @@ class FollowUpIntegrityTest extends TestCase
 
         Livewire::test(Dispatches::class)
             ->call('dispatchRequest', $request->id)
-            ->set('dispatchLines', [
-                ['source_id' => (string) $firstBatch->id, 'quantity' => '3'],
-                ['source_id' => (string) $secondBatch->id, 'quantity' => '4'],
-            ])
+            ->set('dispatchProofImage', UploadedFile::fake()->image('dispatch-proof.jpg'))
             ->call('submitDispatch')
             ->assertHasNoErrors();
 
         $this->assertSame(3.0, (float) $material->fresh()->stock);
-        $this->assertSame(1.0, (float) $firstBatch->fresh()->remaining_quantity);
-        $this->assertSame(2.0, (float) $secondBatch->fresh()->remaining_quantity);
+        $this->assertSame(0.0, (float) $firstBatch->fresh()->remaining_quantity);
+        $this->assertSame(3.0, (float) $secondBatch->fresh()->remaining_quantity);
         $this->assertSame(2, $request->fresh()->dispatchLines()->count());
         $this->assertStringStartsWith('DSP-', $request->fresh()->dispatch_code);
-        $this->assertSame(157.14, (float) $request->fresh()->unit_price_at_dispatch);
+        $this->assertSame(142.86, (float) $request->fresh()->unit_price_at_dispatch);
 
         Livewire::test(Dispatches::class)
             ->set('selectedRequestId', $request->id)
             ->set('dispatchLines', [
-                ['source_id' => (string) $firstBatch->id, 'quantity' => '3'],
-                ['source_id' => (string) $secondBatch->id, 'quantity' => '4'],
+                ['source_id' => (string) $firstBatch->id, 'quantity' => '4'],
+                ['source_id' => (string) $secondBatch->id, 'quantity' => '3'],
             ])
+            ->set('dispatchProofImage', UploadedFile::fake()->image('repeat-dispatch-proof.jpg'))
             ->call('submitDispatch')
-            ->assertHasErrors('dispatchLines');
+            ->assertHasErrors('dispatchProofImage');
 
         $this->assertSame(3.0, (float) $material->fresh()->stock);
         $this->assertSame(2, $request->fresh()->dispatchLines()->count());
@@ -401,7 +401,7 @@ class FollowUpIntegrityTest extends TestCase
 
         $usages = \App\Models\MaterialUsage::where('dispatch_code', $request->fresh()->dispatch_code)->orderBy('stock_in_id')->get();
         $this->assertSame([$firstBatch->id, $secondBatch->id], $usages->pluck('stock_in_id')->all());
-        $this->assertSame([3.0, 4.0], $usages->map(fn ($usage) => (float) $usage->quantity)->all());
+        $this->assertSame([4.0, 3.0], $usages->map(fn ($usage) => (float) $usage->quantity)->all());
         $this->assertSame([100.0, 200.0], $usages->map(fn ($usage) => (float) $usage->unit_price_at_usage)->all());
     }
 
@@ -435,6 +435,7 @@ class FollowUpIntegrityTest extends TestCase
         Livewire::test(Dispatches::class)
             ->call('dispatchRequest', $request->id)
             ->set('dispatchLines', [['source_id' => (string) $batch->id, 'quantity' => '100']])
+            ->set('dispatchProofImage', UploadedFile::fake()->image('dispatch-proof.jpg'))
             ->call('submitDispatch')
             ->assertHasNoErrors();
         $line = $request->fresh()->dispatchLines()->firstOrFail();
@@ -542,6 +543,7 @@ class FollowUpIntegrityTest extends TestCase
         Livewire::test(Dispatches::class)
             ->call('dispatchRequest', $request->id)
             ->set('dispatchLines', [['source_id' => (string) $batch->id, 'quantity' => '10']])
+            ->set('dispatchProofImage', UploadedFile::fake()->image('dispatch-proof.jpg'))
             ->call('submitDispatch')
             ->assertHasNoErrors();
         $line = $request->fresh()->dispatchLines()->firstOrFail();
@@ -650,6 +652,7 @@ class FollowUpIntegrityTest extends TestCase
         Livewire::test(Dispatches::class)
             ->call('dispatchRequest', $request->id)
             ->set('dispatchLines', [['source_id' => (string) $tool->warehouse_id, 'quantity' => '1']])
+            ->set('dispatchProofImage', UploadedFile::fake()->image('dispatch-proof.jpg'))
             ->call('submitDispatch')
             ->assertHasNoErrors();
 
@@ -745,6 +748,7 @@ class FollowUpIntegrityTest extends TestCase
                 ['source_id' => (string) $warehouses[0]->id, 'quantity' => '1'],
                 ['source_id' => (string) $warehouses[1]->id, 'quantity' => '1'],
             ])
+            ->set('dispatchProofImage', UploadedFile::fake()->image('dispatch-proof.jpg'))
             ->call('submitDispatch')
             ->assertHasNoErrors();
 
@@ -790,6 +794,7 @@ class FollowUpIntegrityTest extends TestCase
         Livewire::test(Dispatches::class)
             ->call('dispatchRequest', $request->id)
             ->set('dispatchLines', [['source_id' => (string) $tool->warehouse_id, 'quantity' => '2']])
+            ->set('dispatchProofImage', UploadedFile::fake()->image('dispatch-proof.jpg'))
             ->call('submitDispatch')
             ->assertHasNoErrors();
 

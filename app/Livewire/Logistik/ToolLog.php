@@ -12,6 +12,7 @@ use App\Support\ToolInventory;
 use App\Traits\WithFilterModal;
 use App\Traits\WithTableSorting;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
@@ -27,6 +28,10 @@ class ToolLog extends Component
     public $filterHouse = '';
 
     public $sort = 'date_desc';
+
+    public array $resolutionNotesById = [];
+
+    public array $repairCostsById = [];
 
     public function updatingSearch()
     {
@@ -103,6 +108,65 @@ class ToolLog extends Component
         } catch (\Exception $e) {
             $this->addError('void', $e->getMessage());
         }
+    }
+
+    public function resolveBrokenReturn(int $returnLogId, string $resolution): void
+    {
+        if (! in_array(auth()->user()->role, ['admin', 'logistik'], true)) {
+            abort(403);
+        }
+        if (! in_array($resolution, ['fixed', 'discarded'], true)) {
+            throw ValidationException::withMessages(['resolution' => 'Pilih perbaikan atau afkir.']);
+        }
+
+        $rules = ["resolutionNotesById.$returnLogId" => ['required', 'string', 'max:500']];
+        if ($resolution === 'fixed') {
+            $rules["repairCostsById.$returnLogId"] = ['nullable', 'numeric', 'min:0', 'max:9999999999999.99'];
+        }
+        $this->validate($rules);
+
+        DB::transaction(function () use ($returnLogId, $resolution): void {
+            $return = ToolReturnLog::whereHas('house', fn ($query) => $query->forUser(auth()->user()))
+                ->lockForUpdate()->findOrFail($returnLogId);
+            if ($return->report_type !== 'broken' || $return->status !== 'pending') {
+                throw ValidationException::withMessages(['resolution' => 'Catatan rusak ini sudah diproses atau tidak dapat diselesaikan.']);
+            }
+            if (! $return->receiving_warehouse_id) {
+                throw ValidationException::withMessages(['resolution' => 'Gudang penerima tidak tercatat; stok perlu diperiksa manual.']);
+            }
+
+            $tool = Tool::lockForUpdate()->findOrFail($return->tool_id);
+            $balance = ToolInventory::lockBalance($tool, (int) $return->receiving_warehouse_id);
+            if ($balance->qty_broken < $return->quantity) {
+                throw ValidationException::withMessages(['resolution' => 'Saldo alat rusak di gudang tidak mencukupi.']);
+            }
+
+            $balance->decrement('qty_broken', $return->quantity);
+            if ($resolution === 'fixed') {
+                $balance->increment('available_qty', $return->quantity);
+            } else {
+                if ($tool->total_qty < $return->quantity) {
+                    throw ValidationException::withMessages(['resolution' => 'Jumlah alat afkir melebihi total alat tercatat.']);
+                }
+                $tool->decrement('total_qty', $return->quantity);
+            }
+
+            ToolInventory::refreshAggregates($tool);
+            $tool->refresh();
+            $tool->condition = $tool->qty_broken > 0 ? 'rusak' : 'baik';
+            $tool->save();
+
+            $return->update([
+                'status' => $resolution,
+                'resolved_by_id' => auth()->id(),
+                'resolved_at' => now(),
+                'resolution_notes' => $this->resolutionNotesById[$returnLogId],
+                'repair_cost' => $resolution === 'fixed' ? ($this->repairCostsById[$returnLogId] ?? null) : null,
+            ]);
+        });
+
+        $this->resetValidation(["resolutionNotesById.$returnLogId", "repairCostsById.$returnLogId"]);
+        session()->flash('success', 'Catatan alat rusak berhasil diselesaikan.');
     }
 
     public function exportExcel()
@@ -326,7 +390,14 @@ class ToolLog extends Component
         $records = $this->buildRecordsQuery()->paginate(10);
 
         $houses = House::forUser(auth()->user())->orderBy('name')->get();
-        return view('livewire.logistik.tool-log', compact('records', 'houses'))
+        $pendingBrokenReturns = ToolReturnLog::with(['tool:id,name,code', 'house:id,name', 'receivingWarehouse:id,name'])
+            ->where('report_type', 'broken')
+            ->where('status', 'pending')
+            ->whereHas('house', fn ($query) => $query->forUser(auth()->user()))
+            ->oldest('received_at')
+            ->get();
+
+        return view('livewire.logistik.tool-log', compact('records', 'houses', 'pendingBrokenReturns'))
             ->layout('layouts.app', ['title' => 'Catatan Alat']);
     }
 }

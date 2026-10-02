@@ -231,18 +231,14 @@ test('spreadsheet allocation previews selected houses and requires final confirm
         ->assertSet('showSpreadsheetConfirmation', true)
         ->call('saveSpreadsheet')
         ->assertHasNoErrors()
-        ->assertSet('showSpreadsheetConfirmation', false)
-        ->assertSet('noticeShowDispatchLink', true)
-        ->assertSee('Lihat alokasi di daftar pengiriman')
-        ->assertSee(route('logistik.dispatches'));
+        ->assertSet('showSpreadsheetConfirmation', false);
 
     expect((float) $batch->fresh()->remaining_quantity)->toBe(16.0);
     expect((float) $material->fresh()->stock)->toBe(16.0);
-    $this->assertDatabaseCount('material_tool_requests', 2);
-    $this->assertDatabaseHas('material_tool_requests', [
+    $this->assertDatabaseCount('material_usages', 2);
+    $this->assertDatabaseHas('material_usages', [
         'house_id' => $houses->first()->id,
-        'type' => 'material',
-        'status' => 'dispatched',
+        'material_id' => $material->id,
         'quantity' => 2,
     ]);
 
@@ -329,12 +325,11 @@ test('spreadsheet allocation dispatches tools and records returns after confirma
     expect((int) ToolWarehouseBalance::where('tool_id', $returnTool->id)->where('warehouse_id', $warehouse->id)->value('qty_broken'))->toBe(1);
     expect($usage->fresh()->return_date)->not->toBeNull();
     expect(ToolReturnLog::where('tool_usage_id', $usage->id)->count())->toBe(2);
-    $this->assertDatabaseHas('material_tool_requests', [
+    $this->assertDatabaseHas('tool_usages', [
         'house_id' => $houses[0]->id,
-        'type' => 'tool',
         'tool_id' => $dispatchTool->id,
-        'status' => 'dispatched',
         'quantity' => 2,
+        'return_date' => null,
     ]);
 });
 

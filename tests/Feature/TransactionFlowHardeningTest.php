@@ -178,7 +178,7 @@ test('material allocation preview uses selected receipt price instead of catalog
         ->assertSet('showMaterialConfirmation', true);
 });
 
-test('decimal allocation reserves 0.4 without spending before receipt', function () {
+test('decimal material allocation consumes the selected batch immediately', function () {
     $material = Material::factory()->create([
         'category_id' => $this->materialCategory->id,
         'supplier_id' => $this->supplier->id,
@@ -208,10 +208,10 @@ test('decimal allocation reserves 0.4 without spending before receipt', function
         ->call('saveMaterial')
         ->assertHasNoErrors();
 
-    expect((float) $material->fresh()->stock)->toBe(10.0);
-    expect((float) $batch->fresh()->remaining_quantity)->toBe(10.0);
+    expect((float) $material->fresh()->stock)->toBe(9.6);
+    expect((float) $batch->fresh()->remaining_quantity)->toBe(9.6);
     expect($batch->fresh()->available_quantity)->toBe(9.6);
-    expect(MaterialUsage::count())->toBe(0);
+    expect((float) MaterialUsage::sole()->quantity)->toBe(0.4);
 });
 
 test('A1 restock accepts fractional quantity', function () {
@@ -275,7 +275,7 @@ test('A2 broken return moves to qty_broken pool, available unchanged', function 
     expect($tool->condition)->toBe('rusak');
 });
 
-test('tool allocation reserves units until dispatch and does not create a loan early', function () {
+test('tool allocation checks out units immediately with proof', function () {
     $tool = Tool::factory()->create(['condition' => 'baik', 'total_qty' => 20, 'available_qty' => 20, 'qty_broken' => 0]);
     $house = House::factory()->create(['cluster_id' => $this->cluster->id, 'status' => 'pembangunan']);
 
@@ -284,12 +284,13 @@ test('tool allocation reserves units until dispatch and does not create a loan e
         ->set('tool_id', $tool->id)
         ->set('tool_quantity', 4)
         ->set('tool_notes', 'Pekerjaan pondasi')
+        ->set('toolAllocationProofImage', UploadedFile::fake()->image('tool-allocation.jpg'))
         ->call('saveTool')
         ->assertHasNoErrors();
 
-    expect((int) $tool->fresh()->available_qty)->toBe(20);
-    expect((float) MaterialToolRequest::where('tool_id', $tool->id)->where('status', 'pending')->sum('quantity'))->toBe(4.0);
-    expect(ToolUsage::where('tool_id', $tool->id)->count())->toBe(0);
+    expect((int) $tool->fresh()->available_qty)->toBe(16);
+    expect((int) ToolUsage::where('tool_id', $tool->id)->sum('quantity'))->toBe(4);
+    expect(MaterialToolRequest::where('tool_id', $tool->id)->count())->toBe(0);
 
     // Livewire 4: component methods are NOT auto-forwarded by Testable::__call,
     // so access through ->instance() (Testable.php:411-418 forwards the call to
@@ -297,7 +298,7 @@ test('tool allocation reserves units until dispatch and does not create a loan e
     $component = Livewire::test(TransaksiLogistik::class)
         ->set('house_ids', [$house->id])
         ->set('activeTab', 'return');
-    expect($component->instance()->getActiveToolUsages())->toHaveCount(0);
+    expect($component->instance()->getActiveToolUsages())->toHaveCount(1);
 });
 
 test('A4 partial return remainder sets parent_usage_id', function () {
@@ -389,13 +390,15 @@ test('C duplicate active checkout for same tool+house rejected', function () {
 
     Livewire::test(TransaksiLogistik::class)
         ->set('house_ids', [$house->id])->set('tool_id', $tool->id)->set('tool_quantity', 5)->set('tool_notes', 'Pekerjaan pondasi')
+        ->set('toolAllocationProofImage', UploadedFile::fake()->image('tool-allocation.jpg'))
         ->call('saveTool')->assertHasNoErrors();
 
-    expect(MaterialToolRequest::where('tool_id', $tool->id)->where('house_id', $house->id)->where('status', 'pending')->count())->toBe(1);
-    expect(ToolUsage::where('tool_id', $tool->id)->count())->toBe(0);
+    expect(ToolUsage::where('tool_id', $tool->id)->where('house_id', $house->id)->count())->toBe(1);
+    expect((int) $tool->fresh()->available_qty)->toBe(45);
 
     Livewire::test(TransaksiLogistik::class)
         ->set('house_ids', [$house->id])->set('tool_id', $tool->id)->set('tool_quantity', 5)->set('tool_notes', 'Pekerjaan pondasi')
+        ->set('toolAllocationProofImage', UploadedFile::fake()->image('tool-allocation-again.jpg'))
         ->call('saveTool')->assertHasErrors(['tool_quantity']);
 });
 
@@ -459,18 +462,18 @@ test('final material save rechecks house status after confirmation', function ()
         ->call('showMaterialConfirmationModal')
         ->assertSet('showMaterialConfirmation', true);
 
-    $house->update(['status' => 'selesai']);
+    $house->update(['status' => 'selesai', 'warranty_expires_at' => now()->subDay()]);
 
     $component->call('saveMaterial')
         ->assertHasErrors(['house_ids'])
-        ->assertSet('showMaterialConfirmation', false);
+        ->assertSet('showMaterialConfirmation', true);
 
     expect((float) $material->fresh()->stock)->toBe(10.0);
     expect(MaterialUsage::count())->toBe(0);
     expect(MaterialToolRequest::where('material_id', $material->id)->count())->toBe(0);
 });
 
-test('material allocations create queue rows and reserve one selected batch', function () {
+test('material allocations write usage rows and consume one selected batch', function () {
     $material = Material::factory()->create([
         'category_id' => $this->materialCategory->id,
         'supplier_id' => $this->supplier->id,
@@ -497,8 +500,9 @@ test('material allocations create queue rows and reserve one selected batch', fu
         ->set('material_notes', 'Pekerjaan atap');
 
     $component->call('saveMaterial')->assertHasNoErrors();
-    $firstCodes = MaterialToolRequest::where('requester_id', $this->user->id)->pluck('request_code');
-    expect($firstCodes)->toHaveCount(2)->and($firstCodes->unique())->toHaveCount(2);
+    expect(MaterialUsage::where('material_id', $material->id)->count())->toBe(2);
+    expect((float) $material->fresh()->stock)->toBe(16.0);
+    expect((float) $batch->fresh()->remaining_quantity)->toBe(16.0);
 
     Livewire::test(TransaksiLogistik::class)
         ->set('house_ids', $houseIds)
@@ -510,14 +514,11 @@ test('material allocations create queue rows and reserve one selected batch', fu
         ->call('saveMaterial')
         ->assertHasNoErrors();
 
-    $requests = MaterialToolRequest::where('requester_id', $this->user->id)->get();
-    expect($requests)->toHaveCount(4)
-        ->and($requests->pluck('request_code')->unique())->toHaveCount(4)
-        ->and($requests->sum('quantity'))->toBe(8.0)
-        ->and((float) $material->fresh()->stock)->toBe(20.0)
-        ->and((float) $batch->fresh()->remaining_quantity)->toBe(20.0)
-        ->and($batch->fresh()->available_quantity)->toBe(12.0)
-        ->and(MaterialUsage::count())->toBe(0);
+    expect(MaterialToolRequest::where('material_id', $material->id)->count())->toBe(0)
+        ->and((float) MaterialUsage::where('material_id', $material->id)->sum('quantity'))->toBe(8.0)
+        ->and((float) $material->fresh()->stock)->toBe(12.0)
+        ->and((float) $batch->fresh()->remaining_quantity)->toBe(12.0)
+        ->and($batch->fresh()->available_quantity)->toBe(12.0);
 });
 
 test('tool allocation requires a purpose but no checkout date', function () {
@@ -536,7 +537,7 @@ test('tool allocation requires a purpose but no checkout date', function () {
     expect(ToolUsage::count())->toBe(0);
 });
 
-test('tool allocation creates one reserved queue row per house and blocks duplicates', function () {
+test('tool allocation creates one active loan per house and blocks duplicates', function () {
     $tool = Tool::factory()->create(['total_qty' => 10, 'available_qty' => 10]);
     $houses = House::factory()->count(2)->create(['cluster_id' => $this->cluster->id, 'status' => 'pembangunan']);
     $houseIds = $houses->pluck('id')->all();
@@ -545,25 +546,25 @@ test('tool allocation creates one reserved queue row per house and blocks duplic
         ->set('house_ids', $houseIds)
         ->set('tool_id', $tool->id)
         ->set('tool_quantity', 2)
-        ->set('tool_notes', 'Pekerjaan dinding');
+        ->set('tool_notes', 'Pekerjaan dinding')
+        ->set('toolAllocationProofImage', UploadedFile::fake()->image('tool-allocation.jpg'));
 
     $component->call('saveTool')->assertHasNoErrors();
-    $requests = MaterialToolRequest::where('tool_id', $tool->id)->get();
-    expect($requests)->toHaveCount(2)
-        ->and($requests->pluck('request_code')->unique())->toHaveCount(2)
-        ->and($requests->sum('quantity'))->toBe(4.0)
-        ->and((int) $tool->fresh()->available_qty)->toBe(10)
-        ->and(ToolUsage::where('tool_id', $tool->id)->count())->toBe(0);
+    expect(ToolUsage::where('tool_id', $tool->id)->count())->toBe(2)
+        ->and((int) ToolUsage::where('tool_id', $tool->id)->sum('quantity'))->toBe(4)
+        ->and((int) $tool->fresh()->available_qty)->toBe(6)
+        ->and(MaterialToolRequest::where('tool_id', $tool->id)->count())->toBe(0);
 
     Livewire::test(TransaksiLogistik::class)
         ->set('house_ids', $houseIds)
         ->set('tool_id', $tool->id)
         ->set('tool_quantity', 2)
         ->set('tool_notes', 'Pekerjaan dinding')
+        ->set('toolAllocationProofImage', UploadedFile::fake()->image('tool-allocation-again.jpg'))
         ->call('saveTool')
         ->assertHasErrors(['tool_quantity']);
 
-    expect(MaterialToolRequest::where('tool_id', $tool->id)->count())->toBe(2);
+    expect(ToolUsage::where('tool_id', $tool->id)->count())->toBe(2);
 });
 
 // ─────────────────────────────────────────
@@ -737,7 +738,7 @@ test('B5 tool void rejects already-returned checkout', function () {
 // Direct Logistik Transaction Flow with Photo Proof
 // ─────────────────────────────────────────
 
-test('Logistik allocates a batch, uploads dispatch proof, then records cost on receipt', function () {
+test('Logistik allocates a batch with proof and records its cost immediately', function () {
     Storage::fake('public');
     $material = Material::factory()->create([
         'category_id' => $this->materialCategory->id,
@@ -765,37 +766,15 @@ test('Logistik allocates a batch, uploads dispatch proof, then records cost on r
         ->set('material_batch_id', $batch->id)
         ->set('material_quantity', 5)
         ->set('material_notes', 'Cor Pondasi')
+        ->set('materialAllocationProofImage', UploadedFile::fake()->image('allocation-proof.jpg'))
         ->call('saveMaterial')
         ->assertHasNoErrors();
 
-    $request = MaterialToolRequest::where('house_id', $house->id)->sole();
-    expect($request->status)->toBe('pending')
-        ->and((float) $material->fresh()->stock)->toBe(20.0)
-        ->and((float) $batch->fresh()->remaining_quantity)->toBe(20.0)
-        ->and($batch->fresh()->available_quantity)->toBe(15.0)
-        ->and(MaterialUsage::where('house_id', $house->id)->count())->toBe(0);
-
-    $queue = Livewire::test(Dispatches::class)
-        ->call('dispatchRequest', $request->id)
-        ->set('dispatchProofImage', UploadedFile::fake()->image('dispatch-proof.jpg'))
-        ->call('submitDispatch')
-        ->assertHasNoErrors();
-
-    expect((float) $material->fresh()->stock)->toBe(15.0)
-        ->and((float) $batch->fresh()->remaining_quantity)->toBe(15.0)
-        ->and(MaterialUsage::where('house_id', $house->id)->count())->toBe(0);
-
-    $line = $request->fresh()->dispatchLines()->sole();
-    $queue->call('openReceiptModal', $request->id)
-        ->set('receiptLines.'.$line->id.'.received_quantity', 5)
-        ->set('receiptLines.'.$line->id.'.damaged_quantity', 0)
-        ->set('arrivalProofImage', UploadedFile::fake()->image('arrival-proof.jpg'))
-        ->call('submitReceipt')
-        ->assertHasNoErrors();
-
     $usage = MaterialUsage::where('house_id', $house->id)->sole();
-    $receipt = DispatchReceipt::where('material_tool_request_id', $request->id)->sole();
-    expect((float) $usage->total_cost)->toBe(250000.0)
-        ->and($receipt->proof_image)->not->toBeNull()
-        ->and($request->fresh()->status)->toBe('arrived');
+    expect($usage->stock_in_id)->toBe($batch->id)
+        ->and((float) $usage->total_cost)->toBe(250000.0)
+        ->and((float) $material->fresh()->stock)->toBe(15.0)
+        ->and((float) $batch->fresh()->remaining_quantity)->toBe(15.0)
+        ->and(MaterialToolRequest::where('house_id', $house->id)->count())->toBe(0);
+    Storage::disk('public')->assertExists($usage->proof_image);
 });
