@@ -60,7 +60,7 @@
     @keydown.escape.window="matPickerOpen = false; batchPickerOpen = false; toolPickerOpen = false; warehousePickerOpen = false; matNotePickerOpen = false; toolNotePickerOpen = false; housePickerOpen = false"
 >
     @if ($clusterAssignmentMissing)
-        <div class="alert alert-warning rounded-3" role="alert">Akun Logistik belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum membuat alokasi.</div>
+        <div class="alert alert-warning rounded-3" role="alert">Akun belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum membuat alokasi.</div>
     @endif
     @php
         $selectedHouses = $houses->whereIn('id', $house_ids);
@@ -191,7 +191,7 @@
                         <span class="d-block small">Interior, plumbing, pekerjaan unit</span>
                     </label>
                 </div>
-                @if (auth()->user()->role === 'admin')
+                @if (auth()->user()->canAccessAllClusters())
                 <div x-show="vendorServiceTarget === 'cluster'" x-cloak class="mt-3">
                     <label for="vendor-service-cluster" class="form-label small fw-semibold">Cluster pekerjaan <span class="text-danger">*</span></label>
                     <select id="vendor-service-cluster" wire:model="vendor_service_cluster_id" class="form-select" required>

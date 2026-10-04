@@ -35,7 +35,7 @@ class FortifyServiceProvider extends ServiceProvider
             $email = strtolower(trim((string) $request->input('email')));
             $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
 
-            if (! $user || ! in_array($user->role, ['admin', 'logistik', 'keuangan'], true)) {
+            if (! $user || ! in_array($user->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) {
                 return null;
             }
 

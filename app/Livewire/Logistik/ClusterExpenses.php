@@ -321,6 +321,10 @@ class ClusterExpenses extends Component
     private function authorizeCluster(Cluster $cluster): void
     {
         $user = auth()->user();
-        abort_unless(in_array($user?->role, ['admin', 'keuangan'], true) || ($user?->role === 'logistik' && $user->cluster_id && (int) $cluster->id === (int) $user->cluster_id), 403);
+        abort_unless(
+            $user?->canAccessAllClusters()
+                || (in_array($user?->role, ['logistik', 'pengawas'], true) && $user->cluster_id && (int) $cluster->id === (int) $user->cluster_id),
+            403,
+        );
     }
 }

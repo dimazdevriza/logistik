@@ -30,7 +30,7 @@ final class DispatchResolutionRecorder
             $request = MaterialToolRequest::lockForUpdate()->findOrFail($requestId);
             $house = House::lockForUpdate()->findOrFail($request->house_id);
             abort_unless($house->isAccessibleBy($actor), 403);
-            abort_unless(in_array($actor->role, ['admin', 'logistik'], true), 403);
+            abort_unless(in_array($actor->role, ['admin', 'logistik', 'pengawas'], true), 403);
             if (! in_array($request->status, ['dispatched', 'partially_arrived', 'arrived', 'resolved'], true)) {
                 throw ValidationException::withMessages(['resolutionNotes' => 'Pengiriman ini tidak dapat menerima penyelesaian selisih.']);
             }

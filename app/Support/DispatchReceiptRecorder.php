@@ -32,7 +32,7 @@ final class DispatchReceiptRecorder
             $request = MaterialToolRequest::lockForUpdate()->findOrFail($requestId);
             $house = House::lockForUpdate()->findOrFail($request->house_id);
             abort_unless($house->isAccessibleBy($actor), 403);
-            abort_unless(in_array($actor->role, ['admin', 'logistik'], true), 403);
+            abort_unless(in_array($actor->role, ['admin', 'logistik', 'pengawas'], true), 403);
             $isCorrection = $correctionReceiptId !== null;
             if ($isCorrection && $actor->role !== 'admin') {
                 abort(403);

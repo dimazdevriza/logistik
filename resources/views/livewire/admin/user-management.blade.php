@@ -69,7 +69,7 @@
                     <tbody>
                         @forelse ($users as $user)
                         @php
-                            $roleClasses = ['admin' => 'bg-danger-subtle text-danger', 'logistik' => 'bg-primary-subtle text-primary', 'keuangan' => 'bg-success-subtle text-success'];
+                            $roleClasses = ['admin' => 'bg-danger-subtle text-danger', 'logistik' => 'bg-primary-subtle text-primary', 'keuangan' => 'bg-success-subtle text-success', 'pengawas' => 'bg-warning-subtle text-warning-emphasis'];
                         @endphp
                         <tr wire:key="usr-{{ $user->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $user->id }}) }">
                             <td data-label="Nama" class="fw-bold text-body"><span class="management-cell-value">{{ $user->name }}</span></td>
@@ -143,19 +143,20 @@
                             <option value="admin">Admin</option>
                             <option value="logistik">Logistik</option>
                             <option value="keuangan">Keuangan</option>
+                            <option value="pengawas">Pengawas</option>
                         </select>
                         @error('role') <span class="text-danger small">{{ $message }}</span> @enderror
                     </div>
-                    @if ($role === 'logistik')
+                    @if (in_array($role, ['logistik', 'pengawas'], true))
                         <div class="mb-3">
-                            <label class="form-label font-semibold">Cluster tugas</label>
+                            <label class="form-label font-semibold">{{ $role === 'pengawas' ? 'Cluster tanggung jawab' : 'Cluster tugas' }}</label>
                             <select wire:model="cluster_id" class="form-select">
-                                <option value="">Pilih cluster tugas</option>
+                                <option value="">{{ $role === 'pengawas' ? 'Pilih cluster tanggung jawab' : 'Pilih cluster tugas' }}</option>
                                 @foreach ($clusters as $cluster)
                                     <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
                                 @endforeach
                             </select>
-                            <div class="form-text">Operasi Logistik dibatasi ke rumah di cluster ini.</div>
+                            <div class="form-text">{{ $role === 'pengawas' ? 'Akses Pengawas dibatasi ke cluster ini.' : 'Operasi Logistik dibatasi ke rumah di cluster ini.' }}</div>
                             @error('cluster_id') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     @endif

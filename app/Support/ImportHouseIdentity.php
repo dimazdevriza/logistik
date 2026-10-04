@@ -20,7 +20,7 @@ final class ImportHouseIdentity
 
         $user = Auth::user();
         $clusterId = $cluster?->id;
-        if ($user && $user->role !== 'admin') {
+        if ($user && ! $user->canAccessAllClusters()) {
             if (! $user->cluster_id) {
                 throw new RuntimeException("Baris {$rowNumber} ({$item}): Pengguna belum ditugaskan ke cluster.");
             }
@@ -46,7 +46,7 @@ final class ImportHouseIdentity
             throw new RuntimeException("Baris {$rowNumber} ({$item}): Referensi rumah '{$reference}' tidak unik. Tambahkan cluster atau kode rumah yang tepat.");
         }
 
-        if ($user && $user->role !== 'admin' && House::query()
+        if ($user && ! $user->canAccessAllClusters() && House::query()
             ->where(fn ($query) => $query->where('house_code', $reference)->orWhere('name', $reference))
             ->exists()) {
             throw new RuntimeException("Baris {$rowNumber} ({$item}): Rumah berada di luar cluster tugas Anda.");

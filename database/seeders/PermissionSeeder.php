@@ -44,6 +44,7 @@ class PermissionSeeder extends Seeder
                 'import inventory',
                 'view logs',
             ])->values(),
+            'pengawas' => $permissions->except('manage users')->values(),
             'inactive' => collect(),
             'user' => collect(),
         ];

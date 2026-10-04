@@ -12,7 +12,7 @@
                     </p>
                 </div>
                 <div class="d-flex flex-column gap-2" style="min-width: 260px;">
-                    @if(in_array(auth()->user()->role, ['admin', 'logistik']))
+                    @if(in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas']))
                         <div class="d-flex gap-2">
                             <button type="button" wire:click="openImportModal" class="btn btn-hero-action flex-fill">
                                 <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
@@ -33,11 +33,11 @@
         </div>
 
         @if ($clusterAssignmentMissing)
-            <div class="alert alert-warning rounded-3" role="alert">Akun Logistik belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum mengelola rumah.</div>
+            <div class="alert alert-warning rounded-3" role="alert">Akun belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum mengelola rumah.</div>
         @endif
 
         @if ($clusterAssignmentMissing)
-            <div class="alert alert-warning rounded-3" role="alert">Akun Logistik belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum mengelola rumah.</div>
+            <div class="alert alert-warning rounded-3" role="alert">Akun belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum mengelola rumah.</div>
         @endif
 
         @if (session('success'))
@@ -200,7 +200,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="house-cluster" class="form-label font-semibold">Cluster</label>
-                        <select id="house-cluster" wire:model="cluster_id" class="form-select" @disabled(auth()->user()->role !== 'admin')>
+                        <select id="house-cluster" wire:model="cluster_id" class="form-select" @disabled(! auth()->user()->canAccessAllClusters())>
                             <option value="">Tanpa Cluster</option>
                             @foreach ($clusters as $cluster)
                                 <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>

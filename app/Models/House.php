@@ -27,14 +27,14 @@ class House extends Model
 
     public function scopeForUser(Builder $query, User $user): Builder
     {
-        return $user->role === 'admin'
+        return $user->canAccessAllClusters()
             ? $query
             : $query->where('cluster_id', $user->cluster_id ?? 0);
     }
 
     public function isAccessibleBy(User $user): bool
     {
-        return in_array($user->role, ['admin', 'keuangan'], true)
+        return $user->canAccessAllClusters()
             || ($user->cluster_id && (int) $this->cluster_id === (int) $user->cluster_id);
     }
 

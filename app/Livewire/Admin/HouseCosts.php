@@ -80,7 +80,7 @@ class HouseCosts extends Component
 
         return MaterialUsage::query()
             ->whereNull('voided_at')
-            ->when($user->role === 'logistik', fn ($query) => $query->whereHas(
+            ->when(in_array($user->role, ['logistik', 'pengawas'], true), fn ($query) => $query->whereHas(
                 'house', fn ($houses) => $houses->forUser($user)
             ));
     }
@@ -94,7 +94,7 @@ class HouseCosts extends Component
             : ($user->cluster?->name ?? 'Cluster belum ditetapkan');
 
         $query = House::query()
-            ->when($user->role === 'logistik', fn ($q) => $q->forUser($user))
+            ->when(in_array($user->role, ['logistik', 'pengawas'], true), fn ($q) => $q->forUser($user))
             ->with('cluster')
             ->withSum(['materialUsages' => fn ($q) => $q->whereNull('voided_at')], 'total_cost')
             ->withCount(['materialUsages' => fn ($q) => $q->whereNull('voided_at')]);
@@ -121,7 +121,7 @@ class HouseCosts extends Component
             ->orderBy('houses.id')
             ->paginate(10);
 
-        $scopeKey = $user->role === 'logistik' ? 'cluster_'.($user->cluster_id ?? 0) : 'all';
+        $scopeKey = in_array($user->role, ['logistik', 'pengawas'], true) ? 'cluster_'.($user->cluster_id ?? 0) : 'all';
         $totalSpent = cache()->remember('total_material_spent_'.$scopeKey, 60, fn () => $this->materialUsagesQuery()->sum('total_cost'));
 
         // Compute monthly totals for the entire project for the selected year
@@ -158,7 +158,7 @@ class HouseCosts extends Component
             $this->filterStatus,
             (int) ($this->filterYear ?: now()->year),
             null,
-            auth()->user()->role === 'logistik' ? (int) (auth()->user()->cluster_id ?? 0) : null
+            in_array(auth()->user()->role, ['logistik', 'pengawas'], true) ? (int) (auth()->user()->cluster_id ?? 0) : null
         );
         $filename = 'laporan-biaya-rumah-'.($this->filterYear ?: now()->year).'-'.now()->format('Ymd-His').'.xlsx';
 

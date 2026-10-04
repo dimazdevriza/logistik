@@ -98,7 +98,7 @@
                                 $yearSum += (float) ($house->{'month_' . $m . '_cost'} ?? 0);
                             }
                         @endphp
-                        <tr wire:key="h-cost-{{ $house->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a')) { window.Livewire.navigate('{{ route(auth()->user()->role === 'admin' ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}') }">
+                        <tr wire:key="h-cost-{{ $house->id }}" style="cursor: pointer;" x-on:click="if (!$event.target.closest('button') && !$event.target.closest('a')) { window.Livewire.navigate('{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}') }">
                             <td data-label="No." class="text-center text-secondary small">{{ $houses->firstItem() + $loop->index }}</td>
                             <td data-label="Kode" class="font-mono text-secondary small data-key-code" title="{{ $house->house_code ?? 'Kode tidak tersedia' }}"><span class="house-cost-cell-value">{{ $house->house_code ?? '-' }}</span></td>
                             <td data-label="Rumah" class="fw-bold text-body data-key-name" title="{{ $house->name }}"><span class="house-cost-cell-value">{{ $house->name }}</span></td>
@@ -124,7 +124,7 @@
                                 Rp {{ number_format($totalAllTime, 0, ',', '.') }}
                             </td>
                             <td data-label="Aksi" class="text-end">
-                                <a href="{{ route(auth()->user()->role === 'admin' ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit">Lihat</a>
+                                <a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit">Lihat</a>
                             </td>
                         </tr>
                         @empty

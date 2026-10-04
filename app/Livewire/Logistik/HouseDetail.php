@@ -220,8 +220,8 @@ class HouseDetail extends Component
 
     public function exportExcel()
     {
-        // Only admin or logistik can export
-        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) {
+        // Only roles with house-wide access or the assigned-cluster logistics user can export.
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'])) {
             return;
         }
 

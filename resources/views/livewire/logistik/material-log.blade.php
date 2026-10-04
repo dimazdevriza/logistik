@@ -12,7 +12,7 @@
                     </p>
                 </div>
                 <div>
-                    @if(in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true))
+                    @if(in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true))
                         <a href="{{ route('logistik.material-log.export', ['search' => $search, 'type' => $filterType, 'house' => $filterHouse, 'supplier' => $filterSupplier, 'sort' => $sort]) }}" class="btn btn-utility font-semibold text-decoration-none" download>
                             <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
                                 <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>

@@ -270,7 +270,7 @@ class Houses extends Component
     {
         $this->resetForm();
         $this->editMode = false;
-        $this->cluster_id = auth()->user()->role === 'admin' ? '' : (auth()->user()->cluster_id ?? '');
+        $this->cluster_id = auth()->user()->canAccessAllClusters() ? '' : (auth()->user()->cluster_id ?? '');
         $this->showModal = true;
     }
 
@@ -300,8 +300,8 @@ class Houses extends Component
         $this->validate();
 
         $user = auth()->user();
-        if ($user->role === 'logistik' && ! $user->cluster_id) {
-            $this->addError('cluster_id', 'Akun Logistik belum memiliki cluster tugas.');
+        if (in_array($user->role, ['logistik', 'pengawas'], true) && ! $user->cluster_id) {
+            $this->addError('cluster_id', 'Akun belum memiliki cluster tugas.');
 
             return;
         }
@@ -322,7 +322,7 @@ class Houses extends Component
             'name' => $this->name,
             'type' => $this->type,
             'status' => $this->status,
-            'cluster_id' => $user->role === 'admin' ? ($this->cluster_id ?: null) : $user->cluster_id,
+            'cluster_id' => $user->canAccessAllClusters() ? ($this->cluster_id ?: null) : $user->cluster_id,
             'start_date' => $this->start_date ?: null,
             'target_end_date' => $this->target_end_date ?: null,
         ];
@@ -382,8 +382,8 @@ class Houses extends Component
         ]);
 
         $user = auth()->user();
-        if ($user->role === 'logistik' && ! $user->cluster_id) {
-            $this->addError('cluster_id', 'Akun Logistik belum memiliki cluster tugas.');
+        if (in_array($user->role, ['logistik', 'pengawas'], true) && ! $user->cluster_id) {
+            $this->addError('cluster_id', 'Akun belum memiliki cluster tugas.');
 
             return;
         }
@@ -415,7 +415,7 @@ class Houses extends Component
             'name' => trim($row['name']),
             'type' => trim($row['type']),
             'status' => $validated['status'],
-            'cluster_id' => auth()->user()->role === 'admin' ? ($validated['cluster_id'] ?: null) : auth()->user()->cluster_id,
+            'cluster_id' => auth()->user()->canAccessAllClusters() ? ($validated['cluster_id'] ?: null) : auth()->user()->cluster_id,
             'start_date' => $validated['start_date'] ?: null,
             'target_end_date' => $validated['target_end_date'] ?: null,
             'created_at' => $timestamp,
@@ -455,7 +455,7 @@ class Houses extends Component
 
     public function openImportModal()
     {
-        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'])) return;
         $this->importFile = null;
         $this->importResultSummary = null;
         $this->resetValidation();
@@ -464,7 +464,7 @@ class Houses extends Component
 
     public function importExcel()
     {
-        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) return;
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'])) return;
 
         $this->validate([
             'importFile' => 'required|file|mimes:xlsx,xls,csv|max:10240',
@@ -477,10 +477,10 @@ class Houses extends Component
         try {
             $import = ImportBatch::run('house', $this->importFile, function (string $path) {
                 $user = auth()->user();
-                if ($user->role === 'logistik' && ! $user->cluster_id) {
-                    throw new \RuntimeException('Akun Logistik belum memiliki cluster tugas.');
+                if (in_array($user->role, ['logistik', 'pengawas'], true) && ! $user->cluster_id) {
+                    throw new \RuntimeException('Akun belum memiliki cluster tugas.');
                 }
-                $import = new HouseImport($user->role === 'admin' ? null : (int) $user->cluster_id);
+                $import = new HouseImport($user->canAccessAllClusters() ? null : (int) $user->cluster_id);
                 Excel::import($import, $path);
 
                 return $import;
@@ -506,12 +506,12 @@ class Houses extends Component
     public function exportExcel()
     {
         // Only admin or logistik can export
-        if (!in_array(auth()->user()->role, ['admin', 'logistik'])) {
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'])) {
             return;
         }
 
         $user = auth()->user();
-        $export = new HouseListExport($this->search, $this->filterStatus, null, $this->filterCluster, $user->role === 'admin' ? null : (int) ($user->cluster_id ?? 0));
+        $export = new HouseListExport($this->search, $this->filterStatus, null, $this->filterCluster, $user->canAccessAllClusters() ? null : (int) ($user->cluster_id ?? 0));
         $filename = 'daftar-rumah-' . now()->format('Ymd-His') . '.xlsx';
 
         return response()->streamDownload(function () use ($export) {
@@ -535,10 +535,10 @@ class Houses extends Component
             ->orderBy('houses.id')
             ->paginate(10);
 
-        $clusters = Cluster::when(auth()->user()->role !== 'admin', fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
+        $clusters = Cluster::when(! auth()->user()->canAccessAllClusters(), fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
             ->orderBy('name')->get();
 
-        $clusterAssignmentMissing = auth()->user()->role === 'logistik' && ! auth()->user()->cluster_id;
+        $clusterAssignmentMissing = in_array(auth()->user()->role, ['logistik', 'pengawas'], true) && ! auth()->user()->cluster_id;
 
         return view('livewire.logistik.houses', compact('houses', 'clusters', 'clusterAssignmentMissing'))
             ->layout('layouts.app', ['title' => 'Rumah']);

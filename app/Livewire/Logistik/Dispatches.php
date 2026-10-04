@@ -541,7 +541,7 @@ class Dispatches extends Component
 
     public function openResolutionModal(int $requestId, string $eventType): void
     {
-        abort_unless(in_array(auth()->user()->role, ['admin', 'logistik'], true), 403);
+        abort_unless(in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'], true), 403);
         abort_unless(in_array($eventType, ['declare_lost', 'return_to_warehouse', 'dispose_damaged'], true), 404);
 
         $request = MaterialToolRequest::with(['house', 'sourceWarehouse', 'material', 'tool', 'dispatchLines.stockIn', 'dispatchLines.warehouse', 'dispatchLines.tool', 'receipts.lines', 'resolutionEvents'])
@@ -614,7 +614,7 @@ class Dispatches extends Component
 
     public function submitResolution(): void
     {
-        abort_unless(in_array(auth()->user()->role, ['admin', 'logistik'], true), 403);
+        abort_unless(in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'], true), 403);
         $this->validate([
             'resolutionRequestId' => ['required', 'integer', 'exists:material_tool_requests,id'],
             'resolutionEventType' => ['required', 'in:declare_lost,return_to_warehouse,dispose_damaged'],
@@ -986,7 +986,7 @@ class Dispatches extends Component
         return view('livewire.logistik.dispatches', [
             'requests' => $requests,
             'queueCounts' => $queueCounts,
-            'clusterAssignmentMissing' => auth()->user()->role === 'logistik' && ! auth()->user()->cluster_id,
+            'clusterAssignmentMissing' => in_array(auth()->user()->role, ['logistik', 'pengawas'], true) && ! auth()->user()->cluster_id,
             'selectedRequest' => $selectedRequest,
             'availableDispatchSources' => $availableDispatchSources,
         ])

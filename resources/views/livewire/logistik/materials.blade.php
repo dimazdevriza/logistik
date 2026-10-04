@@ -12,7 +12,7 @@
                     </p>
                 </div>
                 <div class="d-flex flex-column gap-2" style="min-width: 260px;">
-                    @if(in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true))
+                    @if(in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true))
                         <div class="d-flex gap-2">
                             <button type="button" wire:click="openImportModal" class="btn btn-hero-action flex-fill">
                                 <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
@@ -363,18 +363,65 @@
                         </div>
                     </div>
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label font-semibold small text-secondary">Kategori</label>
-                            <select wire:model.live="category_id" class="form-select" @disabled(!$editMode && $createMode === 'existing')>
-                                <option value="">-- Pilih Kategori --</option>
-                                @foreach ($categories as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                @endforeach
-                            </select>
+                        <div class="col-md-6" x-data="{ categoryPickerOpen: false, categorySearch: '' }">
+                            <label class="form-label font-semibold small text-secondary">Kategori <span class="text-danger">*</span></label>
+                            <div class="position-relative" @click.outside="categoryPickerOpen = false">
+                                <div class="position-relative d-flex align-items-center">
+                                    <input
+                                        type="text"
+                                        wire:model="category_name"
+                                        class="form-control pe-5"
+                                        placeholder="Pilih atau ketik nama kategori..."
+                                        autocomplete="off"
+                                        required
+                                        role="combobox"
+                                        aria-autocomplete="list"
+                                        aria-controls="material-category-options"
+                                        :aria-expanded="categoryPickerOpen.toString()"
+                                        @disabled(!$editMode && $createMode === 'existing')
+                                        @focus="categoryPickerOpen = true; categorySearch = $wire.category_name || ''"
+                                        @input="categoryPickerOpen = true; categorySearch = $el.value; $wire.category_id = ''; if (!$wire.editMode) $wire.code = ''"
+                                        @keydown.escape="categoryPickerOpen = false"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="btn btn-link text-secondary text-decoration-none position-absolute end-0 me-2 p-1 d-flex align-items-center"
+                                        @disabled(!$editMode && $createMode === 'existing')
+                                        @click="categoryPickerOpen = !categoryPickerOpen; categorySearch = $wire.category_name || ''"
+                                        aria-label="Tampilkan pilihan kategori"
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="transition-transform" :class="categoryPickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div x-show="categoryPickerOpen" x-cloak class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden" style="max-height: 200px; z-index: 1050;">
+                                    <div id="material-category-options" role="listbox" class="p-1.5" style="max-height: 190px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                        @foreach ($categories as $cat)
+                                            <button
+                                                type="button"
+                                                role="option"
+                                                aria-selected="{{ (string) $category_id === (string) $cat->id ? 'true' : 'false' }}"
+                                                class="dropdown-item rounded-2 py-2 px-3 text-start w-100 font-semibold"
+                                                :class="$wire.category_id == @js($cat->id) ? 'active bg-success text-white' : ''"
+                                                x-show="categorySearch === '' || @js(strtolower($cat->name)).includes(categorySearch.toLowerCase())"
+                                                @click="$wire.category_id = @js($cat->id); $wire.category_name = @js($cat->name); categoryPickerOpen = false; categorySearch = @js($cat->name)"
+                                            >
+                                                {{ $cat->name }}
+                                            </button>
+                                        @endforeach
+                                        <div x-show="categorySearch.trim() !== '' && !@js($categories->pluck('name')->map(fn ($name) => strtolower($name))->values()->all()).includes(categorySearch.trim().toLowerCase())" class="p-2 border-top extra-small text-secondary bg-body-tertiary">
+                                            Kategori baru otomatis ditambahkan saat material disimpan.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             @error('category_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                            @error('category_name') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                         <div class="col-md-6" x-data="{ supPickerOpen: false, supSearch: '' }">
-                            <label class="form-label font-semibold small text-secondary">Mitra Supplier</label>
+                            <label class="form-label font-semibold small text-secondary">Mitra Supplier <span class="text-danger">*</span></label>
                             <div class="position-relative" @click.outside="supPickerOpen = false">
                                 <div class="position-relative d-flex align-items-center">
                                     <input
@@ -382,6 +429,7 @@
                                         wire:model="supplier_name"
                                         class="form-control pe-5"
                                         placeholder="Pilih atau ketik nama supplier..."
+                                        required
                                         @focus="supPickerOpen = true; supSearch = $wire.supplier_name || ''"
                                         @input="supPickerOpen = true; supSearch = $el.value"
                                     />

@@ -33,8 +33,8 @@ class UserManagement extends Component
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . ($this->userId ?? 'NULL'),
-            'role' => 'required|in:admin,logistik,keuangan',
-            'cluster_id' => [Rule::requiredIf($this->role === 'logistik'), 'nullable', 'exists:clusters,id'],
+            'role' => 'required|in:admin,logistik,keuangan,pengawas',
+            'cluster_id' => [Rule::requiredIf(in_array($this->role, ['logistik', 'pengawas'], true)), 'nullable', 'exists:clusters,id'],
         ];
 
         if (!$this->editMode) {
@@ -76,7 +76,7 @@ class UserManagement extends Component
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
-            'cluster_id' => $this->role === 'logistik' ? ($this->cluster_id ?: null) : null,
+            'cluster_id' => in_array($this->role, ['logistik', 'pengawas'], true) ? ($this->cluster_id ?: null) : null,
         ];
 
         if ($this->password) {

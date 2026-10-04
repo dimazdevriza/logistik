@@ -5,7 +5,7 @@
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
-                        Kontrol Operasional <span class="text-success">Logistik</span>
+                        Kontrol Operasional <span class="text-success">{{ auth()->user()->role === 'pengawas' ? 'Pengawas' : 'Logistik' }}</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
                         Pantau ketersediaan stok, peringatan stok menipis, dan kelola peminjaman alat konstruksi.

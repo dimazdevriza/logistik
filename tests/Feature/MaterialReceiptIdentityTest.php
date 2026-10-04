@@ -34,6 +34,8 @@ class MaterialReceiptIdentityTest extends TestCase
 
         $form->set('name', $name)
             ->set('category_id', $category->id)
+            ->set('category_name', $category->name)
+            ->set('supplier_name', 'Supplier Receipt Test')
             ->set('unit', 'sak')
             ->set('unit_price', 125000)
             ->set('stock', 2)
@@ -52,6 +54,8 @@ class MaterialReceiptIdentityTest extends TestCase
 
         $form->set('name', $name)
             ->set('category_id', $category->id)
+            ->set('category_name', $category->name)
+            ->set('supplier_name', 'Supplier Receipt Test')
             ->set('unit', 'sak')
             ->set('unit_price', 125000)
             ->set('stock', 2)

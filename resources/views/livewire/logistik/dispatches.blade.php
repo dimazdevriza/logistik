@@ -13,7 +13,7 @@
         </div>
 
         @if ($clusterAssignmentMissing)
-            <div class="alert alert-warning rounded-3" role="alert">Akun Logistik belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum memproses pengiriman.</div>
+            <div class="alert alert-warning rounded-3" role="alert">Akun belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum memproses pengiriman.</div>
         @endif
 
         @if (session('success'))
@@ -235,11 +235,11 @@
                                                 Catat barang kembali
                                             </button>
                                         @endif
-                                        @if ($req->canResolveTransit && in_array(auth()->user()->role, ['admin', 'logistik'], true))
+                                        @if ($req->canResolveTransit && in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'], true))
                                             <button type="button" class="btn log-row-action log-row-action--edit" wire:click="openResolutionModal({{ $req->id }}, 'return_to_warehouse')">Catat kembali ke gudang</button>
                                             <button type="button" class="btn log-row-action log-row-action--danger" wire:click="openResolutionModal({{ $req->id }}, 'declare_lost')">Tandai hilang</button>
                                         @endif
-                                        @if ($req->canDisposeDamage && in_array(auth()->user()->role, ['admin', 'logistik'], true))
+                                        @if ($req->canDisposeDamage && in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'], true))
                                             <button type="button" class="btn log-row-action log-row-action--danger" wire:click="openResolutionModal({{ $req->id }}, 'dispose_damaged')">Selesaikan barang rusak</button>
                                         @endif
                                     </div>

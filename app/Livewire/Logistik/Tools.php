@@ -463,7 +463,7 @@ class Tools extends Component
 
     public function openImportModal()
     {
-        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) {
+        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) {
             return;
         }
         $this->importFile = null;
@@ -474,7 +474,7 @@ class Tools extends Component
 
     public function importExcel()
     {
-        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) {
+        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) {
             return;
         }
 
@@ -512,7 +512,7 @@ class Tools extends Component
 
     public function exportExcel()
     {
-        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) {
+        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) {
             return;
         }
 

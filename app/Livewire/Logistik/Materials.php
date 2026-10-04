@@ -46,6 +46,7 @@ class Materials extends Component
     public $code = '';
     public $supplier_name = '';
     public $category_id = '';
+    public $category_name = '';
     public $unit = '';
     public $unit_price = 0;
     public $stock = 0;
@@ -193,8 +194,9 @@ class Materials extends Component
         return [
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50|unique:materials,code,' . ($this->materialId ?? 'NULL'),
-            'supplier_name' => 'nullable|string|max:255',
+            'supplier_name' => 'required|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
+            'category_name' => 'required|string|max:255',
             'unit' => 'required|string|max:50',
             'unit_price' => 'required|numeric|min:0',
             'stock' => 'required|numeric|min:' . ($this->editMode ? '0' : '0.01'),
@@ -248,12 +250,13 @@ class Materials extends Component
             return;
         }
 
-        $material = Material::with('supplier')->findOrFail($id);
+        $material = Material::with(['supplier', 'category'])->findOrFail($id);
         $this->existingMaterialId = (string) $material->id;
         $this->name = $material->name;
         $this->code = $material->code ?? '';
         $this->supplier_name = $material->supplier?->name ?? '';
         $this->category_id = $material->category_id ?? '';
+        $this->category_name = $material->category?->name ?? '';
         $this->unit = $material->unit;
         $this->unit_price = $material->unit_price;
         $this->warehouse_id = $material->warehouse_id ?? '';
@@ -287,6 +290,7 @@ class Materials extends Component
         $this->code = $material->code ?? '';
         $this->supplier_name = $material->supplier?->name ?? '';
         $this->category_id = $material->category_id ?? '';
+        $this->category_name = $material->category?->name ?? '';
         $this->unit = $material->unit;
         $this->unit_price = $material->unit_price;
         $this->stock = $material->stock;
@@ -305,10 +309,11 @@ class Materials extends Component
         if (! $this->editMode && $this->createMode === 'existing') {
             $this->validate([
                 'existingMaterialId' => 'required|exists:materials,id',
+                'category_name' => 'required|string|max:255',
                 'warehouse_id' => 'required|exists:warehouses,id',
                 'stock' => 'required|numeric|min:0.01',
                 'unit_price' => 'required|numeric|min:0',
-                'supplier_name' => 'nullable|string|max:255',
+                'supplier_name' => 'required|string|max:255',
                 'receiptReceivedAt' => 'required|date|before_or_equal:now',
                 'receiptSubmissionKey' => 'required|uuid',
                 'restockNotes' => 'nullable|string|max:500',
@@ -344,14 +349,9 @@ class Materials extends Component
             $final_supplier_id = $supplier->id;
         }
 
-        $code = $this->code;
-        if (empty($code) && $this->category_id) {
-            $code = $this->generateCode($this->category_id);
-        }
-
         $data = [
             'name' => $this->name,
-            'code' => $code ?: null,
+            'code' => $this->code ?: null,
             'supplier_id' => $final_supplier_id,
             'category_id' => $this->category_id ?: null,
             'unit' => $this->unit,
@@ -373,6 +373,10 @@ class Materials extends Component
             // Receipt and usage records retain their original quantities and prices.
             DB::transaction(function () use ($existing, $data): void {
                 $material = Material::lockForUpdate()->findOrFail($existing->id);
+                $data['category_id'] = $this->resolveMaterialCategoryId();
+                if (empty($data['code']) && $data['category_id']) {
+                    $data['code'] = $this->generateCode($data['category_id']);
+                }
                 $beforeStock = (float) $material->stock;
                 $stockChanged = abs($beforeStock - (float) $data['stock']) > 0.0001;
 
@@ -420,6 +424,10 @@ class Materials extends Component
                 return false;
             }
 
+            $data['category_id'] = $this->resolveMaterialCategoryId();
+            if (empty($data['code']) && $data['category_id']) {
+                $data['code'] = $this->generateCode($data['category_id']);
+            }
             $data['stock'] = 0;
             $material = Material::create($data);
             $receivedAt = \Illuminate\Support\Carbon::parse($this->receiptReceivedAt);
@@ -487,6 +495,7 @@ class Materials extends Component
         $this->code = '';
         $this->supplier_name = '';
         $this->category_id = '';
+        $this->category_name = '';
         $this->unit = '';
         $this->unit_price = 0;
         $this->stock = 0;
@@ -498,6 +507,22 @@ class Materials extends Component
         $this->image = null;
         $this->existingImage = null;
         $this->resetValidation();
+    }
+
+    private function resolveMaterialCategoryId(): ?int
+    {
+        $name = trim((string) $this->category_name);
+        $selected = $this->category_id ? Category::find($this->category_id) : null;
+
+        if ($selected && ($name === '' || strcasecmp($selected->name, $name) === 0)) {
+            return $selected->id;
+        }
+
+        if ($name === '') {
+            return null;
+        }
+
+        return Category::firstOrCreate(['name' => $name, 'type' => 'material'])->id;
     }
 
     public function restock($id)
@@ -514,7 +539,7 @@ class Materials extends Component
             'warehouse_id' => 'required|exists:warehouses,id',
             'restockQuantity' => 'required|numeric|min:0.01',
             'restockUnitPrice' => 'required|numeric|min:0',
-            'restockSupplierName' => 'nullable|string|max:255',
+            'restockSupplierName' => 'required|string|max:255',
             'restockReceivedAt' => 'required|date|before_or_equal:now',
             'restockSubmissionKey' => 'required|uuid',
             'restockNotes' => 'nullable|string|max:500',
@@ -624,7 +649,7 @@ class Materials extends Component
 
     public function openImportModal()
     {
-        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) return;
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) return;
         $this->importFile = null;
         $this->importResultSummary = null;
         $this->resetValidation();
@@ -633,7 +658,7 @@ class Materials extends Component
 
     public function importExcel()
     {
-        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) return;
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) return;
 
         $this->validate([
             'importFile' => 'required|file|mimes:xlsx,xls,csv|max:10240',
@@ -669,7 +694,7 @@ class Materials extends Component
 
     public function exportExcel()
     {
-        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) return;
+        if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) return;
 
         $export = new MaterialInventoryExport($this->search, $this->filterCategory, $this->filterWarehouse);
         $filename = 'material-inventory-' . now()->format('Ymd') . '.xlsx';

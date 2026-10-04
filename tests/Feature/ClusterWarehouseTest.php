@@ -50,6 +50,8 @@ class ClusterWarehouseTest extends TestCase
             ->call('create')
             ->set([
                 'name' => 'Pasir Uji Gudang',
+                'category_name' => 'Kategori Uji Gudang',
+                'supplier_name' => 'Supplier Uji Gudang',
                 'unit' => 'sak',
                 'unit_price' => 12000,
                 'stock' => 5,

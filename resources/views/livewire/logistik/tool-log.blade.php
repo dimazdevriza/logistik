@@ -12,7 +12,7 @@
                     </p>
                 </div>
                 <div>
-                    @if(in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true))
+                    @if(in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true))
                         <button type="button" wire:click="exportExcel" class="btn btn-utility font-semibold">
                             <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
                                 <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
@@ -28,7 +28,7 @@
         @if (session('success'))
             <div class="alert alert-success" role="alert">{{ session('success') }}</div>
         @endif
-        @if ($pendingBrokenReturns->isNotEmpty() && in_array(auth()->user()->role, ['admin', 'logistik'], true))
+        @if ($pendingBrokenReturns->isNotEmpty() && in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'], true))
             <section class="card border-warning-subtle shadow-sm rounded-4 mb-4" aria-labelledby="broken-tool-resolution-heading">
                 <div class="card-body p-4">
                     <h2 id="broken-tool-resolution-heading" class="h5 mb-1">Alat rusak yang perlu ditindaklanjuti</h2>

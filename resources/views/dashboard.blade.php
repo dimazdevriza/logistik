@@ -99,7 +99,7 @@
                         @if (auth()->user()->role === 'admin')
                             <div class="col-6"><a href="{{ route('admin.users') }}" class="btn btn-outline-secondary btn-sm w-100 text-start">Kelola User</a></div>
                         @endif
-                        @if (in_array(auth()->user()->role, ['admin', 'logistik'], true))
+                        @if (in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'], true))
                             <div class="col-6"><a href="{{ route('logistik.houses') }}" class="btn btn-outline-secondary btn-sm w-100 text-start">Unit Rumah</a></div>
                         @endif
                         <div class="col-6"><a href="{{ route('logistik.materials') }}" class="btn btn-outline-secondary btn-sm w-100 text-start">Inventaris</a></div>

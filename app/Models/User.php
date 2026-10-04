@@ -68,6 +68,11 @@ class User extends Authenticatable
             ->implode('');
     }
 
+    public function canAccessAllClusters(): bool
+    {
+        return in_array($this->role, ['admin', 'keuangan'], true);
+    }
+
     public function cluster(): BelongsTo
     {
         return $this->belongsTo(Cluster::class);

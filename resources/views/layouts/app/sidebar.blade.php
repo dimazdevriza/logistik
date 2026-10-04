@@ -1,8 +1,9 @@
 @php
     $user = auth()->user();
     $role = $user?->role;
-    $isStaff = in_array($role, ['logistik', 'admin', 'keuangan'], true);
-    $isFieldStaff = in_array($role, ['logistik', 'admin'], true);
+    $isStaff = in_array($role, ['logistik', 'admin', 'keuangan', 'pengawas'], true);
+    $isFieldStaff = in_array($role, ['logistik', 'admin', 'pengawas'], true);
+    $canAccessAllClusters = $user?->canAccessAllClusters() ?? false;
 
     // Nav model: each section is a label plus its links. Sections with no
     // visible links are dropped, so role changes never leave an empty header.
@@ -29,7 +30,7 @@
             'show' => $isFieldStaff,
             'links' => array_filter([
                 $isFieldStaff ? ['route' => 'logistik.houses', 'active' => 'logistik.houses*', 'icon' => 'i-houses', 'label' => 'Rumah'] : null,
-                $role === 'admin' ? ['route' => 'logistik.clusters', 'active' => 'logistik.clusters', 'icon' => 'i-cluster', 'label' => 'Cluster'] : null,
+                $canAccessAllClusters ? ['route' => 'logistik.clusters', 'active' => 'logistik.clusters', 'icon' => 'i-cluster', 'label' => 'Cluster'] : null,
                 $isFieldStaff ? ['route' => 'logistik.transfers', 'active' => 'logistik.transfers', 'icon' => 'i-transfer', 'label' => 'Transfer Gudang'] : null,
                 $isFieldStaff ? ['route' => 'logistik.alokasi', 'active' => 'logistik.alokasi', 'icon' => 'i-transfer', 'label' => 'Alokasi Material & Alat'] : null,
             ]),
@@ -53,9 +54,9 @@
         ],
         [
             'label' => 'Keuangan',
-            'show' => in_array($role, ['admin', 'keuangan'], true),
+            'show' => in_array($role, ['admin', 'keuangan', 'pengawas'], true),
             'links' => [
-                ['route' => $role === 'admin' ? 'admin.house-costs' : 'logistik.house-costs', 'active' => $role === 'admin' ? 'admin.house-costs*' : 'logistik.house-costs*', 'icon' => 'i-chart', 'label' => 'Biaya Rumah'],
+                ['route' => $canAccessAllClusters ? 'admin.house-costs' : 'logistik.house-costs', 'active' => $canAccessAllClusters ? 'admin.house-costs*' : 'logistik.house-costs*', 'icon' => 'i-chart', 'label' => 'Biaya Rumah'],
                 ['route' => 'logistik.cluster-costs', 'active' => 'logistik.cluster-*', 'icon' => 'i-chart', 'label' => 'Biaya Cluster'],
             ],
         ],

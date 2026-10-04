@@ -39,7 +39,7 @@ Route::middleware('guest')->group(function () {
     Route::get('auth/google/callback', [GoogleController::class, 'callback'])->name('auth.google.callback');
 });
 
-Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan|pengawas'])->group(function () {
     // Main dashboard entry point — redirects based on role
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -58,11 +58,11 @@ Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan'])->group(f
     Route::get('warehouses/{warehouse}', WarehouseDetail::class)->name('logistik.warehouse-detail');
     Route::get('biaya-rumah', HouseCosts::class)->name('logistik.house-costs');
     Route::get('biaya-rumah/{house}', HouseCostDetail::class)->name('logistik.house-costs.detail');
-    Route::get('clusters', Clusters::class)->middleware('role:admin|keuangan')->name('logistik.clusters');
-    Route::get('biaya-cluster', Clusters::class)->middleware('role:admin|keuangan')->name('logistik.cluster-costs');
+    Route::get('clusters', Clusters::class)->middleware('role:admin|keuangan|pengawas')->name('logistik.clusters');
+    Route::get('biaya-cluster', Clusters::class)->middleware('role:admin|keuangan|pengawas')->name('logistik.cluster-costs');
 
-    // Lapangan stays available to admins and logistics staff only.
-    Route::middleware('role:admin|logistik')->group(function () {
+    // Field operations are available to admins, logistics, and supervisors.
+    Route::middleware('role:admin|logistik|pengawas')->group(function () {
         Route::get('transfers', InventoryTransfers::class)->name('logistik.transfers');
         Route::get('houses', Houses::class)->name('logistik.houses');
         Route::get('houses/{house}', HouseDetail::class)->name('logistik.house-detail');
@@ -86,7 +86,7 @@ Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan'])->group(f
             (string) ($filters['house'] ?? ''),
             (string) ($filters['supplier'] ?? ''),
             $filters['sort'] ?? 'date_desc',
-            $user->role === 'logistik' ? (int) ($user->cluster_id ?? 0) : null
+            in_array($user->role, ['logistik', 'pengawas'], true) ? (int) ($user->cluster_id ?? 0) : null
         );
 
         return Excel::download($export, 'catatan-material-'.now()->format('Ymd-His').'.xlsx');
@@ -94,14 +94,14 @@ Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan'])->group(f
     Route::get('material-log', MaterialLog::class)->name('logistik.material-log');
     Route::get('tool-log', ToolLog::class)->name('logistik.tool-log');
 
-    // ─── Admin-only pages ────────────────────────────────────────
+    // ─── Administrator-only pages and utilities ─────────────────
     Route::middleware('role:admin')->group(function () {
         Route::get('playground', Playground::class)->name('playground');
         Route::get('users', UserManagement::class)->name('admin.users');
     });
 
-    // Finance can view and manage costs, but not users or admin tools.
-    Route::middleware('role:admin|keuangan')->group(function () {
+    // Finance and supervisors can view project costs without user administration.
+    Route::middleware('role:admin|keuangan|pengawas')->group(function () {
         Route::get('house-costs', HouseCosts::class)->name('admin.house-costs');
         Route::get('house-costs/{house}', HouseCostDetail::class)->name('admin.house-costs.detail');
     });

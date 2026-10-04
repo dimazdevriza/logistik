@@ -46,7 +46,7 @@
                         <div class="cluster-cost-growth-heading">
                             <div>
                                 <h2 id="cluster-cost-growth-title" class="h5 fw-bold mb-1 font-outfit">Tren biaya cluster</h2>
-                                <p class="small text-secondary mb-0">Pengeluaran semua cluster per bulan · {{ $selectedYear }}</p>
+                                <p class="small text-secondary mb-0">{{ auth()->user()->role === 'pengawas' ? 'Pengeluaran cluster per bulan' : 'Pengeluaran semua cluster per bulan' }} · {{ $selectedYear }}</p>
                             </div>
                         </div>
 
@@ -180,7 +180,7 @@
                     </table>
                 </div>
                 @php $mobileYearTotal = array_sum($monthlyTotals); @endphp
-                <div class="house-cost-mobile-total d-none" aria-label="Ringkasan biaya semua cluster">
+                <div class="house-cost-mobile-total d-none" aria-label="Ringkasan biaya {{ auth()->user()->role === 'pengawas' ? 'cluster' : 'semua cluster' }}">
                     <span>Total {{ $selectedYear }}</span>
                     <strong class="font-mono text-success">Rp {{ number_format($mobileYearTotal, 0, ',', '.') }}</strong>
                     <span>Total keseluruhan</span>

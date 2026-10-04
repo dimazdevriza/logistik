@@ -172,7 +172,7 @@ class TransaksiLogistik extends Component
     {
         $this->rental_start_date = now()->toDateString();
         $this->vendor_service_date = now()->toDateString();
-        $this->vendor_service_cluster_id = auth()->user()->role === 'admin'
+        $this->vendor_service_cluster_id = auth()->user()->canAccessAllClusters()
             ? ''
             : (string) (auth()->user()->cluster_id ?? '');
     }
@@ -180,7 +180,7 @@ class TransaksiLogistik extends Component
     public function updatedVendorServiceTarget(string $target): void
     {
         $this->house_ids = [];
-        $this->vendor_service_cluster_id = $target === 'cluster' && auth()->user()->role !== 'admin'
+        $this->vendor_service_cluster_id = $target === 'cluster' && ! auth()->user()->canAccessAllClusters()
             ? (string) (auth()->user()->cluster_id ?? '')
             : '';
         $this->reset('houseSearch', 'houseCluster', 'selectedHousesOnly', 'housePage');
@@ -806,7 +806,7 @@ class TransaksiLogistik extends Component
         }
 
         $cluster = Cluster::query()
-            ->when($user->role !== 'admin', fn ($query) => $query->whereKey($user->cluster_id ?? 0))
+            ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereKey($user->cluster_id ?? 0))
             ->find($validated['vendor_service_cluster_id']);
         if (! $cluster) {
             throw ValidationException::withMessages(['vendor_service_cluster_id' => 'Pilih cluster yang dapat Anda akses.']);
@@ -1821,7 +1821,7 @@ class TransaksiLogistik extends Component
                 ->orderBy('checkout_date')->get()->groupBy('house_id');
         $supplierNames = Supplier::orderBy('name')->pluck('name')->unique()->values()->all();
         $clusters = Cluster::query()
-            ->when(auth()->user()->role !== 'admin', fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
+            ->when(! auth()->user()->canAccessAllClusters(), fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
             ->orderBy('name')->get(['id', 'name']);
 
         return view('livewire.logistik.transaksi-logistik', array_merge(
@@ -1829,7 +1829,7 @@ class TransaksiLogistik extends Component
             $this->housePickerData($houses),
             [
                 'warehouses' => Warehouse::orderBy('name')->get(['id', 'name']),
-                'clusterAssignmentMissing' => auth()->user()->role === 'logistik' && ! auth()->user()->cluster_id,
+                'clusterAssignmentMissing' => in_array(auth()->user()->role, ['logistik', 'pengawas'], true) && ! auth()->user()->cluster_id,
             ],
         ))
             ->layout('layouts.app', ['title' => 'Alokasi Material & Alat']);

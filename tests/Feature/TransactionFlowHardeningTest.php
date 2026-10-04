@@ -244,6 +244,7 @@ test('A1 material create accepts decimal initial stock', function () {
         ->set('unit_price', 200000)
         ->set('stock', 2.5)
         ->set('category_id', $this->materialCategory->id)
+        ->set('category_name', $this->materialCategory->name)
         ->set('supplier_name', $this->supplier->name)
         ->call('save')
         ->assertHasNoErrors();

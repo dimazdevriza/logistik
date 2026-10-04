@@ -3,7 +3,7 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    @if (in_array(auth()->user()->role, ['admin', 'keuangan'], true))
+                    @if (in_array(auth()->user()->role, ['admin', 'keuangan', 'pengawas'], true))
                     <a href="{{ request('from') === 'costs' ? route('logistik.cluster-costs') : route('logistik.clusters') }}" wire:navigate class="back-link mb-3">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 .708.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
                         {{ request('from') === 'costs' ? 'Kembali ke Biaya Cluster' : 'Kembali ke Cluster' }}
@@ -158,7 +158,7 @@
                                             @endfor
                                             <td data-label="Total {{ $selectedYear }}" class="text-end font-mono fw-bold text-success bg-success-subtle bg-opacity-10 data-number">Rp {{ number_format($yearTotal, 0, ',', '.') }}</td>
                                             <td data-label="Total keseluruhan" class="text-end font-mono fw-bold text-warning bg-warning-subtle bg-opacity-10 data-number">Rp {{ number_format($totalAllTime, 0, ',', '.') }}</td>
-                                            <td data-label="Aksi" class="text-end"><a href="{{ route(auth()->user()->role === 'admin' ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit">Lihat</a></td>
+                                            <td data-label="Aksi" class="text-end"><a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit">Lihat</a></td>
                                         </tr>
                                     @endforeach
                                     @endif

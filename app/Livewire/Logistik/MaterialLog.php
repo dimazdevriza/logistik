@@ -97,7 +97,7 @@ class MaterialLog extends Component
 
     private function ensureInventoryAccess(): void
     {
-        abort_unless(in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true), 403);
+        abort_unless(in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true), 403);
     }
 
     private function downstreamBatchIds(StockIn $source): array
@@ -322,7 +322,7 @@ class MaterialLog extends Component
      */
     public function voidMaterial(int $usageId)
     {
-        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) {
+        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) {
             abort(403);
         }
 
@@ -410,7 +410,7 @@ class MaterialLog extends Component
             ->addSelect(DB::raw('0 as reserved_quantity'))
             ->addSelect(DB::raw('0 as transferred_quantity'))
             ->addSelect(DB::raw('0 as price_correction_count'))
-            ->when(auth()->user()->role === 'logistik', fn ($q) => $q->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
+            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($q) => $q->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('materials.name', 'like', "%{$this->search}%")
                 ->orWhere('material_usages.transaction_code', 'like', "%{$this->search}%")

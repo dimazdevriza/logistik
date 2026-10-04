@@ -77,7 +77,7 @@ class ToolLog extends Component
      */
     public function voidTool(int $usageId)
     {
-        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) {
+        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) {
             abort(403);
         }
 
@@ -112,7 +112,7 @@ class ToolLog extends Component
 
     public function resolveBrokenReturn(int $returnLogId, string $resolution): void
     {
-        if (! in_array(auth()->user()->role, ['admin', 'logistik'], true)) {
+        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'], true)) {
             abort(403);
         }
         if (! in_array($resolution, ['fixed', 'discarded'], true)) {
@@ -171,7 +171,7 @@ class ToolLog extends Component
 
     public function exportExcel()
     {
-        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan'], true)) {
+        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) {
             return;
         }
 
@@ -220,7 +220,7 @@ class ToolLog extends Component
             ->leftJoin('stock_ins as source_stock', 'dispatch_lines.stock_in_id', '=', 'source_stock.id')
             ->leftJoin('tools as source_tool', 'dispatch_lines.tool_id', '=', 'source_tool.id')
             ->leftJoin('warehouses as source_warehouse', 'dispatch_lines.warehouse_id', '=', 'source_warehouse.id')
-            ->when(auth()->user()->role === 'logistik', fn ($query) => $query->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
+            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('tool_usages.transaction_code', 'like', "%{$this->search}%")
                 ->orWhere('tool_usages.dispatch_code', 'like', "%{$this->search}%")
@@ -303,7 +303,7 @@ class ToolLog extends Component
             ->leftJoin('warehouses as receiving_warehouse', 'tool_return_logs.receiving_warehouse_id', '=', 'receiving_warehouse.id')
             ->leftJoin('users as receivers', 'tool_return_logs.received_by_id', '=', 'receivers.id')
             ->leftJoin('users as reporters', 'tool_return_logs.reported_by', '=', 'reporters.id')
-            ->when(auth()->user()->role === 'logistik', fn ($query) => $query->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
+            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('tool_return_logs.transaction_code', 'like', "%{$this->search}%")
                 ->orWhereRaw("CONCAT('KMB-', tool_return_logs.id) like ?", ["%{$this->search}%"])
@@ -362,7 +362,7 @@ class ToolLog extends Component
             })
             ->selectRaw("cluster_expenses.type as type, cluster_expenses.id, NULL as voided_at, COALESCE(cluster_expenses.start_date, cluster_expenses.off_hire_date, DATE(cluster_expenses.created_at)) as date, NULL as received_at, CONCAT('SWA-', LPAD(cluster_expenses.id, 6, '0')) as transaction_code, NULL as dispatch_code, cluster_expenses.created_at, COALESCE(users.name, 'Tidak tercatat') as admin_name, users.role as admin_role, COALESCE(rental_houses.names, '-') as house_name, COALESCE(cluster_expenses.notes, cluster_expenses.description) as job_notes, CONCAT('SWA-', LPAD(COALESCE(cluster_expenses.parent_expense_id, cluster_expenses.id), 6, '0')) as item_code, cluster_expenses.description as item_name, cluster_expenses.quantity as volume, 'unit' as unit, IF(cluster_expenses.quantity > 0, cluster_expenses.amount / cluster_expenses.quantity, 0) as unit_price, cluster_expenses.amount as total_cost, cluster_expenses.off_hire_date as return_date, NULL as source_entry_code, NULL as source_warehouse_name, NULL as source_line_id, cluster_expenses.vendor as vendor_name, COALESCE((SELECT MAX(extension.due_date) FROM cluster_expenses extension WHERE extension.parent_expense_id = COALESCE(cluster_expenses.parent_expense_id, cluster_expenses.id) AND extension.type = 'rental_extension'), COALESCE(rental_parent.due_date, cluster_expenses.due_date)) as rental_due_date, CASE WHEN cluster_expenses.type = 'rental_return' OR cluster_expenses.status = 'returned' THEN 'Dikembalikan' WHEN EXISTS (SELECT 1 FROM cluster_expenses rental_return WHERE rental_return.parent_expense_id = cluster_expenses.id AND rental_return.type = 'rental_return') THEN 'Dikembalikan sebagian' WHEN COALESCE((SELECT MAX(extension.due_date) FROM cluster_expenses extension WHERE extension.parent_expense_id = COALESCE(cluster_expenses.parent_expense_id, cluster_expenses.id) AND extension.type = 'rental_extension'), COALESCE(rental_parent.due_date, cluster_expenses.due_date)) < CURDATE() THEN 'Terlambat' ELSE 'Aktif' END as rental_status, cluster_expenses.bill_image as rental_evidence_path, CASE WHEN cluster_expenses.parent_expense_id IS NULL THEN NULL ELSE CONCAT('SWA-', LPAD(cluster_expenses.parent_expense_id, 6, '0')) END as parent_transaction_code")
             ->whereIn('cluster_expenses.type', ['rental', 'rental_extension', 'rental_return'])
-            ->when(auth()->user()->role === 'logistik', fn ($query) => $query->where('cluster_expenses.cluster_id', auth()->user()->cluster_id ?? 0))
+            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->where('cluster_expenses.cluster_id', auth()->user()->cluster_id ?? 0))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search->where('cluster_expenses.description', 'like', "%{$this->search}%")
                 ->orWhere('cluster_expenses.vendor', 'like', "%{$this->search}%")
                 ->orWhereRaw("CONCAT('SWA-', LPAD(cluster_expenses.id, 6, '0')) like ?", ["%{$this->search}%"])

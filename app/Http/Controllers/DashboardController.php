@@ -23,6 +23,7 @@ class DashboardController extends Controller
         return match ($role) {
             'admin'     => $this->adminDashboard(),
             'keuangan'  => $this->adminDashboard(),
+            'pengawas'  => $this->logistikDashboard($request),
             'logistik'  => $this->logistikDashboard($request),
             default     => abort(403, 'Unauthorized.'),
         };
