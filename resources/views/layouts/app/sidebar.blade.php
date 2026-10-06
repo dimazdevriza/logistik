@@ -295,7 +295,7 @@
 
             <main class="flex-grow-1 p-0 d-flex flex-column overflow-lg-hidden">
                 <div 
-                    class="main-card-container p-3 p-md-4 flex-grow-1 scroll-fade"
+                    class="main-card-container {{ request()->routeIs('logistik.materials') ? 'main-card-container--materials' : '' }} p-3 p-md-4 flex-grow-1 scroll-fade"
                     x-data="{ isScrolling: false, scrollTimer: null }"
                     :class="{ 'is-scrolling': isScrolling }"
                     @scroll="

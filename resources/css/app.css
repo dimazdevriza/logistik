@@ -6098,3 +6098,83 @@ h1, h2, h3, h4, h5, h6 {
         border-radius: 0 !important;
     }
 }
+
+.materials-page {
+    overflow-x: clip;
+}
+
+@media (min-width: 992px) {
+    .main-content:has(.main-card-container--materials) {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .main-content:has(.main-card-container--materials) > main {
+        overflow: visible !important;
+    }
+
+    .main-card-container--materials {
+        height: auto;
+        min-height: calc(100vh - 3rem);
+        flex: 0 0 auto;
+        overflow: visible;
+    }
+}
+
+[data-bs-theme="dark"] .materials-page .data-table--inventory .text-secondary {
+    color: var(--ledger-muted) !important;
+}
+
+[data-bs-theme="dark"] .materials-page .data-table--inventory .data-key-code small {
+    opacity: 1 !important;
+}
+
+.materials-page .materials-table {
+    width: 88.5rem;
+    min-width: 88.5rem !important;
+    table-layout: fixed;
+}
+
+.materials-page .materials-table th:nth-child(1),
+.materials-page .materials-table td:nth-child(1) { width: 2.75rem; }
+.materials-page .materials-table th:nth-child(2),
+.materials-page .materials-table td:nth-child(2) { width: 3rem; }
+.materials-page .materials-table th:nth-child(3),
+.materials-page .materials-table td:nth-child(3) { width: 8.5rem; }
+.materials-page .materials-table th:nth-child(4),
+.materials-page .materials-table td:nth-child(4) { width: 11rem; }
+.materials-page .materials-table th:nth-child(5),
+.materials-page .materials-table td:nth-child(5) { width: 6.5rem; }
+.materials-page .materials-table th:nth-child(6),
+.materials-page .materials-table td:nth-child(6) { width: 8rem; }
+.materials-page .materials-table th:nth-child(7),
+.materials-page .materials-table td:nth-child(7) { width: 9rem; }
+.materials-page .materials-table th:nth-child(8),
+.materials-page .materials-table td:nth-child(8) { width: 7rem; }
+.materials-page .materials-table th:nth-child(9),
+.materials-page .materials-table td:nth-child(9) { width: 11rem; }
+.materials-page .materials-table th:nth-child(10),
+.materials-page .materials-table td:nth-child(10) { width: 10rem; }
+.materials-page .materials-table th:nth-child(11),
+.materials-page .materials-table td:nth-child(11) { width: 10rem; }
+.materials-page .materials-table th:nth-child(12),
+.materials-page .materials-table td:nth-child(12) { width: 8rem; }
+
+@media (min-width: 768px) {
+    .materials-page .materials-table.data-table--sticky-identity .data-key-name { left: 8.5rem; }
+}
+
+@media (min-width: 768px) {
+    .materials-page .standard-table-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .materials-page .standard-table-toolbar h2 {
+        flex: 0 0 14rem;
+        white-space: nowrap;
+    }
+
+    .materials-page .standard-table-toolbar-controls {
+        flex: 1 1 28rem;
+    }
+}

@@ -1,5 +1,5 @@
 <div>
-    <div class="container-fluid p-0">
+    <div class="materials-page container-fluid p-0">
         <!-- Hero Header -->
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
@@ -132,21 +132,21 @@
             <div wire:loading.delay class="data-table-status" role="status">Memuat material...</div>
             <div wire:offline class="data-table-status is-error" role="alert">Koneksi terputus. Data mungkin tidak terbaru.</div>
             <div class="table-responsive data-table-scroll standard-table-frame" tabindex="0" role="region" aria-label="Daftar material per batch harga">
-                <table class="table table-hover align-middle mb-0 data-table data-table--inventory data-table--sticky-identity standard-data-table">
+                <table class="table table-hover align-middle mb-0 data-table data-table--inventory data-table--sticky-identity standard-data-table materials-table">
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
-                            <th class="text-center data-mobile-secondary" style="width: 50px;">No.</th>
-                            <th class="text-center data-mobile-secondary" style="width: 60px;">Foto</th>
+                            <th class="text-center data-mobile-secondary" style="width: 44px;">No.</th>
+                            <th class="text-center data-mobile-secondary" style="width: 48px;">Foto</th>
                             <x-sortable-th field="code" :sort="$sort" class="data-key-code">Kode</x-sortable-th>
                             <x-sortable-th field="name" :sort="$sort" class="data-key-name">Nama</x-sortable-th>
-                            <x-sortable-th field="category" :sort="$sort">Kategori</x-sortable-th>
-                            <x-sortable-th field="supplier" :sort="$sort">Supplier</x-sortable-th>
-                            <x-sortable-th field="warehouse" :sort="$sort">Gudang</x-sortable-th>
                             <x-sortable-th field="stock" :sort="$sort" class="text-end data-number">Stok + Satuan</x-sortable-th>
                             <x-sortable-th field="unit_price" :sort="$sort" class="text-end data-number">Harga Masuk</x-sortable-th>
                             <x-sortable-th field="value" :sort="$sort" class="text-end data-number">Estimasi Nilai</x-sortable-th>
+                            <x-sortable-th field="category" :sort="$sort">Kategori</x-sortable-th>
+                            <x-sortable-th field="supplier" :sort="$sort">Supplier</x-sortable-th>
+                            <x-sortable-th field="warehouse" :sort="$sort">Gudang</x-sortable-th>
                             <x-sortable-th field="date" :sort="$sort" class="data-date">Tanggal Masuk</x-sortable-th>
-                            <th class="text-end" style="width: 160px;">Aksi</th>
+                            <th class="text-end" style="width: 128px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -168,9 +168,6 @@
                                 <small class="d-block text-secondary opacity-75 text-truncate">{{ $batch->entry_code }}</small>
                             </td>
                             <td class="fw-bold text-body data-key-name" title="{{ $material->name }}">{{ $material->name }}</td>
-                            <td class="text-secondary small data-cell-truncate" title="{{ $material->category?->name ?? 'Kategori tidak tersedia' }}">{{ $material->category?->name ?? '-' }}</td>
-                            <td class="text-secondary small data-cell-truncate" title="{{ $batch->supplier?->name ?? $material->supplier?->name ?? 'Supplier tidak tersedia' }}">{{ $batch->supplier?->name ?? $material->supplier?->name ?? '-' }}</td>
-                            <td class="text-secondary small data-cell-truncate" title="{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}">{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}</td>
                             <td class="text-end fw-bold data-number">
                                 <span class="{{ $batch->remaining_quantity <= 10 ? 'badge bg-danger-subtle text-danger border border-danger-subtle' : '' }}">
                                     {{ rtrim(rtrim(number_format((float) $batch->remaining_quantity, 2, ',', '.'), '0'), ',') }}
@@ -179,6 +176,9 @@
                             </td>
                             <td class="text-end font-mono text-secondary data-number">Rp {{ number_format($batch->unit_price, 0, ',', '.') }}</td>
                             <td class="text-end font-mono fw-bold text-success data-number">Rp {{ number_format($batch->unit_price * (float) $batch->remaining_quantity, 0, ',', '.') }}</td>
+                            <td class="text-secondary small data-cell-truncate" title="{{ $material->category?->name ?? 'Kategori tidak tersedia' }}">{{ $material->category?->name ?? '-' }}</td>
+                            <td class="text-secondary small data-cell-truncate" title="{{ $batch->supplier?->name ?? $material->supplier?->name ?? 'Supplier tidak tersedia' }}">{{ $batch->supplier?->name ?? $material->supplier?->name ?? '-' }}</td>
+                            <td class="text-secondary small data-cell-truncate" title="{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}">{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}</td>
                             <td class="font-mono text-secondary small data-date">
                                 <div>{{ $batch->received_at?->format('d/m/Y H:i') ?? $batch->date?->format('d/m/Y') ?? $batch->created_at?->format('d/m/Y H:i') ?? '-' }}</div>
                             </td>
