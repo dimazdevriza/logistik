@@ -6160,6 +6160,13 @@ h1, h2, h3, h4, h5, h6 {
 .materials-page .materials-table th:nth-child(12),
 .materials-page .materials-table td:nth-child(12) { width: 8rem; }
 
+.materials-page .materials-table th:nth-child(5) .table-sort-button,
+.materials-page .materials-table th:nth-child(5) .table-sort-label {
+    min-width: 0;
+    white-space: normal;
+    text-wrap: balance;
+}
+
 @media (min-width: 768px) {
     .materials-page .materials-table.data-table--sticky-identity .data-key-name { left: 8.5rem; }
 }

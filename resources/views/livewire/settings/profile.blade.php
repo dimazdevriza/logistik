@@ -54,10 +54,5 @@
                 </x-action-message>
             </div>
         </form>
-
-        @if ($this->showDeleteUser)
-            <hr class="my-5 border-secondary opacity-25" />
-            <livewire:settings.delete-user-form />
-        @endif
     </x-settings.layout>
 </section>

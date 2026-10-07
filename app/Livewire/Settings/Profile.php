@@ -6,7 +6,6 @@ use App\Concerns\ProfileValidationRules;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
-use Laravel\Jetstream\Features;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -71,13 +70,5 @@ class Profile extends Component
     public function hasUnverifiedEmail(): bool
     {
         return Auth::user() instanceof MustVerifyEmail && ! Auth::user()->hasVerifiedEmail();
-    }
-
-    #[Computed]
-    public function showDeleteUser(): bool
-    {
-        return Features::hasAccountDeletionFeatures()
-            && (! Auth::user() instanceof MustVerifyEmail
-                || (Auth::user() instanceof MustVerifyEmail && Auth::user()->hasVerifiedEmail()));
     }
 }
