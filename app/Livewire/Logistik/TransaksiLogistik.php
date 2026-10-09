@@ -14,7 +14,11 @@ use App\Models\ToolReturnLog;
 use App\Models\ToolUsage as ToolUsageModel;
 use App\Models\Warehouse;
 use App\Models\ToolWarehouseBalance;
+use App\Support\MaterialAllocationRecorder;
+use App\Support\SpreadsheetBatchRecorder;
 use App\Support\ToolInventory;
+use App\Support\ToolLoanRecorder;
+use App\Support\ToolReturnRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -571,80 +575,9 @@ class TransaksiLogistik extends Component
             $this->showSpreadsheetConfirmation = false;
             throw $e;
         }
-        $houseIds = collect($rows)->pluck('house_id')->map(fn ($id) => (int) $id)->all();
         $this->saving = true;
         try {
-            DB::transaction(function () use ($rows, $houseIds) {
-                $houses = House::forUser(auth()->user())->whereIn('id', $houseIds)->orderBy('id')->lockForUpdate()->get(['id', 'name', 'status', 'warranty_expires_at']);
-                if ($houses->count() !== count($houseIds)) {
-                    throw ValidationException::withMessages(['spreadsheetRows' => 'Salah satu rumah tidak lagi tersedia untuk akun Anda. Muat ulang lalu pilih ulang rumah.']);
-                }
-                $houseById = $houses->keyBy('id');
-                $allocationHouseIds = collect($rows)->filter(fn ($row) => ! empty($row['materials']) || ! empty($row['tools']))->pluck('house_id')->map(fn ($id) => (int) $id);
-                if ($houses->whereIn('id', $allocationHouseIds)->contains(fn ($house) => ! $house->canReceiveAllocations())) {
-                    throw ValidationException::withMessages(['spreadsheetRows' => 'Rumah yang sudah selesai masa garansinya tidak dapat menerima material atau alat.']);
-                }
-
-                foreach ($rows as $rowIndex => $row) {
-                    $house = $houseById[(int) $row['house_id']];
-
-                    foreach ($row['materials'] ?? [] as $lineIndex => $line) {
-                        $material = Material::whereKey($line['material_id'])->lockForUpdate()->firstOrFail();
-                        $quantity = (float) $line['quantity'];
-                        if ((float) $material->stock + 0.001 < $quantity) {
-                            throw ValidationException::withMessages(["spreadsheetRows.$rowIndex.materials.$lineIndex.quantity" => 'Stok '.$material->name.' tidak mencukupi untuk alokasi ini.']);
-                        }
-
-                        $batch = StockIn::withReservedQuantity()->whereKey($line['batch_id'])->where('material_id', $material->id)->whereNotNull('warehouse_id')->lockForUpdate()->first();
-                        if (! $batch || (float) $batch->available_quantity + 0.001 < $quantity) {
-                            throw ValidationException::withMessages(["spreadsheetRows.$rowIndex.materials.$lineIndex.batch_id" => 'Saldo batch '.$material->name.' berubah atau tidak cukup. Pilih batch lain.']);
-                        }
-
-                        $this->recordMaterialUsage($house, $material, $batch->id, $quantity, (float) $batch->unit_price, $line['notes'] ?? null, takenBy: $line['taken_by'] ?? null);
-                        $batch->decrement('remaining_quantity', $quantity);
-                        $material->decrement('stock', $quantity);
-                    }
-
-                    foreach ($row['tools'] ?? [] as $lineIndex => $line) {
-                        $tool = Tool::whereKey($line['tool_id'])->lockForUpdate()->firstOrFail();
-                        $warehouseId = (int) $line['warehouse_id'];
-                        $quantity = (int) $line['quantity'];
-                        $usageExists = ToolUsageModel::where('tool_id', $tool->id)->where('house_id', $house->id)->whereNull('return_date')->whereNull('voided_at')->exists();
-                        if ($usageExists) {
-                            throw ValidationException::withMessages(["spreadsheetRows.$rowIndex.tools.$lineIndex.tool_id" => $tool->name.' masih dipinjam oleh '.$house->name.'.']);
-                        }
-
-                        $balance = ToolInventory::lockBalance($tool, $warehouseId);
-                        if ((int) $balance->available_qty < $quantity) {
-                            throw ValidationException::withMessages(["spreadsheetRows.$rowIndex.tools.$lineIndex.quantity" => 'Stok '.$tool->name.' di gudang pilihan tidak mencukupi.']);
-                        }
-
-                        ToolInventory::checkout($tool, $warehouseId, $quantity);
-                        $this->recordToolUsage($house, $tool, $warehouseId, $quantity, $line['notes'] ?? null);
-                    }
-
-                    foreach ($row['returns'] ?? [] as $lineIndex => $line) {
-                        $usage = ToolUsageModel::where('house_id', $house->id)
-                            ->whereHas('house', fn ($query) => $query->forUser(auth()->user()))
-                            ->lockForUpdate()->find($line['usage_id']);
-                        if (! $usage || $usage->return_date || $usage->voided_at) {
-                            throw ValidationException::withMessages(["spreadsheetRows.$rowIndex.returns.$lineIndex.usage_id" => 'Alat ini sudah dikembalikan atau bukan milik rumah yang dipilih.']);
-                        }
-                        $returnQty = (int) $line['qty_normal'] + (int) $line['qty_broken'] + (int) $line['qty_lost'];
-                        if ($returnQty > $usage->quantity) {
-                            throw ValidationException::withMessages(["spreadsheetRows.$rowIndex.returns.$lineIndex.qty_normal" => 'Jumlah pengembalian melebihi jumlah alat yang tercatat dipinjam.']);
-                        }
-                        if (((int) $line['qty_normal'] + (int) $line['qty_broken']) > 0 && empty($line['receiving_warehouse_id'])) {
-                            throw ValidationException::withMessages(["spreadsheetRows.$rowIndex.returns.$lineIndex.receiving_warehouse_id" => 'Pilih gudang penerima untuk alat yang kembali.']);
-                        }
-                        $this->recordToolReturn([
-                            'usage_id' => $usage->id,
-                            'qty_normal' => (int) $line['qty_normal'], 'qty_broken' => (int) $line['qty_broken'], 'qty_lost' => (int) $line['qty_lost'],
-                            'receiving_warehouse_id' => (int) ($line['receiving_warehouse_id'] ?? 0), 'notes' => $line['notes'] ?? '',
-                        ]);
-                    }
-                }
-            });
+            SpreadsheetBatchRecorder::process($rows, auth()->user());
 
             $this->showSpreadsheetReview = false;
             $this->spreadsheetRows = [['house_id' => '', 'materials' => [], 'tools' => [], 'returns' => []]];
@@ -1004,52 +937,16 @@ class TransaksiLogistik extends Component
         try {
             $takenBy = trim((string) ($validated['material_taken_by'] ?? '')) ?: null;
 
-            DB::transaction(function () use ($validated, $houseIds, $quantity, $proofPath, $takenBy) {
-                $material = Material::lockForUpdate()->findOrFail($validated['material_id']);
-                $houses = House::forUser(auth()->user())->whereIn('id', $houseIds)->orderBy('id')->lockForUpdate()->get(['id', 'name', 'status', 'warranty_expires_at']);
-
-                if ($houses->count() !== count($houseIds)) {
-                    throw ValidationException::withMessages(['house_ids' => 'Salah satu rumah tujuan sudah tidak tersedia. Pilih ulang rumah.']);
-                }
-
-                $completedHouses = $houses->filter(fn ($house) => ! $house->canReceiveAllocations());
-                if ($completedHouses->isNotEmpty()) {
-                    throw ValidationException::withMessages([
-                        'house_ids' => 'Rumah berikut sudah selesai masa garansinya: '.$completedHouses->pluck('name')->join(', '),
-                    ]);
-                }
-
-                $totalQuantityRequired = $quantity * count($houseIds);
-                if ((float) $material->stock + 0.001 < $totalQuantityRequired) {
-                    throw ValidationException::withMessages([
-                        'material_quantity' => 'Stok bebas material berubah atau tidak mencukupi. Pilih ulang jumlah.',
-                    ]);
-                }
-
-                $batch = StockIn::whereKey($validated['material_batch_id'])
-                    ->where('material_id', $material->id)
-                    ->whereNotNull('warehouse_id')
-                    ->lockForUpdate()
-                    ->first();
-                if (! $batch) {
-                    throw ValidationException::withMessages([
-                        'material_batch_id' => 'Batch material berubah. Pilih ulang batch.',
-                    ]);
-                }
-                if ((float) $batch->remaining_quantity + 0.001 < $totalQuantityRequired) {
-                    throw ValidationException::withMessages([
-                        'material_quantity' => 'Saldo batch berubah atau tidak mencukupi. Pilih ulang jumlah material.',
-                    ]);
-                }
-
-                $houseById = $houses->keyBy('id');
-                foreach ($houseIds as $houseId) {
-                    $this->recordMaterialUsage($houseById[$houseId], $material, $batch->id, $quantity, (float) $batch->unit_price, $validated['material_notes'], $proofPath, $takenBy);
-                }
-
-                $batch->decrement('remaining_quantity', $totalQuantityRequired);
-                $material->decrement('stock', $totalQuantityRequired);
-            });
+            MaterialAllocationRecorder::allocate(
+                $houseIds,
+                $validated['material_id'],
+                $validated['material_batch_id'],
+                $quantity,
+                $validated['material_notes'],
+                $proofPath,
+                $takenBy,
+                auth()->user()
+            );
 
             $this->showSuccess('Material langsung dialokasikan ke '.count($houseIds).' rumah.', 'material');
             $this->resetMaterialForm();
@@ -1144,50 +1041,17 @@ class TransaksiLogistik extends Component
         $this->saving = true;
 
         try {
-            DB::transaction(function () use ($validated, $houseIds, $quantity, $proofPath) {
-                $tool = Tool::lockForUpdate()->findOrFail($validated['tool_id']);
-                $houses = House::forUser(auth()->user())->whereIn('id', $houseIds)->orderBy('id')->lockForUpdate()->get(['id', 'name', 'status', 'warranty_expires_at']);
+            $sourceWarehouseId = (int) ($validated['tool_warehouse_id'] ?: Tool::findOrFail($validated['tool_id'])->warehouse_id);
 
-                if ($houses->count() !== count($houseIds)) {
-                    throw ValidationException::withMessages(['house_ids' => 'Salah satu rumah tujuan sudah tidak tersedia. Pilih ulang rumah.']);
-                }
-
-                $completedHouses = $houses->filter(fn ($house) => ! $house->canReceiveAllocations());
-                if ($completedHouses->isNotEmpty()) {
-                    throw ValidationException::withMessages([
-                        'house_ids' => 'Rumah berikut sudah selesai masa garansinya: '.$completedHouses->pluck('name')->join(', '),
-                    ]);
-                }
-
-                $totalQuantityRequired = $quantity * count($houseIds);
-
-                $sourceWarehouseId = (int) ($validated['tool_warehouse_id'] ?: $tool->warehouse_id);
-                $sourceBalance = ToolInventory::lockBalance($tool, $sourceWarehouseId);
-                if ((int) $sourceBalance->available_qty < $totalQuantityRequired) {
-                    throw ValidationException::withMessages([
-                        'tool_quantity' => 'Jumlah alat bebas di gudang asal berubah atau tidak mencukupi.',
-                    ]);
-                }
-
-                // C: reject duplicate active checkout for same tool + house (D5 void filter included)
-                $existing = ToolUsageModel::where('tool_id', $validated['tool_id'])
-                    ->whereIn('house_id', $houseIds)
-                    ->whereNull('return_date')
-                    ->whereNull('voided_at')
-                    ->pluck('house_id');
-                if ($existing->isNotEmpty()) {
-                    throw ValidationException::withMessages([
-                        'tool_quantity' => 'Alat ini masih dipinjam oleh rumah: '.House::whereIn('id', $existing)->pluck('name')->join(', '),
-                    ]);
-                }
-
-                ToolInventory::checkout($tool, $sourceWarehouseId, $totalQuantityRequired);
-                $houseById = $houses->keyBy('id');
-                foreach ($houseIds as $houseId) {
-                    $this->recordToolUsage($houseById[$houseId], $tool, $sourceWarehouseId, $quantity, $validated['tool_notes'], $proofPath);
-                }
-
-            });
+            ToolLoanRecorder::loan(
+                $houseIds,
+                $validated['tool_id'],
+                $sourceWarehouseId,
+                $quantity,
+                $validated['tool_notes'],
+                $proofPath,
+                auth()->user()
+            );
 
             $this->showSuccess('Alat langsung dialokasikan ke '.count($houseIds).' rumah.', 'tool');
             $this->resetToolForm();
@@ -1360,71 +1224,16 @@ class TransaksiLogistik extends Component
     {
         $usage = ToolUsageModel::whereHas('house', fn ($query) => $query->forUser(auth()->user()))
             ->lockForUpdate()->findOrFail($item['usage_id']);
-        if ($usage->return_date) {
-            return;
-        }
 
-        $tool = Tool::lockForUpdate()->findOrFail($usage->tool_id);
-        $qtyNormal = (int) $item['qty_normal'];
-        $qtyBroken = (int) $item['qty_broken'];
-        $qtyLost = (int) $item['qty_lost'];
-        $receivingWarehouseId = (int) ($item['receiving_warehouse_id'] ?? 0);
-        $returnQty = $qtyNormal + $qtyBroken + $qtyLost;
-        $remainingQty = $usage->quantity - $returnQty;
-
-        if ($remainingQty === 0) {
-            $usage->update(['return_date' => now()->format('Y-m-d')]);
-        } else {
-            $usage->update(['quantity' => $returnQty, 'return_date' => now()->format('Y-m-d')]);
-            ToolUsageModel::create([
-                'transaction_code' => 'KLR-'.Str::ulid(),
-                'dispatch_code' => $usage->dispatch_code,
-                'dispatch_line_id' => $usage->dispatch_line_id,
-                'house_id' => $usage->house_id,
-                'tool_id' => $usage->tool_id,
-                'warehouse_id' => $usage->warehouse_id,
-                'warehouse_source_recorded' => $usage->warehouse_source_recorded,
-                'user_id' => $usage->user_id,
-                'quantity' => $remainingQty,
-                'checkout_date' => $usage->checkout_date,
-                'return_date' => null,
-                'parent_usage_id' => $usage->id,
-                'notes' => $usage->notes,
-            ]);
-        }
-
-        ToolInventory::receive($tool, $receivingWarehouseId, $qtyNormal, $qtyBroken);
-        foreach ([['quantity' => $qtyNormal, 'report_type' => 'normal', 'status' => 'fixed'], ['quantity' => $qtyBroken, 'report_type' => 'broken', 'status' => 'received'], ['quantity' => $qtyLost, 'report_type' => 'lost', 'status' => 'discarded']] as $log) {
-            if ($log['quantity'] < 1) {
-                continue;
-            }
-            if ($log['report_type'] === 'lost' && $tool->total_qty < $log['quantity']) {
-                throw new \RuntimeException('Jumlah alat hilang melebihi total alat tercatat.');
-            }
-            if ($log['report_type'] === 'broken') {
-                $tool->condition = 'rusak';
-            }
-            if ($log['report_type'] === 'lost') {
-                $tool->total_qty -= $log['quantity'];
-            }
-
-            ToolReturnLog::create([
-                'tool_id' => $tool->id,
-                'house_id' => $usage->house_id,
-                'tool_usage_id' => $usage->id,
-                'reported_by' => auth()->id(),
-                'receiving_warehouse_id' => $log['report_type'] === 'lost' ? null : $receivingWarehouseId,
-                'received_at' => $log['report_type'] === 'lost' ? null : now(),
-                'received_by_id' => $log['report_type'] === 'lost' ? null : auth()->id(),
-                'resolved_by_id' => $log['report_type'] === 'lost' ? auth()->id() : null,
-                'resolved_at' => $log['report_type'] === 'lost' ? now() : null,
-                'quantity' => $log['quantity'],
-                'report_type' => $log['report_type'],
-                'status' => $log['status'],
-                'notes' => $item['notes'] ?: null,
-            ]);
-        }
-        $tool->save();
+        ToolReturnRecorder::recordReturn(
+            $usage,
+            (int) $item['qty_normal'],
+            (int) $item['qty_broken'],
+            (int) $item['qty_lost'],
+            (int) ($item['receiving_warehouse_id'] ?? 0),
+            $item['notes'] ?: null,
+            auth()->user()
+        );
     }
 
     public function resetReturnForm()
@@ -1713,38 +1522,12 @@ class TransaksiLogistik extends Component
 
     private function recordMaterialUsage(House $house, Material $material, ?int $stockInId, float $quantity, float $unitPrice, ?string $notes, ?string $proofPath = null, ?string $takenBy = null): void
     {
-        MaterialUsageModel::create([
-            'transaction_code' => 'KLR-'.Str::ulid(),
-            'house_id' => $house->id,
-            'material_id' => $material->id,
-            'stock_in_id' => $stockInId,
-            'user_id' => auth()->id(),
-            'quantity' => $quantity,
-            'unit_price_at_usage' => $unitPrice,
-            'total_cost' => round($quantity * $unitPrice, 2),
-            'usage_date' => now()->toDateString(),
-            'notes' => $notes,
-            'taken_by' => $takenBy,
-            'proof_image' => $proofPath,
-            'is_warranty' => $house->status === 'selesai' && $house->canReceiveAllocations(),
-        ]);
+        MaterialAllocationRecorder::allocateLine($house, $material, $stockInId, $quantity, $unitPrice, $notes, $proofPath, $takenBy, auth()->user());
     }
 
     private function recordToolUsage(House $house, Tool $tool, int $warehouseId, int $quantity, ?string $notes, ?string $proofPath = null): void
     {
-        ToolUsageModel::create([
-            'transaction_code' => 'KLR-'.Str::ulid(),
-            'house_id' => $house->id,
-            'tool_id' => $tool->id,
-            'warehouse_id' => $warehouseId,
-            'warehouse_source_recorded' => true,
-            'user_id' => auth()->id(),
-            'quantity' => $quantity,
-            'checkout_date' => now()->toDateString(),
-            'notes' => $notes,
-            'proof_image' => $proofPath,
-            'is_warranty' => $house->status === 'selesai' && $house->canReceiveAllocations(),
-        ]);
+        ToolLoanRecorder::loanLine($house, $tool, $warehouseId, $quantity, $notes, $proofPath, auth()->user());
     }
 
     private function showSuccess(string $message, string $historyType = ''): void

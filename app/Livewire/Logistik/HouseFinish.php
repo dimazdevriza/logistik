@@ -11,6 +11,7 @@ use App\Models\ToolReturnLog;
 use App\Models\ToolUsage;
 use App\Models\Warehouse;
 use App\Support\ToolInventory;
+use App\Support\ToolReturnRecorder;
 use App\Traits\WithTableSorting;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -205,67 +206,15 @@ class HouseFinish extends Component
                         throw new \Exception("Pilih gudang penerima untuk alat {$tool->name} yang dikembalikan.");
                     }
 
-                    // Mark usage as returned today
-                    $usage->update(['return_date' => now()->format('Y-m-d')]);
-
-                    if ($qtyGood + $qtyBroken > 0) {
-                        ToolInventory::receive($tool, $receivingWarehouseId, $qtyGood, $qtyBroken);
-                        if ($qtyBroken > 0) {
-                            $tool->condition = 'rusak';
-                        }
-                    }
-                    if ($qtyLost > 0) {
-                        if ($tool->total_qty < $qtyLost) {
-                            throw new \RuntimeException("Jumlah alat hilang {$tool->name} melebihi total alat tercatat.");
-                        }
-                        $tool->total_qty -= $qtyLost;
-                    }
-                    $tool->save();
-
-                    if ($qtyGood > 0) {
-                        ToolReturnLog::create([
-                            'tool_id' => $tool->id,
-                            'house_id' => $house->id,
-                            'tool_usage_id' => $usage->id,
-                            'reported_by' => auth()->id(),
-                            'receiving_warehouse_id' => $receivingWarehouseId,
-                            'received_at' => now(),
-                            'received_by_id' => auth()->id(),
-                            'quantity' => $qtyGood,
-                            'report_type' => 'normal',
-                            'status' => 'fixed',
-                            'notes' => $sel['notes'] ?? null,
-                        ]);
-                    }
-                    if ($qtyBroken > 0) {
-                        ToolReturnLog::create([
-                            'tool_id' => $tool->id,
-                            'house_id' => $house->id,
-                            'tool_usage_id' => $usage->id,
-                            'reported_by' => auth()->id(),
-                            'receiving_warehouse_id' => $receivingWarehouseId,
-                            'received_at' => now(),
-                            'received_by_id' => auth()->id(),
-                            'quantity' => $qtyBroken,
-                            'report_type' => 'broken',
-                            'status' => 'received',
-                            'notes' => $sel['notes'] ?? null,
-                        ]);
-                    }
-                    if ($qtyLost > 0) {
-                        ToolReturnLog::create([
-                            'tool_id' => $tool->id,
-                            'house_id' => $house->id,
-                            'tool_usage_id' => $usage->id,
-                            'reported_by' => auth()->id(),
-                            'quantity' => $qtyLost,
-                            'report_type' => 'lost',
-                            'status' => 'discarded',
-                            'resolved_by_id' => auth()->id(),
-                            'resolved_at' => now(),
-                            'notes' => $sel['notes'] ?? null,
-                        ]);
-                    }
+                    ToolReturnRecorder::recordReturn(
+                        $usage,
+                        $qtyGood,
+                        $qtyBroken,
+                        $qtyLost,
+                        $receivingWarehouseId,
+                        $sel['notes'] ?? null,
+                        auth()->user()
+                    );
                 }
 
                 // Lock the house as selesai
