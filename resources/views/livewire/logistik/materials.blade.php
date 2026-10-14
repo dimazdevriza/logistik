@@ -135,8 +135,8 @@
                 <table class="table table-hover align-middle mb-0 data-table data-table--inventory data-table--sticky-identity standard-data-table materials-table">
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
-                            <th class="text-center data-mobile-secondary" style="width: 44px;">No.</th>
-                            <th class="text-center data-mobile-secondary" style="width: 48px;">Foto</th>
+                            <th class="text-center data-mobile-secondary" style="width: 50px;">No.</th>
+                            <th class="text-center data-mobile-secondary" style="width: 60px;">Foto</th>
                             <x-sortable-th field="code" :sort="$sort" class="data-key-code">Kode</x-sortable-th>
                             <x-sortable-th field="name" :sort="$sort" class="data-key-name">Nama</x-sortable-th>
                             <x-sortable-th field="stock" :sort="$sort" class="text-end data-number">Stok + Satuan</x-sortable-th>
@@ -160,7 +160,12 @@
                                         <img src="{{ asset('storage/' . $material->image) }}" alt="{{ $material->name }}" class="rounded-2 border shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" />
                                     </button>
                                 @else
-                                    <span class="badge bg-body-secondary text-secondary font-mono small" title="Belum ada foto">-</span>
+                                    <span class="material-photo-placeholder" title="Belum ada foto" role="img" aria-label="Belum ada foto">
+                                        <svg width="15" height="15" fill="currentColor" opacity="0.4" viewBox="0 0 16 16" aria-hidden="true">
+                                            <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                                            <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                                        </svg>
+                                    </span>
                                 @endif
                             </td>
                             <td class="font-mono text-secondary small data-key-code" title="{{ ($material->code ?? 'Kode tidak tersedia') . ' · ' . $batch->entry_code }}">
