@@ -137,7 +137,8 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('materials.name', 'like', "%{$this->search}%")
                 ->orWhere('stock_ins.entry_code', 'like', "%{$this->search}%")))
-            ->when($this->filterSupplier, fn ($q) => $q->where('stock_ins.supplier_id', $this->filterSupplier));
+            ->when($this->filterSupplier, fn ($q) => $q->where('stock_ins.supplier_id', $this->filterSupplier))
+            ->where('stock_ins.entry_type', '!=', 'cancelled');
 
         if ($this->filterType === 'masuk') {
             $query = $masukQuery;
