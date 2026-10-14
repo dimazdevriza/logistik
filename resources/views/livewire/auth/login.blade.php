@@ -79,11 +79,9 @@
             {{ __('Masuk dengan Google') }}
         </a>
 
-        @if (Route::has('register'))
-            <div class="mt-4 pt-3 border-top text-center small text-secondary">
-                <span>{{ __('Belum memiliki akun?') }}</span>
-                <a href="{{ route('register') }}" class="text-success text-decoration-none font-semibold ms-1" wire:navigate>{{ __('Daftar Sekarang') }}</a>
-            </div>
-        @endif
+        <div class="mt-4 pt-3 border-top text-center small text-secondary">
+            <span>Butuh petunjuk operasional?</span>
+            <a href="{{ route('logistik.guide') }}" class="text-success text-decoration-none font-semibold ms-1" wire:navigate>Baca Panduan Sistem</a>
+        </div>
     </div>
 </x-layouts::auth>

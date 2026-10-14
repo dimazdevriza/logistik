@@ -12,6 +12,7 @@
             'label' => 'Ringkasan',
             'links' => [
                 ['route' => 'dashboard', 'active' => 'dashboard', 'icon' => 'i-dashboard', 'label' => 'Dashboard'],
+                ['route' => 'logistik.guide', 'active' => 'logistik.guide', 'icon' => 'i-book', 'label' => 'Panduan Sistem'],
             ],
         ],
         [

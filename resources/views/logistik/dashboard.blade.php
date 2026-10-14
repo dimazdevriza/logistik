@@ -11,6 +11,12 @@
                         Pantau ketersediaan stok, peringatan stok menipis, dan kelola peminjaman alat konstruksi.
                     </p>
                 </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('logistik.guide') }}" wire:navigate class="btn btn-outline-secondary btn-sm rounded-3 d-inline-flex align-items-center gap-2">
+                        <svg width="15" height="15" fill="currentColor" aria-hidden="true"><use href="#i-book"/></svg>
+                        <span>Panduan Sistem</span>
+                    </a>
+                </div>
             </div>
         </div>
 

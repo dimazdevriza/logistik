@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Route;
 // Root / and home redirect to Login page
 Route::get('/', fn () => redirect()->route('login'));
 Route::get('home', fn () => redirect()->route('login'))->name('home');
+Route::view('panduan', 'logistik.guide')->name('logistik.guide');
 
 // Redirect any attempts to reach the (now disabled) registration page
 Route::get('register', fn () => redirect()->route('login'));
