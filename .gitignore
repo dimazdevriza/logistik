@@ -31,3 +31,22 @@ temp_fix_cats.php
 test_component.php
 /.claude
 /.rpiv
+
+# Academic and thesis drafts
+*.docx
+*.pptx
+presentasi_komprehensif.html
+friend_draft_dump.txt
+extracted_skripsi_images/
+grafik_skripsi/
+outputs/
+
+# Local workspace scratch & agent caches
+.agents/
+.codex-build/
+.codex-finalizer/
+.codex-sheet-work/
+.tmp/
+system.md
+task.md
+
