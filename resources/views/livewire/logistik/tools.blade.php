@@ -32,6 +32,29 @@
             </div>
         </div>
 
+        @teleport('body')
+            <div>
+                @if (session('success') || session('error') || $errors->has('delete'))
+                <div wire:key="tools-feedback-{{ $feedbackSequence }}"
+                     class="transaction-feedback {{ $errors->has('delete') || session('error') ? 'transaction-feedback--error' : 'transaction-feedback--success' }}"
+                     x-data="{ visible: true }"
+                     x-init="visible = true"
+                     x-show="visible"
+                     role="alert"
+                     aria-live="assertive">
+                    <div class="transaction-feedback-content">
+                        <strong>{{ $errors->has('delete') || session('error') ? 'Tidak Dapat Dihapus' : 'Berhasil' }}</strong>
+                        <p class="mb-0">{{ $errors->first('delete') ?: (session('error') ?: session('success')) }}</p>
+                        @if ($errors->has('delete'))
+                            <a href="{{ route('logistik.tool-log') }}" wire:navigate class="transaction-feedback-action link-danger">Lihat catatan riwayat alat</a>
+                        @endif
+                    </div>
+                    <button type="button" class="transaction-feedback-close" @click="visible = false" aria-label="Tutup pemberitahuan">Tutup</button>
+                </div>
+                @endif
+            </div>
+        @endteleport
+
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
@@ -214,7 +237,7 @@
                                     <button type="button" wire:click="edit({{ $tool->id }})" class="btn log-row-action log-row-action--edit d-inline-flex align-items-center justify-content-center" title="Edit" aria-label="Edit {{ $tool->name }}">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>
                                     </button>
-                                    <button type="button" wire:click="confirm('delete', {{ $tool->id }}, 'Hapus Alat?', 'Apakah Anda yakin ingin menghapus alat ini dari inventaris?')" class="btn log-row-action log-row-action--danger d-inline-flex align-items-center justify-content-center" title="Hapus" aria-label="Hapus {{ $tool->name }}">
+                                    <button type="button" wire:click.stop="confirm('delete', {{ $tool->id }}, 'Hapus Alat?', 'Apakah Anda yakin ingin menghapus alat ini dari inventaris?')" wire:loading.attr="disabled" class="btn log-row-action log-row-action--danger d-inline-flex align-items-center justify-content-center" title="Hapus" aria-label="Hapus {{ $tool->name }}">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
                                     </button>
                                 </div>

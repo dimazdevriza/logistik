@@ -83,9 +83,11 @@ class Materials extends Component
     public $confirmingId = null;
     public $confirmTitle = '';
     public $confirmMessage = '';
+    public int $feedbackSequence = 0;
 
     public function confirm($action, $id = null, $title = '', $message = '')
     {
+        $this->feedbackSequence++;
         $this->resetValidation('delete');
         if ($action === 'delete' && Material::findOrFail($id)->hasTransactionHistory()) {
             $this->addError('delete', 'Material tidak dapat dihapus karena memiliki riwayat stok, pemakaian, permintaan, atau transfer gudang. Riwayat transaksi harus tetap tersimpan.');
@@ -476,6 +478,7 @@ class Materials extends Component
 
     public function delete($id)
     {
+        $this->feedbackSequence++;
         $this->resetValidation('delete');
         DB::transaction(function () use ($id) {
             $material = Material::lockForUpdate()->findOrFail($id);

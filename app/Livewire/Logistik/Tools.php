@@ -104,9 +104,11 @@ class Tools extends Component
     public $confirmTitle = '';
 
     public $confirmMessage = '';
+    public int $feedbackSequence = 0;
 
     public function confirm($action, $id = null, $title = '', $message = '')
     {
+        $this->feedbackSequence++;
         $this->confirmingAction = $action;
         $this->confirmingId = $id;
         $this->confirmTitle = $title;
@@ -427,6 +429,7 @@ class Tools extends Component
 
     public function delete($id)
     {
+        $this->feedbackSequence++;
         DB::transaction(function () use ($id) {
             $tool = Tool::lockForUpdate()->findOrFail($id);
             if ($tool->hasTransactionHistory()) {
