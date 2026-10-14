@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Exports\HouseListExport;
+use App\Models\Cluster;
 use App\Models\House;
 use App\Models\MaterialUsage;
 use App\Traits\WithTableSorting;
@@ -17,6 +18,8 @@ class HouseCosts extends Component
     public $search = '';
 
     public $filterStatus = '';
+
+    public $filterCluster = '';
 
     public $filterYear = '';
 
@@ -37,6 +40,11 @@ class HouseCosts extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterCluster()
+    {
+        $this->resetPage();
+    }
+
     public function updatingFilterYear()
     {
         $this->resetPage();
@@ -44,7 +52,7 @@ class HouseCosts extends Component
 
     public function resetFilters()
     {
-        $this->reset(['search', 'filterStatus']);
+        $this->reset(['search', 'filterStatus', 'filterCluster']);
         $this->filterYear = (string) now()->year;
         $this->resetPage();
     }
@@ -114,12 +122,18 @@ class HouseCosts extends Component
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")
-                    ->orWhere('house_code', 'like', "%{$this->search}%");
+                    ->orWhere('house_code', 'like', "%{$this->search}%")
+                    ->orWhereHas('cluster', fn ($cluster) => $cluster->where('name', 'like', "%{$this->search}%"));
             }))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
+            ->when($this->filterCluster, fn ($q) => $q->where('houses.cluster_id', $this->filterCluster))
             ->tap(fn ($builder) => $this->applyTableSort($builder))
             ->orderBy('houses.id')
             ->paginate(10);
+
+        $clusters = Cluster::when(! auth()->user()->canAccessAllClusters(), fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
+            ->orderBy('name')
+            ->get();
 
         $scopeKey = in_array($user->role, ['logistik', 'pengawas'], true) ? 'cluster_'.($user->cluster_id ?? 0) : 'all';
         $totalSpent = cache()->remember('total_material_spent_'.$scopeKey, 60, fn () => $this->materialUsagesQuery()->sum('total_cost'));
@@ -147,18 +161,19 @@ class HouseCosts extends Component
             ->values()
             ->all();
 
-        return view('livewire.admin.house-costs', compact('houses', 'totalSpent', 'monthlyTotals', 'years', 'selectedYear', 'scopeLabel'))
+        return view('livewire.admin.house-costs', compact('houses', 'clusters', 'totalSpent', 'monthlyTotals', 'years', 'selectedYear', 'scopeLabel'))
             ->layout('layouts.app', ['title' => 'Biaya Rumah']);
     }
 
     public function exportExcel()
     {
+        $user = auth()->user();
         $export = new HouseListExport(
             $this->search,
             $this->filterStatus,
             (int) ($this->filterYear ?: now()->year),
-            null,
-            in_array(auth()->user()->role, ['logistik', 'pengawas'], true) ? (int) (auth()->user()->cluster_id ?? 0) : null
+            $this->filterCluster ?: null,
+            $user->canAccessAllClusters() ? null : (int) ($user->cluster_id ?? 0)
         );
         $filename = 'laporan-biaya-rumah-'.($this->filterYear ?: now()->year).'-'.now()->format('Ymd-His').'.xlsx';
 

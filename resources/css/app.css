@@ -3027,6 +3027,10 @@ h1, h2, h3, h4, h5, h6 {
     width: 9rem;
 }
 
+.house-cost-cluster-select {
+    width: 12rem;
+}
+
 .house-cost-search {
     max-width: 26rem;
 }

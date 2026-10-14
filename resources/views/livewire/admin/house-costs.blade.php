@@ -51,7 +51,13 @@
                         <option value="{{ $yr }}">Tahun {{ $yr }}</option>
                     @endforeach
                 </select>
-                @if ($search || $filterStatus || $filterYear != now()->year)
+                <select id="house-cost-filter-cluster" aria-label="Filter cluster" wire:model.live="filterCluster" class="form-select house-cost-cluster-select">
+                    <option value="">Semua Cluster</option>
+                    @foreach ($clusters as $cluster)
+                        <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
+                    @endforeach
+                </select>
+                @if ($search || $filterStatus || $filterCluster || $filterYear != now()->year)
                     <button type="button" wire:click="resetFilters" class="btn btn-link text-secondary text-decoration-none btn-sm d-inline-flex align-items-center gap-1"><svg width="13" height="13" fill="currentColor" aria-hidden="true"><use href="#i-x"/></svg> Reset Filter</button>
                 @endif
             </div>
