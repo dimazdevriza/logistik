@@ -81,7 +81,7 @@
 
         <div class="mt-4 pt-3 border-top text-center small text-secondary">
             <span>Butuh petunjuk operasional?</span>
-            <a href="{{ route('logistik.guide') }}" class="text-success text-decoration-none font-semibold ms-1" wire:navigate>Baca Panduan Sistem</a>
+            <a href="{{ Route::has('logistik.guide') ? route('logistik.guide') : url('panduan') }}" class="text-success text-decoration-none font-semibold ms-1" wire:navigate>Baca Panduan Sistem</a>
         </div>
     </div>
 </x-layouts::auth>

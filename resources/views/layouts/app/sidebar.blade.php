@@ -176,7 +176,7 @@
                             }
                         @endphp
                         <a
-                            href="{{ route($link['route'], $link['query'] ?? []) }}"
+                            href="{{ Route::has($link['route']) ? route($link['route'], $link['query'] ?? []) : ($link['route'] === 'logistik.guide' ? url('panduan') : '#') }}"
                             class="sidebar-link {{ $isActive ? 'active' : '' }}"
                             data-label="{{ $link['label'] }}"
                             :title="rail ? '{{ $link['label'] }}' : ''"
@@ -258,7 +258,7 @@
                                 }
                             @endphp
                             <a
-                                href="{{ route($link['route'], $link['query'] ?? []) }}"
+                                href="{{ Route::has($link['route']) ? route($link['route'], $link['query'] ?? []) : ($link['route'] === 'logistik.guide' ? url('panduan') : '#') }}"
                                 class="sidebar-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-decoration-none {{ $isActive ? 'active bg-success-subtle text-success fw-bold' : 'text-body hover-bg' }}"
                                 @if ($isActive) aria-current="page" @endif
                                 @click="mobileOpen = false"

@@ -12,6 +12,7 @@ use App\Models\ToolUsage;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -78,10 +79,12 @@ class DashboardController extends Controller
                         ->whereNull('mu.voided_at')
                         ->sum('mu.total_cost');
 
-                    $expenseCost = (float) DB::table('cluster_expenses')
-                        ->where('cluster_id', $cluster->id)
-                        ->whereIn('type', ['rental', 'rental_extension', 'vendor_service'])
-                        ->sum('amount');
+                    $expenseCost = Schema::hasTable('cluster_expenses')
+                        ? (float) DB::table('cluster_expenses')
+                            ->where('cluster_id', $cluster->id)
+                            ->whereIn('type', ['rental', 'rental_extension', 'vendor_service'])
+                            ->sum('amount')
+                        : 0.0;
 
                     $cluster->setAttribute('material_cost', $materialCost);
                     $cluster->setAttribute('expense_cost', $expenseCost);
