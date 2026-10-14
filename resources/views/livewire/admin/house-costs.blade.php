@@ -139,45 +139,7 @@
                         </tr>
                         @endforelse
                     </tbody>
-                    @if ($houses->isNotEmpty())
-                    <tfoot class="border-top fw-bold font-geist bg-body-tertiary">
-                        <tr class="align-middle">
-                            <td colspan="6" class="text-end text-uppercase text-secondary small py-3">Total {{ in_array(auth()->user()->role, ['admin', 'keuangan'], true) ? 'Proyek' : 'Cluster' }} ({{ $selectedYear }}):</td>
-                            @php
-                                $grandYearTotal = 0;
-                            @endphp
-                            @for ($m = 1; $m <= 12; $m++)
-                                @php
-                                    $totMonth = $monthlyTotals[$m] ?? 0;
-                                    $grandYearTotal += $totMonth;
-                                @endphp
-                                <td class="text-end font-mono py-3 data-number {{ $totMonth > 0 ? 'text-body' : 'text-secondary text-opacity-50' }}">
-                                    {{ $totMonth > 0 ? number_format($totMonth, 0, ',', '.') : '-' }}
-                                </td>
-                            @endfor
-                            <td class="text-end font-mono text-success fw-black py-3 bg-success-subtle bg-opacity-25 data-number">
-                                Rp {{ number_format($grandYearTotal, 0, ',', '.') }}
-                            </td>
-                            <td class="text-end font-mono text-warning fw-black py-3 bg-warning-subtle bg-opacity-25 data-number">
-                                Rp {{ number_format($totalSpent, 0, ',', '.') }}
-                            </td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
-                    @endif
                 </table>
-            </div>
-            @php
-                $mobileYearTotal = 0;
-                foreach ($monthlyTotals as $monthTotal) {
-                    $mobileYearTotal += (float) $monthTotal;
-                }
-            @endphp
-            <div class="house-cost-mobile-total d-none" aria-label="Ringkasan biaya {{ in_array(auth()->user()->role, ['admin', 'keuangan'], true) ? 'proyek' : 'cluster' }}">
-                <span>Total {{ $selectedYear }}</span>
-                <strong class="font-mono text-success">Rp {{ number_format($mobileYearTotal, 0, ',', '.') }}</strong>
-                <span>Total keseluruhan</span>
-                <strong class="font-mono text-warning">Rp {{ number_format($totalSpent, 0, ',', '.') }}</strong>
             </div>
             </div>
         </div>

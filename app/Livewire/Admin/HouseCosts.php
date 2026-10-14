@@ -90,6 +90,9 @@ class HouseCosts extends Component
             ->whereNull('voided_at')
             ->when(in_array($user->role, ['logistik', 'pengawas'], true), fn ($query) => $query->whereHas(
                 'house', fn ($houses) => $houses->forUser($user)
+            ))
+            ->when($this->filterCluster, fn ($query) => $query->whereHas(
+                'house', fn ($houses) => $houses->where('cluster_id', $this->filterCluster)
             ));
     }
 
@@ -135,16 +138,13 @@ class HouseCosts extends Component
             ->orderBy('name')
             ->get();
 
-        $scopeKey = in_array($user->role, ['logistik', 'pengawas'], true) ? 'cluster_'.($user->cluster_id ?? 0) : 'all';
-        $totalSpent = cache()->remember('total_material_spent_'.$scopeKey, 60, fn () => $this->materialUsagesQuery()->sum('total_cost'));
-
-        // Compute monthly totals for the entire project for the selected year
-        $monthlyTotals = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $monthlyTotals[$m] = $this->materialUsagesQuery()
-                ->whereYear('usage_date', $selectedYear)
-                ->whereMonth('usage_date', $m)
-                ->sum('total_cost');
+        if ($this->filterCluster) {
+            $selectedCluster = $clusters->firstWhere('id', (int) $this->filterCluster);
+            $scopeLabel = $selectedCluster?->name ?? 'Cluster';
+            $totalSpent = $this->materialUsagesQuery()->sum('total_cost');
+        } else {
+            $scopeKey = in_array($user->role, ['logistik', 'pengawas'], true) ? 'cluster_'.($user->cluster_id ?? 0) : 'all';
+            $totalSpent = cache()->remember('total_material_spent_'.$scopeKey, 60, fn () => $this->materialUsagesQuery()->sum('total_cost'));
         }
 
         // Available years for dropdown filter
@@ -161,7 +161,7 @@ class HouseCosts extends Component
             ->values()
             ->all();
 
-        return view('livewire.admin.house-costs', compact('houses', 'clusters', 'totalSpent', 'monthlyTotals', 'years', 'selectedYear', 'scopeLabel'))
+        return view('livewire.admin.house-costs', compact('houses', 'clusters', 'totalSpent', 'years', 'selectedYear', 'scopeLabel'))
             ->layout('layouts.app', ['title' => 'Biaya Rumah']);
     }
 
