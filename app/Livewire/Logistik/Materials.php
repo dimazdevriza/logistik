@@ -696,7 +696,13 @@ class Materials extends Component
     {
         if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) return;
 
-        $export = new MaterialInventoryExport($this->search, $this->filterCategory, $this->filterWarehouse);
+        $export = new MaterialInventoryExport(
+            $this->search,
+            $this->filterCategory,
+            $this->filterWarehouse,
+            $this->filterSupplier,
+            $this->filterStock
+        );
         $filename = 'material-inventory-' . now()->format('Ymd') . '.xlsx';
 
         return response()->streamDownload(function () use ($export) {

@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use App\Models\Material;
+use App\Models\StockIn;
 use App\Models\Category;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\Exportable;
@@ -13,6 +13,7 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithDrawings;
+use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Shared\Drawing as ColumnDrawing;
@@ -22,7 +23,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
-class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, ShouldAutoSize, WithTitle, WithDrawings
+class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, ShouldAutoSize, WithTitle, WithDrawings, WithStrictNullComparison
 {
     use Exportable;
 
@@ -31,16 +32,42 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
     public function __construct(
         private string $search = '',
         private string $filterCategory = '',
-        private string $filterWarehouse = ''
+        private string $filterWarehouse = '',
+        private string $filterSupplier = '',
+        private string $filterStock = ''
     ) {}
 
     public function query()
     {
-        return Material::with(['category', 'supplier', 'warehouse'])
-            ->when($this->search, fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
-            ->when($this->filterCategory, fn($q) => $q->where('category_id', $this->filterCategory))
-            ->when($this->filterWarehouse, fn($q) => $q->where('warehouse_id', $this->filterWarehouse))
-            ->orderBy('name');
+        return StockIn::query()
+            ->join('materials', 'materials.id', '=', 'stock_ins.material_id')
+            ->select('stock_ins.*')
+            ->with(['material.supplier', 'material.category', 'material.warehouse', 'supplier', 'warehouse'])
+            ->when($this->search, fn ($q) => $q->where(fn ($sub) => $sub
+                ->whereHas('material', fn ($material) => $material
+                    ->where('name', 'like', "%{$this->search}%")
+                    ->orWhere('code', 'like', "%{$this->search}%"))
+                ->orWhere('entry_code', 'like', "%{$this->search}%")))
+            ->when($this->filterCategory, fn ($q) => $q->whereHas('material', fn ($material) => $material->where('category_id', $this->filterCategory)))
+            ->when($this->filterSupplier, fn ($q) => $q->where(fn ($sub) => $sub
+                ->where('stock_ins.supplier_id', $this->filterSupplier)
+                ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.supplier_id')
+                    ->whereHas('material', fn ($material) => $material->where('supplier_id', $this->filterSupplier)))))
+            ->when($this->filterWarehouse, fn ($q) => $q->where(fn ($sub) => $sub
+                ->where('stock_ins.warehouse_id', $this->filterWarehouse)
+                ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.warehouse_id')
+                    ->whereHas('material', fn ($material) => $material->where('warehouse_id', $this->filterWarehouse)))))
+            ->when($this->filterStock, function ($q) {
+                if ($this->filterStock === 'low') {
+                    $q->where('stock_ins.remaining_quantity', '<=', 10)->where('stock_ins.remaining_quantity', '>', 0);
+                } elseif ($this->filterStock === 'safe') {
+                    $q->where('stock_ins.remaining_quantity', '>', 10);
+                } elseif ($this->filterStock === 'empty') {
+                    $q->where(fn ($sub) => $sub->whereNull('stock_ins.remaining_quantity')->orWhere('stock_ins.remaining_quantity', '<=', 0));
+                }
+            })
+            ->orderBy('materials.id')
+            ->orderBy('stock_ins.id');
     }
 
     public function headings(): array
@@ -55,15 +82,17 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
             [],
             [
                 'No',
-                'Kode',
+                'Kode Material',
+                'Kode Masuk',
                 'Nama Material',
                 'Kategori',
                 'Supplier',
                 'Gudang',
                 'Sisa Stok',
                 'Satuan',
-                'Harga Satuan',
-                'Total Nilai Sisa Stok',
+                'Harga Masuk',
+                'Estimasi Nilai',
+                'Tanggal Masuk',
             ]
         ];
     }
@@ -86,45 +115,55 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
         return [$drawing];
     }
 
-    public function map($material): array
+    public function map($batch): array
     {
         $this->rowNumber++;
-        $totalValue = (float) ($material->stock ?? 0) * (float) ($material->unit_price ?? 0);
-        
+        $material = $batch->material;
+        $remaining = (float) ($batch->remaining_quantity ?? 0);
+        $unitPrice = (float) ($batch->unit_price ?? 0);
+        $totalValue = $remaining * $unitPrice;
+        $supplier = $batch->supplier?->name ?? $material?->supplier?->name ?? '-';
+        $warehouse = $batch->warehouse?->name ?? $material?->warehouse?->name ?? 'Belum ditetapkan';
+        $receivedAt = $batch->received_at?->format('d/m/Y H:i')
+            ?? $batch->date?->format('d/m/Y')
+            ?? $batch->created_at?->format('d/m/Y H:i')
+            ?? '-';
+
         return [
             $this->rowNumber,
-            $material->code ?? '-',
-            $material->name,
-            $material->category?->name ?? 'Tanpa Kategori',
-            $material->supplier?->name ?? '-',
-            $material->warehouse?->name ?? 'Belum ditetapkan',
-            // Rule 4: Zero substitution
-            (float) ($material->stock ?? 0),
-            $material->unit,
-            (float) ($material->unit_price ?? 0),
+            $material?->code ?? '-',
+            $batch->entry_code ?? '-',
+            $material?->name ?? '-',
+            $material?->category?->name ?? 'Tanpa Kategori',
+            $supplier,
+            $warehouse,
+            $remaining,
+            $material?->unit ?? '-',
+            $unitPrice,
             $totalValue,
+            $receivedAt,
         ];
     }
 
     public function columnFormats(): array
     {
         return [
-            'G' => '#,##0.00',
-            'I' => '[$Rp-421] #,##0.00',
+            'H' => '#,##0.00',
             'J' => '[$Rp-421] #,##0.00',
+            'K' => '[$Rp-421] #,##0.00',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->mergeCells('A1:J1');
-        $sheet->mergeCells('A2:J2');
-        $sheet->mergeCells('A3:J3');
-        $sheet->mergeCells('A4:J4');
+        $sheet->mergeCells('A1:L1');
+        $sheet->mergeCells('A2:L2');
+        $sheet->mergeCells('A3:L3');
+        $sheet->mergeCells('A4:L4');
         $sheet->getRowDimension(1)->setRowHeight(52);
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
-        $sheet->getStyle('A1:J4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1:L4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Header Styling (Rule 2: Dark Slate Grey #334155)
         $headerStyle = [
@@ -146,13 +185,13 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
             ],
         ];
 
-        $sheet->getStyle('A6:J6')->applyFromArray($headerStyle);
+        $sheet->getStyle('A6:L6')->applyFromArray($headerStyle);
 
         $sheet->calculateColumnWidths();
         $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
         $columnWidths = [];
         $totalWidth = 0;
-        for ($column = 1; $column <= 10; $column++) {
+        for ($column = 1; $column <= 12; $column++) {
             $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
             $columnWidths[] = $width;
             $totalWidth += $width;
@@ -170,9 +209,10 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
         }
         
         // Alignment for data
-        $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('G')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle('I:J')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('A:C')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('H')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('J:K')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle('L')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         return [];
     }
