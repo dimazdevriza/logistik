@@ -27,6 +27,7 @@ yarn-error.log
 test-*.png
 screenshot-*.png
 *.pdf
+!public/downloads/*.pdf
 temp_fix_cats.php
 test_component.php
 /.claude

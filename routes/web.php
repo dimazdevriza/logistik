@@ -30,6 +30,14 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => redirect()->route('login'));
 Route::get('home', fn () => redirect()->route('login'))->name('home');
 Route::view('panduan', 'logistik.guide')->name('logistik.guide');
+Route::view('panduan/cetak', 'logistik.guide-pdf')->name('logistik.guide.print');
+Route::get('panduan/unduh-pdf', function () {
+    $pdfPath = public_path('downloads/panduan-logistik-droyal-village.pdf');
+    if (!file_exists($pdfPath)) {
+        abort(404, 'File PDF buku panduan belum digenerate.');
+    }
+    return response()->download($pdfPath, 'buku-panduan-logistik-droyal-village.pdf');
+})->name('logistik.guide.download');
 
 // Redirect any attempts to reach the (now disabled) registration page
 Route::get('register', fn () => redirect()->route('login'));

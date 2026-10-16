@@ -87,6 +87,17 @@
                     </div>
                 </div>
             </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-4 pt-3 border-top">
+                <a href="{{ route('logistik.guide.download') }}" class="btn btn-success font-semibold d-inline-flex align-items-center gap-2 shadow-sm" style="min-height: 44px;">
+                    <svg width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-download"/></svg>
+                    <span>Unduh Buku Panduan PDF A4 (3.3 MB)</span>
+                </a>
+                <a href="{{ route('logistik.guide.print') }}" target="_blank" class="guide-control-btn d-inline-flex align-items-center gap-2" style="min-height: 44px;">
+                    <svg width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-printer"/></svg>
+                    <span>Pratinjau / Cetak Format A4</span>
+                </a>
+            </div>
         </div>
     </section>
 

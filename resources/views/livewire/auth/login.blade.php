@@ -29,7 +29,7 @@
             </div>
 
             <!-- Password -->
-            <div class="mb-3">
+            <div class="mb-3" x-data="{ showPassword: false }">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <label for="password" class="form-label font-semibold small text-body mb-0">{{ __('Kata Sandi') }}</label>
                     @if (Route::has('password.request'))
@@ -38,15 +38,37 @@
                         </a>
                     @endif
                 </div>
-                <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    class="form-control"
-                    required
-                    autocomplete="current-password"
-                    placeholder="••••••••"
-                />
+                <div class="position-relative">
+                    <input
+                        id="password"
+                        name="password"
+                        :type="showPassword ? 'text' : 'password'"
+                        type="password"
+                        class="form-control pe-5"
+                        required
+                        autocomplete="current-password"
+                        placeholder="••••••••"
+                    />
+                    <button
+                        type="button"
+                        class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-secondary text-decoration-none d-flex align-items-center justify-content-center p-0"
+                        style="width: 44px; height: 100%; border: none; background: transparent; z-index: 5;"
+                        @click="showPassword = !showPassword"
+                        :aria-label="showPassword ? '{{ __('Sembunyikan kata sandi') }}' : '{{ __('Tampilkan kata sandi') }}'"
+                        :title="showPassword ? '{{ __('Sembunyikan kata sandi') }}' : '{{ __('Tampilkan kata sandi') }}'"
+                    >
+                        <svg x-show="!showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <svg x-show="showPassword" x-cloak width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                            <line x1="2" x2="22" y1="2" y2="22"/>
+                        </svg>
+                    </button>
+                </div>
                 @error('password') <span class="text-danger extra-small mt-1 d-block">{{ $message }}</span> @enderror
             </div>
 
