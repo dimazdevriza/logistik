@@ -48,6 +48,18 @@ outputs/
 .codex-finalizer/
 .codex-sheet-work/
 .tmp/
+AGENTS.md
+DESIGN.md
+antislop.md
+anti-slop/
+docs/SYSTEM_PRD.md
+docs/TODO.md
+docs/batch-dispatch-plan.md
+docs/browser-*
+docs/class-diagram-skripsi.*
+docs/production-acceptance-checklist.md
+docs/system-audit-*
+docs/transaction-ux-verification.md
 system.md
 task.md
 
