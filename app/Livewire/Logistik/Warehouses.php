@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Logistik;
 
+use App\Models\StockIn;
 use App\Models\Warehouse;
 use App\Models\ToolWarehouseBalance;
 use App\Traits\WithTableSorting;
@@ -124,8 +125,16 @@ class Warehouses extends Component
     public function render()
     {
         $warehouses = Warehouse::query()
-            ->withCount(['materials', 'toolBalances as tools_count'])
+            ->withCount(['toolBalances as tools_count'])
             ->addSelect([
+                'materials_count' => StockIn::query()
+                    ->join('materials', 'materials.id', '=', 'stock_ins.material_id')
+                    ->selectRaw('COUNT(*)')
+                    ->where(fn ($sub) => $sub
+                        ->whereColumn('stock_ins.warehouse_id', 'warehouses.id')
+                        ->orWhere(fn ($fallback) => $fallback
+                            ->whereNull('stock_ins.warehouse_id')
+                            ->whereColumn('materials.warehouse_id', 'warehouses.id'))),
                 'tools_sum_total_qty' => ToolWarehouseBalance::query()
                     ->selectRaw('COALESCE(SUM(available_qty + qty_broken), 0)')
                     ->whereColumn('warehouse_id', 'warehouses.id'),

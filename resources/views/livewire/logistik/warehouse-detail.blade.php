@@ -33,7 +33,7 @@
                 <div class="card border-0 border-start border-4 border-warning shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
                     <div class="small fw-bold text-secondary text-uppercase tracking-wider mb-2">Total biaya material</div>
                     <h2 class="fs-5 fw-black text-warning mb-1 font-mono text-nowrap">Rp {{ number_format($materialValue, 0, ',', '.') }}</h2>
-                    <span class="text-secondary small">Nilai stok material saat ini</span>
+                    <span class="text-secondary small">Sisa stok setiap batch × harga masuk</span>
                 </div>
             </div>
             <div class="col-md-4">
@@ -88,9 +88,16 @@
                             @foreach ($materials as $material)
                                 <tr wire:key="warehouse-material-{{ $material->id }}">
                                     <td class="text-center text-secondary small data-mobile-secondary">{{ ($materials->currentPage() - 1) * $materials->perPage() + $loop->iteration }}</td>
-                                    <td data-label="Kode" class="font-mono text-secondary small data-key-code" title="{{ $material->code ?: 'Kode tidak tersedia' }}"><span class="house-detail-cell-value">{{ $material->code ?: '-' }}</span></td>
+                                    <td data-label="Kode" class="font-mono text-secondary small data-key-code" title="{{ ($material->code ?: 'Kode tidak tersedia') . ($material->entry_code ? ' · ' . $material->entry_code : '') }}">
+                                        <span class="house-detail-cell-value">
+                                            <span>{{ $material->code ?: '-' }}</span>
+                                            @if ($material->entry_code)
+                                                <small class="d-block text-secondary opacity-75 text-truncate">{{ $material->entry_code }}</small>
+                                            @endif
+                                        </span>
+                                    </td>
                                     <td data-label="Material" class="fw-bold text-body data-key-name" title="{{ $material->name }}"><span class="house-detail-cell-value">{{ $material->name }}</span></td>
-                                    <td data-label="Kategori" class="text-secondary small data-cell-truncate" title="{{ $material->category?->name ?: 'Kategori tidak tersedia' }}"><span class="house-detail-cell-value">{{ $material->category?->name ?: '-' }}</span></td>
+                                    <td data-label="Kategori" class="text-secondary small data-cell-truncate" title="{{ $material->material?->category?->name ?: 'Kategori tidak tersedia' }}"><span class="house-detail-cell-value">{{ $material->material?->category?->name ?: '-' }}</span></td>
                                     <td data-label="Stok" class="text-end fw-semibold data-number"><span class="house-detail-cell-value">{{ rtrim(rtrim(number_format((float) $material->stock, 2, ',', '.'), '0'), ',') }}</span></td>
                                     <td data-label="Satuan" class="text-secondary small"><span class="house-detail-cell-value">{{ $material->unit }}</span></td>
                                     <td data-label="Harga Satuan" class="text-end font-mono text-secondary data-number"><span class="house-detail-cell-value">Rp {{ number_format($material->unit_price, 0, ',', '.') }}</span></td>

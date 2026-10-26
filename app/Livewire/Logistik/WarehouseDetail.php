@@ -4,6 +4,7 @@ namespace App\Livewire\Logistik;
 
 use App\Exports\WarehouseExport;
 use App\Models\Category;
+use App\Models\StockIn;
 use App\Models\Warehouse;
 use App\Models\ToolWarehouseBalance;
 use App\Models\Tool;
@@ -62,9 +63,9 @@ class WarehouseDetail extends Component
                 Category::select('name')->whereColumn('categories.id', 'materials.category_id'),
                 $direction
             ),
-            'stock' => 'materials.stock',
+            'stock' => 'stock_ins.remaining_quantity',
             'unit' => 'materials.unit',
-            'unit_price' => 'materials.unit_price',
+            'unit_price' => 'stock_ins.unit_price',
         ];
     }
 
@@ -80,26 +81,44 @@ class WarehouseDetail extends Component
 
     public function render()
     {
-        $materialCount = $this->warehouse->materials()->count();
-        $materialValue = (float) ($this->warehouse->materials()
-            ->where('stock', '>', 0)
-            ->selectRaw('COALESCE(SUM(stock * unit_price), 0) as total_value')
+        $warehouseBatches = StockIn::query()
+            ->join('materials', 'materials.id', '=', 'stock_ins.material_id')
+            ->where(fn ($sub) => $sub
+                ->where('stock_ins.warehouse_id', $this->warehouse->id)
+                ->orWhere(fn ($fallback) => $fallback
+                    ->whereNull('stock_ins.warehouse_id')
+                    ->where('materials.warehouse_id', $this->warehouse->id)));
+
+        $materialCount = (clone $warehouseBatches)->count();
+        $materialValue = (float) ((clone $warehouseBatches)
+            ->where('stock_ins.remaining_quantity', '>', 0)
+            ->selectRaw('COALESCE(SUM(stock_ins.remaining_quantity * stock_ins.unit_price), 0) as total_value')
             ->value('total_value') ?? 0);
         $toolCount = $this->warehouse->toolBalances()->distinct('tool_id')->count('tool_id');
         $toolTotal = $this->warehouse->toolBalances()->sum('available_qty') + $this->warehouse->toolBalances()->sum('qty_broken');
         $toolAvailable = $this->warehouse->toolBalances()->sum('available_qty');
 
         $materials = $this->activeTab === 'material'
-            ? $this->applyTableSort($this->warehouse->materials()
-                ->with(['category', 'supplier'])
+            ? $this->applyTableSort((clone $warehouseBatches)
+                ->with(['material.category', 'material.supplier', 'supplier'])
+                ->select(
+                    'stock_ins.*',
+                    'materials.code as code',
+                    'materials.name as name',
+                    'materials.unit as unit',
+                    'materials.category_id as category_id',
+                    'stock_ins.remaining_quantity as stock'
+                )
                 ->when(trim($this->search) !== '', function ($query) {
                     $search = '%'.trim($this->search).'%';
                     $query->where(fn ($query) => $query
                         ->where('materials.name', 'like', $search)
                         ->orWhere('materials.code', 'like', $search)
-                        ->orWhereHas('category', fn ($category) => $category->where('name', 'like', $search)));
+                        ->orWhere('stock_ins.entry_code', 'like', $search)
+                        ->orWhereHas('material.category', fn ($category) => $category->where('name', 'like', $search)));
                 }))
                 ->orderBy('materials.id')
+                ->orderBy('stock_ins.id')
                 ->paginate(15, ['*'], 'materialsPage')
             : null;
         $tools = $this->activeTab === 'tool'

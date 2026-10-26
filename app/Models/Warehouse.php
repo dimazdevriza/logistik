@@ -17,6 +17,11 @@ class Warehouse extends Model
         return $this->hasMany(Material::class);
     }
 
+    public function stockIns(): HasMany
+    {
+        return $this->hasMany(StockIn::class);
+    }
+
     public function tools(): HasMany
     {
         return $this->hasMany(Tool::class);
@@ -39,6 +44,6 @@ class Warehouse extends Model
 
     public function hasInventory(): bool
     {
-        return $this->materials()->exists() || $this->toolBalances()->exists() || $this->tools()->exists();
+        return $this->materials()->exists() || $this->stockIns()->exists() || $this->toolBalances()->exists() || $this->tools()->exists();
     }
 }

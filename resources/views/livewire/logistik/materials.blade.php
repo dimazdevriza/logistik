@@ -71,28 +71,28 @@
             <div class="col-md-6">
                 <div class="card border-0 border-start border-4 border-warning shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Estimasi Nilai Material</span>
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Estimasi Nilai Material{{ $selectedWarehouse ? ' · ' . $selectedWarehouse->name : '' }}</span>
                         <div class="p-2 bg-warning-subtle text-warning rounded d-flex align-items-center justify-content-center">
                             <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499L12.136.326zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/></svg>
                         </div>
                     </div>
                     <div>
                         <h2 class="fw-black text-warning mb-1">Rp {{ number_format($totalValue, 0, ',', '.') }}</h2>
-                        <span class="text-secondary small">Sisa stok setiap batch × harga masuk</span>
+                        <span class="text-secondary small">{{ $selectedWarehouse ? 'Sisa stok batch di ' . $selectedWarehouse->name . ' × harga masuk' : 'Sisa stok setiap batch × harga masuk' }}</span>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="card border-0 border-start border-4 border-primary shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Material Aktif</span>
+                        <span class="small fw-bold text-secondary text-uppercase tracking-wider">Material Aktif{{ $selectedWarehouse ? ' · ' . $selectedWarehouse->name : '' }}</span>
                         <div class="p-2 bg-primary-subtle text-primary rounded d-flex align-items-center justify-content-center">
                             <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l6.154 2.38 6.154-2.38zM15 4.239l-6.5 2.515v7.182l6.5-2.6v-7.097zM7.5 13.936V6.754L1 4.239v7.097z"/></svg>
                         </div>
                     </div>
                     <div>
                         <h2 class="fw-black text-primary mb-1">{{ $totalItems }} <span class="fs-6 text-secondary font-normal">Material</span></h2>
-                        <span class="text-secondary small">Jumlah material dengan stok tersedia</span>
+                        <span class="text-secondary small">{{ $selectedWarehouse ? 'Jumlah material dengan stok tersedia di ' . $selectedWarehouse->name : 'Jumlah material dengan stok tersedia' }}</span>
                     </div>
                 </div>
             </div>

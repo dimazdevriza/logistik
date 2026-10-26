@@ -160,4 +160,104 @@ class ClusterWarehouseTest extends TestCase
             ->call('exportExcel')
             ->assertFileDownloaded();
     }
+
+    public function test_warehouse_valuation_and_batches_match_across_materials_filter_and_warehouse_detail(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($user);
+
+        $mainWarehouse = Warehouse::where('name', 'Gudang Utama')->firstOrFail();
+        $siteWarehouse = Warehouse::create(['name' => 'Gudang Lapangan Uji', 'address' => 'Cluster B']);
+
+        $sand = Material::factory()->create([
+            'warehouse_id' => $mainWarehouse->id,
+            'name' => 'Pasir Pasang Uji',
+            'code' => 'MAT-UJI-PASIR',
+            'unit' => 'm³',
+            'unit_price' => 250000,
+            'stock' => 30,
+        ]);
+        StockIn::create([
+            'entry_code' => 'MSK-UJI-PASIR-1',
+            'entry_type' => 'receipt',
+            'material_id' => $sand->id,
+            'warehouse_id' => $mainWarehouse->id,
+            'user_id' => $user->id,
+            'quantity' => 20,
+            'remaining_quantity' => 14.5,
+            'unit_price' => 240000,
+            'total_cost' => 4800000,
+            'date' => '2026-09-10',
+        ]);
+        StockIn::create([
+            'entry_code' => 'MSK-UJI-PASIR-2',
+            'entry_type' => 'receipt',
+            'material_id' => $sand->id,
+            'warehouse_id' => $siteWarehouse->id,
+            'user_id' => $user->id,
+            'quantity' => 15.5,
+            'remaining_quantity' => 15.5,
+            'unit_price' => 250000,
+            'total_cost' => 3875000,
+            'date' => '2026-09-12',
+        ]);
+
+        $brick = Material::factory()->create([
+            'warehouse_id' => $siteWarehouse->id,
+            'name' => 'Bata Uji Multi Batch',
+            'code' => 'MAT-UJI-BATA',
+            'unit' => 'buah',
+            'unit_price' => 1200,
+            'stock' => 140,
+        ]);
+        StockIn::create([
+            'entry_code' => 'MSK-UJI-BATA-1',
+            'entry_type' => 'receipt',
+            'material_id' => $brick->id,
+            'warehouse_id' => $siteWarehouse->id,
+            'user_id' => $user->id,
+            'quantity' => 100,
+            'remaining_quantity' => 100,
+            'unit_price' => 1200,
+            'total_cost' => 120000,
+            'date' => '2026-09-13',
+        ]);
+        StockIn::create([
+            'entry_code' => 'MSK-UJI-BATA-2',
+            'entry_type' => 'receipt',
+            'material_id' => $brick->id,
+            'warehouse_id' => $siteWarehouse->id,
+            'user_id' => $user->id,
+            'quantity' => 40,
+            'remaining_quantity' => 40,
+            'unit_price' => 1500,
+            'total_cost' => 60000,
+            'date' => '2026-09-14',
+        ]);
+
+        // All warehouses: (14.5 * 240,000) + (15.5 * 250,000) + (100 * 1,200) + (40 * 1,500) = 3,480,000 + 3,875,000 + 180,000 = 7,535,000
+        // Site warehouse only: 3,875,000 + 120,000 + 60,000 = 4,055,000
+        Livewire::test(Materials::class)
+            ->assertSee('Rp 7.535.000')
+            ->set('filterWarehouse', (string) $siteWarehouse->id)
+            ->assertSee('Estimasi Nilai Material · Gudang Lapangan Uji')
+            ->assertSee('Material Aktif · Gudang Lapangan Uji')
+            ->assertSee('Rp 4.055.000');
+
+        Livewire::test(WarehouseDetail::class, ['warehouse' => $siteWarehouse])
+            ->assertSee('Rp 4.055.000')
+            ->assertSee('Pasir Pasang Uji')
+            ->assertSee('MSK-UJI-PASIR-2')
+            ->assertSee('Bata Uji Multi Batch')
+            ->assertSee('MSK-UJI-BATA-1')
+            ->assertSee('MSK-UJI-BATA-2')
+            ->assertSee('Rp 1.200')
+            ->assertSee('Rp 1.500');
+
+        Livewire::test(WarehouseDetail::class, ['warehouse' => $mainWarehouse])
+            ->assertSee('Rp 3.480.000')
+            ->assertSee('Pasir Pasang Uji')
+            ->assertSee('MSK-UJI-PASIR-1')
+            ->assertDontSee('MSK-UJI-PASIR-2');
+    }
 }

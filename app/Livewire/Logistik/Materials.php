@@ -756,13 +756,26 @@ class Materials extends Component
             ? Material::with('warehouse')->orderBy('name')->orderBy('code')->get(['id', 'name', 'code', 'warehouse_id'])
             : collect();
 
-        // Summary stats
-        $totalValue = StockIn::where('remaining_quantity', '>', 0)
-            ->selectRaw('SUM(unit_price * remaining_quantity) as total')
-            ->value('total') ?? 0;
-        $totalItems = Material::where('stock', '>', 0)->count();
+        $selectedWarehouse = $this->filterWarehouse
+            ? $warehouses->firstWhere('id', (int) $this->filterWarehouse)
+            : null;
 
-        return view('livewire.logistik.materials', compact('materialBatches', 'suppliers', 'categories', 'warehouses', 'materialChoices', 'totalValue', 'totalItems'))
+        // Summary stats
+        $activeBatchScope = StockIn::query()
+            ->where('remaining_quantity', '>', 0)
+            ->when($this->filterWarehouse, fn ($q) => $q->where(fn ($sub) => $sub
+                ->where('stock_ins.warehouse_id', $this->filterWarehouse)
+                ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.warehouse_id')
+                    ->whereHas('material', fn ($material) => $material->where('warehouse_id', $this->filterWarehouse)))));
+
+        $totalValue = (float) ((clone $activeBatchScope)
+            ->selectRaw('SUM(unit_price * remaining_quantity) as total')
+            ->value('total') ?? 0);
+        $totalItems = $this->filterWarehouse
+            ? (clone $activeBatchScope)->distinct('material_id')->count('material_id')
+            : Material::where('stock', '>', 0)->count();
+
+        return view('livewire.logistik.materials', compact('materialBatches', 'suppliers', 'categories', 'warehouses', 'materialChoices', 'totalValue', 'totalItems', 'selectedWarehouse'))
             ->layout('layouts.app', ['title' => 'Material']);
     }
 }
