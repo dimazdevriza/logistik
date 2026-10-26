@@ -45,7 +45,7 @@ class Houses extends Component
     {
         $this->resetValidation('delete');
         if ($action === 'delete') {
-            $house = House::forUser(auth()->user())->findOrFail($id);
+            $house = ($this->canManageClusters() ? House::query() : House::forUser(auth()->user()))->findOrFail($id);
             if ($house->hasTransactionHistory()) {
                 $this->addError('delete', 'Rumah tidak dapat dihapus karena memiliki riwayat penggunaan material, peminjaman alat, atau permintaan. Riwayat transaksi harus tetap tersimpan.');
                 return;
@@ -109,6 +109,7 @@ class Houses extends Component
     public $type = '';
     public $status = 'perencanaan';
     public $cluster_id = '';
+    public $cluster_name = '';
 
     public $start_date = '';
     public $target_end_date = '';
@@ -126,6 +127,7 @@ class Houses extends Component
         $this->type = '';
         $this->status = 'perencanaan';
         $this->cluster_id = '';
+        $this->cluster_name = '';
 
         $this->start_date = '';
         $this->target_end_date = '';
@@ -259,6 +261,7 @@ class Houses extends Component
             'type' => 'required|string|max:100',
             'status' => 'required|in:perencanaan,pembangunan,selesai',
             'cluster_id' => 'nullable|exists:clusters,id',
+            'cluster_name' => 'nullable|string|max:255',
 
             'start_date' => 'nullable|date',
             'target_end_date' => 'nullable|date|after_or_equal:start_date',
@@ -266,22 +269,58 @@ class Houses extends Component
         ];
     }
 
+    public function canManageClusters(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user && ($user->canAccessAllClusters() || $user->role === 'logistik'));
+    }
+
+    public function updatedClusterId($value): void
+    {
+        $this->cluster_name = $value ? (Cluster::find($value)?->name ?? '') : '';
+    }
+
+    private function resolveClusterId(): ?int
+    {
+        $name = trim((string) $this->cluster_name);
+        $selected = $this->cluster_id ? Cluster::find($this->cluster_id) : null;
+
+        if ($selected && ($name === '' || strcasecmp($selected->name, $name) === 0)) {
+            return $selected->id;
+        }
+
+        if ($name === '' || strcasecmp($name, 'Tanpa Cluster') === 0) {
+            return null;
+        }
+
+        $existing = Cluster::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
+        if ($existing) {
+            return $existing->id;
+        }
+
+        return Cluster::create(['name' => $name])->id;
+    }
+
     public function create()
     {
         $this->resetForm();
         $this->editMode = false;
-        $this->cluster_id = auth()->user()->canAccessAllClusters() ? '' : (auth()->user()->cluster_id ?? '');
+        $defaultClusterId = auth()->user()->canAccessAllClusters() ? '' : (auth()->user()->cluster_id ?? '');
+        $this->cluster_id = $defaultClusterId;
+        $this->cluster_name = $defaultClusterId ? (Cluster::find($defaultClusterId)?->name ?? '') : '';
         $this->showModal = true;
     }
 
     public function edit($id)
     {
-        $house = House::forUser(auth()->user())->findOrFail($id);
+        $house = ($this->canManageClusters() ? House::query() : House::forUser(auth()->user()))->findOrFail($id);
         $this->houseId = $house->id;
         $this->name = $house->name;
         $this->type = $house->type;
         $this->status = $house->status;
         $this->cluster_id = $house->cluster_id ?? '';
+        $this->cluster_name = $house->cluster?->name ?? '';
 
         $this->start_date = $house->start_date?->format('Y-m-d') ?? '';
         $this->target_end_date = $house->target_end_date?->format('Y-m-d') ?? '';
@@ -300,14 +339,14 @@ class Houses extends Component
         $this->validate();
 
         $user = auth()->user();
-        if (in_array($user->role, ['logistik', 'pengawas'], true) && ! $user->cluster_id) {
+        if ($user->role === 'pengawas' && ! $user->cluster_id) {
             $this->addError('cluster_id', 'Akun belum memiliki cluster tugas.');
 
             return;
         }
 
         if ($this->editMode) {
-            $existingHouse = House::forUser($user)->findOrFail($this->houseId);
+            $existingHouse = ($this->canManageClusters() ? House::query() : House::forUser($user))->findOrFail($this->houseId);
             if ($existingHouse->status === 'selesai') {
                 $this->addError('status', 'Rumah selesai dikunci. Gunakan halaman penyelesaian untuk mencatat tanggal dan penanggung jawab; data selesai tidak dapat diedit kembali.');
                 return;
@@ -318,11 +357,16 @@ class Houses extends Component
             return;
         }
 
+        $resolvedClusterId = $this->canManageClusters() ? $this->resolveClusterId() : $user->cluster_id;
+        if ($user->role === 'logistik' && ! $user->cluster_id && $resolvedClusterId) {
+            $user->update(['cluster_id' => $resolvedClusterId]);
+        }
+
         $data = [
             'name' => $this->name,
             'type' => $this->type,
             'status' => $this->status,
-            'cluster_id' => $user->canAccessAllClusters() ? ($this->cluster_id ?: null) : $user->cluster_id,
+            'cluster_id' => $resolvedClusterId,
             'start_date' => $this->start_date ?: null,
             'target_end_date' => $this->target_end_date ?: null,
         ];
@@ -341,7 +385,7 @@ class Houses extends Component
             House::create($data);
             session()->flash('success', 'Rumah berhasil ditambahkan.');
         } else {
-            House::forUser($user)->findOrFail($this->houseId)->update($data);
+            ($this->canManageClusters() ? House::query() : House::forUser($user))->findOrFail($this->houseId)->update($data);
             session()->flash('success', 'Rumah berhasil diperbarui.');
         }
 
@@ -360,6 +404,7 @@ class Houses extends Component
             'bulkRows.*.type' => 'required|string|max:100',
             'status' => 'required|in:perencanaan,pembangunan,selesai',
             'cluster_id' => 'nullable|exists:clusters,id',
+            'cluster_name' => 'nullable|string|max:255',
             'start_date' => 'nullable|date',
             'target_end_date' => 'nullable|date|after_or_equal:start_date',
         ], [
@@ -377,12 +422,13 @@ class Houses extends Component
             'bulkRows.*.name' => 'nama rumah',
             'bulkRows.*.type' => 'tipe rumah',
             'cluster_id' => 'cluster',
+            'cluster_name' => 'cluster',
             'start_date' => 'tanggal mulai',
             'target_end_date' => 'target selesai',
         ]);
 
         $user = auth()->user();
-        if (in_array($user->role, ['logistik', 'pengawas'], true) && ! $user->cluster_id) {
+        if ($user->role === 'pengawas' && ! $user->cluster_id) {
             $this->addError('cluster_id', 'Akun belum memiliki cluster tugas.');
 
             return;
@@ -409,13 +455,18 @@ class Houses extends Component
             return;
         }
 
+        $resolvedClusterId = $this->canManageClusters() ? $this->resolveClusterId() : $user->cluster_id;
+        if ($user->role === 'logistik' && ! $user->cluster_id && $resolvedClusterId) {
+            $user->update(['cluster_id' => $resolvedClusterId]);
+        }
+
         $timestamp = now();
         $houses = array_map(fn ($row) => [
             'house_code' => House::generateCode(trim($row['name'])),
             'name' => trim($row['name']),
             'type' => trim($row['type']),
             'status' => $validated['status'],
-            'cluster_id' => auth()->user()->canAccessAllClusters() ? ($validated['cluster_id'] ?: null) : auth()->user()->cluster_id,
+            'cluster_id' => $resolvedClusterId,
             'start_date' => $validated['start_date'] ?: null,
             'target_end_date' => $validated['target_end_date'] ?: null,
             'created_at' => $timestamp,
@@ -443,7 +494,9 @@ class Houses extends Component
     public function delete($id)
     {
         \Illuminate\Support\Facades\DB::transaction(function () use ($id) {
-            $house = House::forUser(auth()->user())->lockForUpdate()->findOrFail($id);
+            $house = ($this->canManageClusters() ? House::query() : House::forUser(auth()->user()))
+                ->lockForUpdate()
+                ->findOrFail($id);
             if ($house->hasTransactionHistory()) {
                 $this->addError('delete', 'Rumah tidak dapat dihapus karena memiliki riwayat penggunaan material, peminjaman alat, atau permintaan. Riwayat transaksi harus tetap tersimpan.');
                 return;
@@ -511,7 +564,7 @@ class Houses extends Component
         }
 
         $user = auth()->user();
-        $export = new HouseListExport($this->search, $this->filterStatus, null, $this->filterCluster, $user->canAccessAllClusters() ? null : (int) ($user->cluster_id ?? 0));
+        $export = new HouseListExport($this->search, $this->filterStatus, null, $this->filterCluster, $this->canManageClusters() ? null : (int) ($user->cluster_id ?? 0));
         $filename = 'daftar-rumah-' . now()->format('Ymd-His') . '.xlsx';
 
         return response()->streamDownload(function () use ($export) {
@@ -522,7 +575,7 @@ class Houses extends Component
     public function render()
     {
         $houses = House::with('cluster')
-            ->forUser(auth()->user())
+            ->when(! $this->canManageClusters(), fn ($q) => $q->forUser(auth()->user()))
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")
@@ -535,10 +588,10 @@ class Houses extends Component
             ->orderBy('houses.id')
             ->paginate(10);
 
-        $clusters = Cluster::when(! auth()->user()->canAccessAllClusters(), fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
+        $clusters = Cluster::when(! $this->canManageClusters(), fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
             ->orderBy('name')->get();
 
-        $clusterAssignmentMissing = in_array(auth()->user()->role, ['logistik', 'pengawas'], true) && ! auth()->user()->cluster_id;
+        $clusterAssignmentMissing = auth()->user()->role === 'pengawas' && ! auth()->user()->cluster_id;
 
         return view('livewire.logistik.houses', compact('houses', 'clusters', 'clusterAssignmentMissing'))
             ->layout('layouts.app', ['title' => 'Rumah']);

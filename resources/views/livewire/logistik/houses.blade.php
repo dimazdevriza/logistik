@@ -36,10 +36,6 @@
             <div class="alert alert-warning rounded-3" role="alert">Akun belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum mengelola rumah.</div>
         @endif
 
-        @if ($clusterAssignmentMissing)
-            <div class="alert alert-warning rounded-3" role="alert">Akun belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum mengelola rumah.</div>
-        @endif
-
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
@@ -198,15 +194,65 @@
                             </div>
                         @endif
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" x-data="{ clusterPickerOpen: false, clusterSearch: '' }">
                         <label for="house-cluster" class="form-label font-semibold">Cluster</label>
-                        <select id="house-cluster" wire:model="cluster_id" class="form-select" @disabled(! auth()->user()->canAccessAllClusters())>
-                            <option value="">Tanpa Cluster</option>
-                            @foreach ($clusters as $cluster)
-                                <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
-                            @endforeach
-                        </select>
+                        <div class="position-relative" @click.outside="clusterPickerOpen = false">
+                            <div class="position-relative d-flex align-items-center">
+                                <input
+                                    id="house-cluster"
+                                    type="text"
+                                    wire:model="cluster_name"
+                                    class="form-control pe-5"
+                                    placeholder="Pilih atau ketik cluster (mis. Cluster A, Cluster B)..."
+                                    autocomplete="off"
+                                    role="combobox"
+                                    aria-autocomplete="list"
+                                    aria-controls="house-cluster-options"
+                                    :aria-expanded="clusterPickerOpen.toString()"
+                                    @disabled(! $this->canManageClusters())
+                                    @focus="clusterPickerOpen = true; clusterSearch = $el.value"
+                                    @input="clusterPickerOpen = true; clusterSearch = $el.value; $wire.cluster_id = ''"
+                                    @keydown.escape="clusterPickerOpen = false"
+                                />
+                                <button
+                                    type="button"
+                                    class="btn btn-link text-secondary text-decoration-none position-absolute end-0 me-2 p-1 d-flex align-items-center"
+                                    @disabled(! $this->canManageClusters())
+                                    @click="clusterPickerOpen = !clusterPickerOpen; clusterSearch = ''"
+                                    aria-label="Tampilkan pilihan cluster"
+                                >
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="transition-transform" :class="clusterPickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div x-show="clusterPickerOpen" x-cloak class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden" style="max-height: 220px; z-index: 1050;">
+                                <div id="house-cluster-options" role="listbox" class="p-1.5" style="max-height: 210px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                    @foreach ($clusters as $cluster)
+                                        <button
+                                            type="button"
+                                            role="option"
+                                            aria-selected="{{ (string) $cluster_id === (string) $cluster->id ? 'true' : 'false' }}"
+                                            class="dropdown-item rounded-2 py-2 px-3 text-start w-100"
+                                            :class="$wire.cluster_name === @js($cluster->name) ? 'active bg-success text-white' : ''"
+                                            x-show="clusterSearch === '' || @js(strtolower($cluster->name)).includes(clusterSearch.toLowerCase())"
+                                            @click="$wire.cluster_id = @js($cluster->id); $wire.cluster_name = @js($cluster->name); clusterPickerOpen = false; clusterSearch = @js($cluster->name)"
+                                        >
+                                            <span class="fw-medium text-truncate d-block">{{ $cluster->name }}</span>
+                                        </button>
+                                    @endforeach
+                                    <div
+                                        x-show="clusterSearch.trim() !== '' && clusterSearch.trim().toLowerCase() !== 'tanpa cluster' && !@js($clusters->pluck('name')->map(fn ($name) => strtolower($name))->values()->all()).includes(clusterSearch.trim().toLowerCase())"
+                                        class="px-3 py-2 extra-small text-secondary fst-italic border-top"
+                                    >
+                                        Gunakan "<span class="fw-bold text-body" x-text="clusterSearch.trim()"></span>" sebagai cluster baru
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         @error('cluster_id') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        @error('cluster_name') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
                     </div>
                     @unless ($editMode)
                         <div class="mb-3">

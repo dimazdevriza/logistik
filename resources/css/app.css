@@ -2396,17 +2396,20 @@ html.is-rail-initial .user-profile-card > div,
     border-radius: var(--radius-shell);
 }
 
-[data-bs-theme="dark"] .main-card-container .card {
+[data-bs-theme="dark"] .main-card-container .card,
+[data-bs-theme="dark"] .modal-content .card {
     color: var(--ledger-ink);
     border-color: var(--ledger-line) !important;
     box-shadow: 0 12px 26px rgba(0, 0, 0, 0.16) !important;
 }
 
-[data-bs-theme="dark"] .main-card-container .card.bg-body-tertiary {
+[data-bs-theme="dark"] .main-card-container .card.bg-body-tertiary,
+[data-bs-theme="dark"] .modal-content .card.bg-body-tertiary {
     background: linear-gradient(135deg, rgba(36, 62, 43, 0.28), rgba(17, 22, 20, 0.96)) !important;
 }
 
-[data-bs-theme="dark"] .main-card-container .card:not(.bg-body-tertiary) {
+[data-bs-theme="dark"] .main-card-container .card:not(.bg-body-tertiary),
+[data-bs-theme="dark"] .modal-content .card:not(.bg-body-tertiary) {
     background: var(--ledger-surface) !important;
     background-image: none !important;
 }
@@ -2469,20 +2472,29 @@ html.is-rail-initial .user-profile-card > div,
 [data-bs-theme="dark"] .main-card-container .form-control,
 [data-bs-theme="dark"] .main-card-container .form-select,
 [data-bs-theme="dark"] .main-card-container textarea,
-[data-bs-theme="dark"] .main-card-container input[type="file"] {
+[data-bs-theme="dark"] .main-card-container input[type="file"],
+[data-bs-theme="dark"] .modal-content .form-control,
+[data-bs-theme="dark"] .modal-content .form-select,
+[data-bs-theme="dark"] .modal-content textarea,
+[data-bs-theme="dark"] .modal-content input[type="file"] {
     color: var(--ledger-ink) !important;
     background-color: var(--ledger-surface-input) !important;
     border-color: var(--ledger-line-strong) !important;
 }
 
 [data-bs-theme="dark"] .main-card-container .form-control::placeholder,
-[data-bs-theme="dark"] .main-card-container textarea::placeholder {
+[data-bs-theme="dark"] .main-card-container textarea::placeholder,
+[data-bs-theme="dark"] .modal-content .form-control::placeholder,
+[data-bs-theme="dark"] .modal-content textarea::placeholder {
     color: #829087 !important;
 }
 
 [data-bs-theme="dark"] .main-card-container .form-control:focus,
 [data-bs-theme="dark"] .main-card-container .form-select:focus,
-[data-bs-theme="dark"] .main-card-container textarea:focus {
+[data-bs-theme="dark"] .main-card-container textarea:focus,
+[data-bs-theme="dark"] .modal-content .form-control:focus,
+[data-bs-theme="dark"] .modal-content .form-select:focus,
+[data-bs-theme="dark"] .modal-content textarea:focus {
     border-color: #8fe3a3 !important;
     box-shadow: 0 0 0 0.2rem rgba(143, 227, 163, 0.16) !important;
 }

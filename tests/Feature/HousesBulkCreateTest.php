@@ -68,4 +68,63 @@ class HousesBulkCreateTest extends TestCase
 
         $this->assertDatabaseCount('houses', 1);
     }
+
+    public function test_admin_and_logistik_can_search_or_register_new_cluster_when_saving_houses(): void
+    {
+        $existingCluster = Cluster::create(['name' => 'Cluster Existing']);
+        $logistik = User::factory()->create(['role' => 'logistik', 'cluster_id' => $existingCluster->id]);
+
+        $this->actingAs($logistik);
+
+        Livewire::test(Houses::class)
+            ->call('create')
+            ->assertSet('cluster_id', (string) $existingCluster->id)
+            ->assertSet('cluster_name', 'Cluster Existing')
+            ->set('name', 'Blok L-01')
+            ->set('type', 'Tipe 36/72')
+            ->set('cluster_id', '')
+            ->set('cluster_name', 'Cluster Baru Logistik')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertSet('showModal', false);
+
+        $newCluster = Cluster::where('name', 'Cluster Baru Logistik')->first();
+        $this->assertNotNull($newCluster);
+        $this->assertDatabaseHas('houses', [
+            'name' => 'Blok L-01',
+            'cluster_id' => $newCluster->id,
+        ]);
+
+        // Bulk creation with case-insensitive match reuses existing cluster, and new name registers another cluster
+        Livewire::test(Houses::class)
+            ->call('create')
+            ->set('houseCount', 2)
+            ->set('bulkBlock', 'B')
+            ->set('startingNumber', 1)
+            ->set('type', 'Tipe 45')
+            ->set('cluster_id', '')
+            ->set('cluster_name', 'Cluster Bulk Baru')
+            ->call('previewBulkHouses')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $bulkCluster = Cluster::where('name', 'Cluster Bulk Baru')->first();
+        $this->assertNotNull($bulkCluster);
+        $this->assertDatabaseHas('houses', [
+            'name' => 'Blok B-01',
+            'cluster_id' => $bulkCluster->id,
+        ]);
+
+        // Edit house to Tanpa Cluster
+        $house = House::where('name', 'Blok L-01')->firstOrFail();
+        Livewire::test(Houses::class)
+            ->call('edit', $house->id)
+            ->assertSet('cluster_name', 'Cluster Baru Logistik')
+            ->set('cluster_id', '')
+            ->set('cluster_name', 'Tanpa Cluster')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertNull($house->fresh()->cluster_id);
+    }
 }

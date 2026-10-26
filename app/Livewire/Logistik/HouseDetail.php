@@ -34,7 +34,8 @@ class HouseDetail extends Component
 
     public function mount(House $house)
     {
-        abort_unless($house->isAccessibleBy(auth()->user()), 403);
+        $user = auth()->user();
+        abort_unless($user && ($user->role === 'logistik' || $house->isAccessibleBy($user)), 403);
         $this->house = $house;
     }
 
@@ -110,7 +111,8 @@ class HouseDetail extends Component
 
     public function render()
     {
-        $this->house = House::forUser(auth()->user())->findOrFail($this->house->id);
+        $user = auth()->user();
+        $this->house = ($user && $user->role === 'logistik' ? House::query() : House::forUser($user))->findOrFail($this->house->id);
         $materialUsages = null;
         $toolUsages = null;
 
