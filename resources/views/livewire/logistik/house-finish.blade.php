@@ -196,7 +196,7 @@
             <div class="house-finish-final-action">
                 <div>
                     <strong>Setelah proyek selesai</strong>
-                    <p class="mb-0 small">Setelah ditandai Selesai, rumah masuk masa garansi selama 1 tahun, mulai {{ $warrantyStartsAt->format('d/m/Y') }} sampai {{ $warrantyEndsAt->format('d/m/Y') }}. Catatan material yang ada dikunci.</p>
+                    <p class="mb-0 small">Setelah ditandai Selesai, {{ $house->isPublicWork() ? 'pekerjaan umum' : 'rumah' }} masuk masa garansi selama 1 tahun, mulai {{ $warrantyStartsAt->format('d/m/Y') }} sampai {{ $warrantyEndsAt->format('d/m/Y') }}. Catatan material yang ada dikunci.</p>
                 </div>
                 <button type="button" wire:click="confirm('processCompletion', null, 'Selesaikan Proyek?')" class="btn btn-success font-semibold text-nowrap d-inline-flex align-items-center gap-2 {{ $completionBlocked ? 'house-finish-button-blocked' : '' }}" aria-disabled="{{ $completionBlocked ? 'true' : 'false' }}" x-data="{ shaking: false }" x-on:house-finish-invalid.window="shaking = false; setTimeout(() => shaking = true, 10); setTimeout(() => shaking = false, 650)" x-bind:class="{ 'house-finish-button-jiggle': shaking }" @if($activeToolUsages->isNotEmpty()) aria-describedby="house-finish-return-requirement" @endif>
                     <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 1.5a.5.5 0 0 1 .5.5v.73c1.8-1.04 3.7-1.04 5.5 0 1.47.85 2.93.85 4.4 0V9.5c-1.8 1.04-3.7 1.04-5.5 0-1.47-.85-2.93-.85-4.4 0v5a.5.5 0 0 1-1 0V2a.5.5 0 0 1 .5-.5Z"/></svg>
@@ -222,7 +222,7 @@
                 <div class="modal-body py-4">
                     @if($confirmingAction === 'processCompletion')
                         <div class="d-grid gap-3 house-finish-confirmation-copy">
-                            <p class="text-secondary mb-0 lh-base">Rumah akan ditandai <strong class="text-body">Selesai</strong> dan menerima masa garansi berikut.</p>
+                            <p class="text-secondary mb-0 lh-base">{{ $house->isPublicWork() ? 'Pekerjaan umum' : 'Rumah' }} akan ditandai <strong class="text-body">Selesai</strong> dan menerima masa garansi berikut.</p>
                             <div class="border rounded-3 p-3 bg-body-tertiary">
                                 <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
                                     <span class="small text-secondary">Masa garansi</span>

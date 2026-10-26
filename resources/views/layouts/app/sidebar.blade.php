@@ -31,6 +31,7 @@
             'show' => $isFieldStaff,
             'links' => array_filter([
                 $isFieldStaff ? ['route' => 'logistik.houses', 'active' => 'logistik.houses*', 'icon' => 'i-houses', 'label' => 'Rumah'] : null,
+                $isFieldStaff ? ['route' => 'logistik.public-works', 'active' => 'logistik.public-works*', 'icon' => 'i-wrench', 'label' => 'Pekerjaan Umum'] : null,
                 $canAccessAllClusters ? ['route' => 'logistik.clusters', 'active' => 'logistik.clusters', 'icon' => 'i-cluster', 'label' => 'Cluster'] : null,
                 $isFieldStaff ? ['route' => 'logistik.transfers', 'active' => 'logistik.transfers', 'icon' => 'i-transfer', 'label' => 'Transfer Gudang'] : null,
                 $isFieldStaff ? ['route' => 'logistik.alokasi', 'active' => 'logistik.alokasi', 'icon' => 'i-transfer', 'label' => 'Alokasi Material & Alat'] : null,

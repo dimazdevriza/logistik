@@ -80,7 +80,7 @@
     }
 }" x-effect="$dispatch('spreadsheet-picker-open', open)" @click.outside="open = false; query = ''" @keydown.escape.stop="open = false; query = ''">
     <label class="visually-hidden" for="{{ $pickerId }}-input">{{ $pickerPlaceholder }}</label>
-    <div class="spreadsheet-house-picker-control spreadsheet-item-picker-control">
+    <div class="spreadsheet-house-picker-control spreadsheet-item-picker-control" :class="{ 'has-selection': selected }">
         <input id="{{ $pickerId }}-input" x-ref="input" type="text" class="form-control" placeholder="{{ $pickerPlaceholder }}" role="combobox" aria-autocomplete="list" aria-controls="{{ $pickerId }}-options" :aria-expanded="open.toString()" :aria-activedescendant="open && filtered[active] ? `{{ $pickerId }}-option-${active}` : null" :value="open ? query : selectedLabel" :title="open ? '' : selectedLabel" autocomplete="off"
             @if ($pickerHasError) aria-invalid="true" aria-describedby="{{ $pickerId }}-error" @endif
             @focus="if (!open) showMenu()"

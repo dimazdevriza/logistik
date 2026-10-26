@@ -33,6 +33,8 @@ class TransaksiLogistik extends Component
     // Shared state
     public $house_ids = [];
 
+    public string $pickerCategory = House::CATEGORY_HOUSE;
+
     public bool $housePickerOpen = false;
 
     public string $houseSearch = '';
@@ -133,7 +135,9 @@ class TransaksiLogistik extends Component
 
     public array $returnSelections = []; // Keyed by tool_usage_id
 
-    public array $spreadsheetRows = [['house_id' => '', 'materials' => [], 'tools' => [], 'returns' => []]];
+    public array $spreadsheetRows = [
+        ['house_id' => '', 'materials' => [], 'tools' => [], 'returns' => []],
+    ];
 
     public bool $showSpreadsheetReview = false;
 
@@ -206,24 +210,26 @@ class TransaksiLogistik extends Component
         $existingRows = collect($this->spreadsheetRows)
             ->filter(fn ($row) => ! empty($row['house_id']))
             ->keyBy(fn ($row) => (int) $row['house_id']);
-        $emptyRows = collect($this->spreadsheetRows)->filter(fn ($row) => empty($row['house_id']))->all();
-        $rows = [];
+        $emptyRow = collect($this->spreadsheetRows)
+            ->first(fn ($row) => empty($row['house_id']));
 
+        $rows = [];
         foreach (array_slice(array_unique(array_map('intval', $this->house_ids)), 0, 100) as $houseId) {
             if ($houseId <= 0) {
                 continue;
             }
 
-            $rows[] = $existingRows->pull($houseId) ?? array_merge($this->emptySpreadsheetHouseRow(), ['house_id' => (string) $houseId]);
+            $existing = $existingRows->pull($houseId);
+            $rows[] = array_merge($this->emptySpreadsheetHouseRow(), $existing ?? [], ['house_id' => (string) $houseId]);
+        }
+
+        if (count($rows) < 100) {
+            $rows[] = $emptyRow
+                ? array_merge($this->emptySpreadsheetHouseRow(), $emptyRow)
+                : $this->emptySpreadsheetHouseRow();
         }
 
         $this->spreadsheetRows = array_slice($rows, 0, 100);
-        if (count($this->spreadsheetRows) < 100) {
-            $this->spreadsheetRows[] = $emptyRows[0] ?? $this->emptySpreadsheetHouseRow();
-        }
-        if ($this->spreadsheetRows === []) {
-            $this->spreadsheetRows[] = $this->emptySpreadsheetHouseRow();
-        }
     }
 
     private function addSpreadsheetLine(int $row, string $type): void
@@ -580,7 +586,7 @@ class TransaksiLogistik extends Component
             SpreadsheetBatchRecorder::process($rows, auth()->user());
 
             $this->showSpreadsheetReview = false;
-            $this->spreadsheetRows = [['house_id' => '', 'materials' => [], 'tools' => [], 'returns' => []]];
+            $this->spreadsheetRows = [$this->emptySpreadsheetHouseRow()];
             $this->house_ids = [];
             $this->spreadsheetReviewRows = [];
             $this->spreadsheetReviewTotals = [];
@@ -1265,8 +1271,13 @@ class TransaksiLogistik extends Component
         $this->syncMaterialBatchSelection();
     }
 
-    public function openHousePicker(): void
+    public function openHousePicker(string $category = House::CATEGORY_HOUSE): void
     {
+        $this->pickerCategory = $category === House::CATEGORY_PUBLIC_WORK
+            ? House::CATEGORY_PUBLIC_WORK
+            : House::CATEGORY_HOUSE;
+        $this->reset('houseSearch', 'houseCluster', 'selectedHousesOnly', 'housePage');
+
         if ($this->activeTab === 'spreadsheet') {
             $this->house_ids = collect($this->spreadsheetRows)
                 ->pluck('house_id')->filter()->map(fn ($id) => (int) $id)->unique()->take(100)->values()->all();
@@ -1367,7 +1378,15 @@ class TransaksiLogistik extends Component
 
     public function clearHouses()
     {
-        $this->house_ids = [];
+        if ($this->housePickerOpen) {
+            $categoryIds = $this->getHouses()
+                ->filter(fn ($house) => ($house->category ?? House::CATEGORY_HOUSE) === $this->pickerCategory)
+                ->pluck('id')
+                ->all();
+            $this->house_ids = array_values(array_diff($this->house_ids, $categoryIds));
+        } else {
+            $this->house_ids = [];
+        }
         $this->syncMaterialBatchSelection();
     }
 
@@ -1398,13 +1417,15 @@ class TransaksiLogistik extends Component
             ->when($this->activeTab === 'spreadsheet', fn ($query) => $query->where(fn ($query) => $query->eligibleForAllocation()->orWhereHas('toolUsages', $activeLoans)))
             ->when(in_array($this->activeTab, ['allocation', 'material', 'tool'], true), fn ($query) => $query->eligibleForAllocation())
             ->when(! in_array($this->activeTab, ['return', 'spreadsheet', 'allocation', 'material', 'tool', 'vendor-service'], true), fn ($query) => $query->where('status', '!=', 'selesai'))
-            ->get(['id', 'cluster_id', 'name', 'house_code', 'type', 'status', 'warranty_expires_at'])
+            ->get(['id', 'cluster_id', 'category', 'name', 'house_code', 'type', 'status', 'warranty_expires_at'])
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
     }
 
     protected function housePickerData($houses): array
     {
         // ponytail: metadata loads per render; move search and cluster filtering to SQL for larger catalogs.
+        $houses = $houses->filter(fn ($house) => ($house->category ?? House::CATEGORY_HOUSE) === $this->pickerCategory)->values();
+        $selectedInCategoryCount = $houses->whereIn('id', $this->house_ids)->count();
         $clusters = $houses
             ->groupBy(fn ($house) => $house->cluster_id ? (string) $house->cluster_id : 'unassigned')
             ->map(fn ($rows, $id) => [
@@ -1433,6 +1454,7 @@ class TransaksiLogistik extends Component
             'houseResults' => $filtered->forPage($this->housePage, 8),
             'houseResultCount' => $filtered->count(),
             'housePages' => $pages,
+            'selectedInCategoryCount' => $selectedInCategoryCount,
         ];
     }
 

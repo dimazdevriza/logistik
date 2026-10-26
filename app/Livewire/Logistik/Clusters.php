@@ -98,8 +98,8 @@ class Clusters extends Component
         $this->authorizeManagement();
         $this->resetValidation('delete');
         $cluster = Cluster::findOrFail($id);
-        if ($cluster->houses()->exists()) {
-            $this->addError('delete', 'Cluster tidak dapat dihapus selama masih memiliki rumah. Pindahkan rumah terlebih dahulu.');
+        if ($cluster->allUnits()->exists()) {
+            $this->addError('delete', 'Cluster tidak dapat dihapus selama masih memiliki rumah atau pekerjaan umum. Pindahkan rumah terlebih dahulu.');
             return;
         }
 
@@ -111,8 +111,8 @@ class Clusters extends Component
     {
         $this->authorizeManagement();
         $cluster = Cluster::findOrFail($this->confirmingId);
-        if ($cluster->houses()->exists()) {
-            $this->addError('delete', 'Cluster tidak dapat dihapus selama masih memiliki rumah. Pindahkan rumah terlebih dahulu.');
+        if ($cluster->allUnits()->exists()) {
+            $this->addError('delete', 'Cluster tidak dapat dihapus selama masih memiliki rumah atau pekerjaan umum. Pindahkan rumah terlebih dahulu.');
             $this->showConfirmation = false;
             return;
         }
@@ -190,7 +190,7 @@ class Clusters extends Component
             ->when($this->search, fn ($query) => $query->where(function ($search) {
                 $search->where('clusters.name', 'like', "%{$this->search}%")
                     ->orWhere('clusters.description', 'like', "%{$this->search}%")
-                    ->orWhereHas('houses', fn ($houses) => $houses
+                    ->orWhereHas('allUnits', fn ($units) => $units
                         ->where('name', 'like', "%{$this->search}%")
                         ->orWhere('house_code', 'like', "%{$this->search}%"));
             }))

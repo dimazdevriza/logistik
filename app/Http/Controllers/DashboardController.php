@@ -35,15 +35,15 @@ class DashboardController extends Controller
     private function adminDashboard()
     {
         $stats = [
-            'total_houses' => House::count(),
+            'total_houses' => House::housesOnly()->count(),
             'total_users' => User::count(),
             'total_suppliers' => Supplier::count(),
             'total_cost' => cache()->remember('dashboard_total_cost', 60, function () {
                 return (float) MaterialUsage::whereNull('voided_at')->sum('total_cost');
             }),
-            'houses_construction' => House::where('status', 'pembangunan')->count(),
-            'houses_warranty' => House::where('status', 'selesai')->where('warranty_expires_at', '>', now())->count(),
-            'houses_finished' => House::where('status', 'selesai')->count(),
+            'houses_construction' => House::housesOnly()->where('status', 'pembangunan')->count(),
+            'houses_warranty' => House::housesOnly()->where('status', 'selesai')->where('warranty_expires_at', '>', now())->count(),
+            'houses_finished' => House::housesOnly()->where('status', 'selesai')->count(),
 
             // Low stock materials (stock <= 10)
             'low_stock_materials' => Material::with('warehouse:id,name')

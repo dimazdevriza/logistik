@@ -22,10 +22,22 @@ class Houses extends Component
 {
     use WithPagination, WithFilterModal, WithFileUploads, WithTableSorting;
 
+    public bool $isPublicWork = false;
     public $search = '';
     public $filterStatus = '';
     public $filterCluster = '';
     public $sort = 'name_asc';
+
+    public function mount(?string $category = null): void
+    {
+        $this->isPublicWork = $category === House::CATEGORY_PUBLIC_WORK || request()->routeIs('logistik.public-works');
+    }
+
+    private function baseHouseQuery()
+    {
+        return ($this->canManageClusters() ? House::query() : House::forUser(auth()->user()))
+            ->when($this->isPublicWork, fn ($q) => $q->publicWorksOnly(), fn ($q) => $q->housesOnly());
+    }
 
     // Import Modal State
     public $showImportModal = false;
@@ -45,9 +57,10 @@ class Houses extends Component
     {
         $this->resetValidation('delete');
         if ($action === 'delete') {
-            $house = ($this->canManageClusters() ? House::query() : House::forUser(auth()->user()))->findOrFail($id);
+            $house = $this->baseHouseQuery()->findOrFail($id);
             if ($house->hasTransactionHistory()) {
-                $this->addError('delete', 'Rumah tidak dapat dihapus karena memiliki riwayat penggunaan material, peminjaman alat, atau permintaan. Riwayat transaksi harus tetap tersimpan.');
+                $label = $this->isPublicWork ? 'Pekerjaan umum' : 'Rumah';
+                $this->addError('delete', "{$label} tidak dapat dihapus karena memiliki riwayat penggunaan material, peminjaman alat, atau permintaan. Riwayat transaksi harus tetap tersimpan.");
                 return;
             }
         }
@@ -258,7 +271,7 @@ class Houses extends Component
     {
         return [
             'name' => 'required|string|max:255',
-            'type' => 'required|string|max:100',
+            'type' => $this->isPublicWork ? 'nullable|string|max:100' : 'required|string|max:100',
             'status' => 'required|in:perencanaan,pembangunan,selesai',
             'cluster_id' => 'nullable|exists:clusters,id',
             'cluster_name' => 'nullable|string|max:255',
@@ -314,7 +327,7 @@ class Houses extends Component
 
     public function edit($id)
     {
-        $house = ($this->canManageClusters() ? House::query() : House::forUser(auth()->user()))->findOrFail($id);
+        $house = $this->baseHouseQuery()->findOrFail($id);
         $this->houseId = $house->id;
         $this->name = $house->name;
         $this->type = $house->type;
@@ -331,7 +344,7 @@ class Houses extends Component
 
     public function save()
     {
-        if (!$this->editMode && (int) $this->houseCount > 1) {
+        if (!$this->isPublicWork && !$this->editMode && (int) $this->houseCount > 1) {
             $this->saveBulk();
             return;
         }
@@ -345,48 +358,58 @@ class Houses extends Component
             return;
         }
 
+        $unitLabel = $this->isPublicWork ? 'Pekerjaan umum' : 'Rumah';
+
         if ($this->editMode) {
-            $existingHouse = ($this->canManageClusters() ? House::query() : House::forUser($user))->findOrFail($this->houseId);
+            $existingHouse = $this->baseHouseQuery()->findOrFail($this->houseId);
             if ($existingHouse->status === 'selesai') {
-                $this->addError('status', 'Rumah selesai dikunci. Gunakan halaman penyelesaian untuk mencatat tanggal dan penanggung jawab; data selesai tidak dapat diedit kembali.');
+                $this->addError('status', "{$unitLabel} selesai dikunci. Gunakan halaman penyelesaian untuk mencatat tanggal dan penanggung jawab; data selesai tidak dapat diedit kembali.");
                 return;
             }
         }
         if ($this->status === 'selesai') {
-            $this->addError('status', 'Rumah hanya dapat ditandai selesai melalui alur Pertanggungjawaban Alat.');
+            $this->addError('status', "{$unitLabel} hanya dapat ditandai selesai melalui alur Pertanggungjawaban Alat.");
             return;
         }
 
         $resolvedClusterId = $this->canManageClusters() ? $this->resolveClusterId() : $user->cluster_id;
+        if ($this->isPublicWork && ! $resolvedClusterId) {
+            $this->addError('cluster_name', 'Pilih atau ketik nama cluster terlebih dahulu.');
+            return;
+        }
         if ($user->role === 'logistik' && ! $user->cluster_id && $resolvedClusterId) {
             $user->update(['cluster_id' => $resolvedClusterId]);
         }
 
         $data = [
+            'category' => $this->isPublicWork ? House::CATEGORY_PUBLIC_WORK : House::CATEGORY_HOUSE,
             'name' => $this->name,
-            'type' => $this->type,
+            'type' => $this->isPublicWork ? 'Pekerjaan Umum' : $this->type,
             'status' => $this->status,
             'cluster_id' => $resolvedClusterId,
             'start_date' => $this->start_date ?: null,
-            'target_end_date' => $this->target_end_date ?: null,
+            'target_end_date' => $this->isPublicWork ? null : ($this->target_end_date ?: null),
         ];
 
         if (!$this->editMode) {
-            $generatedCode = House::generateCode($this->name);
+            $generatedCode = $this->isPublicWork
+                ? House::generatePublicWorkCode($this->name)
+                : House::generateCode($this->name);
 
             $exists = House::where('house_code', $generatedCode)->exists();
 
             if ($exists) {
-                $this->addError('name', 'Kode rumah ' . $generatedCode . ' sudah digunakan. Gunakan nama blok / deskripsi yang berbeda.');
+                $codeLabel = $this->isPublicWork ? 'Kode pekerjaan umum ' : 'Kode rumah ';
+                $this->addError('name', $codeLabel . $generatedCode . ' sudah digunakan. Gunakan nama / deskripsi yang berbeda.');
                 return;
             }
 
             $data['house_code'] = $generatedCode;
             House::create($data);
-            session()->flash('success', 'Rumah berhasil ditambahkan.');
+            session()->flash('success', "{$unitLabel} berhasil ditambahkan.");
         } else {
-            ($this->canManageClusters() ? House::query() : House::forUser($user))->findOrFail($this->houseId)->update($data);
-            session()->flash('success', 'Rumah berhasil diperbarui.');
+            $this->baseHouseQuery()->findOrFail($this->houseId)->update($data);
+            session()->flash('success', "{$unitLabel} berhasil diperbarui.");
         }
 
         $this->showModal = false;
@@ -494,15 +517,16 @@ class Houses extends Component
     public function delete($id)
     {
         \Illuminate\Support\Facades\DB::transaction(function () use ($id) {
-            $house = ($this->canManageClusters() ? House::query() : House::forUser(auth()->user()))
+            $house = $this->baseHouseQuery()
                 ->lockForUpdate()
                 ->findOrFail($id);
+            $unitLabel = $this->isPublicWork ? 'Pekerjaan umum' : 'Rumah';
             if ($house->hasTransactionHistory()) {
-                $this->addError('delete', 'Rumah tidak dapat dihapus karena memiliki riwayat penggunaan material, peminjaman alat, atau permintaan. Riwayat transaksi harus tetap tersimpan.');
+                $this->addError('delete', "{$unitLabel} tidak dapat dihapus karena memiliki riwayat penggunaan material, peminjaman alat, atau permintaan. Riwayat transaksi harus tetap tersimpan.");
                 return;
             }
             $house->delete();
-            session()->flash('success', 'Rumah berhasil dihapus.');
+            session()->flash('success', "{$unitLabel} berhasil dihapus.");
         });
     }
 
@@ -564,8 +588,17 @@ class Houses extends Component
         }
 
         $user = auth()->user();
-        $export = new HouseListExport($this->search, $this->filterStatus, null, $this->filterCluster, $this->canManageClusters() ? null : (int) ($user->cluster_id ?? 0));
-        $filename = 'daftar-rumah-' . now()->format('Ymd-His') . '.xlsx';
+        $export = new HouseListExport(
+            $this->search,
+            $this->filterStatus,
+            null,
+            $this->filterCluster,
+            $this->canManageClusters() ? null : (int) ($user->cluster_id ?? 0),
+            $this->isPublicWork ? 'Pekerjaan Umum ' . now()->year : null,
+            $this->isPublicWork ? 'D\'ROYAL VILLAGE - LAPORAN MONITORING BIAYA PEKERJAAN UMUM PER BULAN (TAHUN ' . now()->year . ')' : null,
+            $this->isPublicWork ? House::CATEGORY_PUBLIC_WORK : House::CATEGORY_HOUSE
+        );
+        $filename = ($this->isPublicWork ? 'daftar-pekerjaan-umum-' : 'daftar-rumah-') . now()->format('Ymd-His') . '.xlsx';
 
         return response()->streamDownload(function () use ($export) {
             echo Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX);
@@ -574,8 +607,8 @@ class Houses extends Component
 
     public function render()
     {
-        $houses = House::with('cluster')
-            ->when(! $this->canManageClusters(), fn ($q) => $q->forUser(auth()->user()))
+        $houses = $this->baseHouseQuery()
+            ->with('cluster')
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")
@@ -594,6 +627,6 @@ class Houses extends Component
         $clusterAssignmentMissing = auth()->user()->role === 'pengawas' && ! auth()->user()->cluster_id;
 
         return view('livewire.logistik.houses', compact('houses', 'clusters', 'clusterAssignmentMissing'))
-            ->layout('layouts.app', ['title' => 'Rumah']);
+            ->layout('layouts.app', ['title' => $this->isPublicWork ? 'Pekerjaan Umum' : 'Rumah']);
     }
 }

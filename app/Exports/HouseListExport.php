@@ -34,6 +34,7 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
         private ?int $clusterScope = null,
         private ?string $sheetTitle = null,
         private ?string $reportTitle = null,
+        private ?string $category = House::CATEGORY_HOUSE,
     ) {
         $this->year = $year ?: (int) now()->year;
     }
@@ -61,10 +62,12 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
         }
 
         return $query
+            ->when($this->category !== null, fn ($q) => $q->where('category', $this->category))
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")
-                    ->orWhere('house_code', 'like', "%{$this->search}%");
+                    ->orWhere('house_code', 'like', "%{$this->search}%")
+                    ->orWhereHas('cluster', fn ($cluster) => $cluster->where('name', 'like', "%{$this->search}%"));
             }))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterCluster, fn ($q) => $q->where('cluster_id', $this->filterCluster))

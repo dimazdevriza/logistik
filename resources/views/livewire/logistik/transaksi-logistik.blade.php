@@ -167,14 +167,14 @@
                     <p class="small text-secondary mb-0" x-text="activeTab === 'vendor-service' ? (vendorServiceTarget === 'cluster' ? 'Untuk pekerjaan area bersama seperti drainase, jalur listrik, atau fasilitas umum.' : 'Pilih satu rumah untuk pekerjaan unit seperti interior atau plumbing.') : (activeTab === 'return' ? 'Pilih rumah yang masih meminjam alat.' : (activeTab === 'rental' ? 'Pilih beberapa rumah dalam satu cluster untuk sewa alat yang sama.' : 'Bisa pilih beberapa rumah untuk satu alokasi.'))"></p>
                     </div>
                 </div>
-                <div x-show="activeTab === 'vendor-service' && vendorServiceTarget === 'house'" x-cloak>
-                    <button type="button" @click="housePickerOpen = true" wire:click="openHousePicker" wire:loading.attr="disabled" wire:target="activeTab,vendor_service_target" class="btn transaction-house-button flex-shrink-0" aria-haspopup="dialog" aria-controls="house-dialog">
-                        {{ count($house_ids) ? 'Ubah rumah' : 'Pilih 1 rumah' }}
+                <div x-show.important="activeTab !== 'vendor-service' || vendorServiceTarget === 'house'" class="d-flex flex-wrap gap-2">
+                    <button type="button" @click="housePickerOpen = true" wire:click="openHousePicker('house')" wire:loading.attr="disabled" wire:target="activeTab,vendor_service_target" class="btn transaction-house-button flex-shrink-0" aria-haspopup="dialog" aria-controls="house-dialog">
+                        <span x-text="activeTab === 'vendor-service' ? '{{ $selectedHouses->where('category', 'house')->isNotEmpty() ? 'Ubah rumah' : 'Pilih 1 rumah' }}' : '{{ $selectedHouses->where('category', 'house')->isNotEmpty() ? 'Ubah rumah' : 'Pilih rumah' }}'">{{ $selectedHouses->where('category', 'house')->isNotEmpty() ? 'Ubah rumah' : 'Pilih rumah' }}</span>
+                    </button>
+                    <button type="button" @click="housePickerOpen = true" wire:click="openHousePicker('public_work')" wire:loading.attr="disabled" wire:target="activeTab,vendor_service_target" class="btn transaction-house-button flex-shrink-0" aria-haspopup="dialog" aria-controls="house-dialog">
+                        {{ $selectedHouses->where('category', 'public_work')->isNotEmpty() ? 'Ubah pekerjaan umum' : 'Pilih pekerjaan umum' }}
                     </button>
                 </div>
-                <button x-show="activeTab !== 'vendor-service'" type="button" @click="housePickerOpen = true" wire:click="openHousePicker" wire:loading.attr="disabled" wire:target="activeTab" class="btn transaction-house-button flex-shrink-0" aria-haspopup="dialog" aria-controls="house-dialog">
-                    {{ count($house_ids) ? 'Ubah rumah' : 'Pilih rumah' }}
-                </button>
             </div>
 
             <fieldset x-show="activeTab === 'vendor-service'" x-cloak class="vendor-service-target mt-3">
@@ -746,7 +746,7 @@
                                     @click="warehousePickerOpen = !warehousePickerOpen"
                                 >
                                     <span class="text-truncate me-2 text-body fw-semibold">
-                                        @php($selectedToolWarehouse = $toolWarehouseOptions->firstWhere('warehouse_id', (int) $tool_warehouse_id))
+                                        <?php $selectedToolWarehouse = $toolWarehouseOptions->firstWhere('warehouse_id', (int) $tool_warehouse_id); ?>
                                         {{ $selectedToolWarehouse?->warehouse?->name ?? 'Pilih gudang asal' }}
                                     </span>
                                     <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="text-secondary flex-shrink-0 transition-transform" :class="warehousePickerOpen ? 'rotate-180' : ''" aria-hidden="true">
@@ -1165,15 +1165,19 @@
 <div>
 <div class="house-dialog-backdrop" x-show="housePickerOpen" x-cloak @click="housePickerOpen = false" wire:click="closeHousePicker" aria-hidden="true"></div>
 <dialog id="house-dialog" open x-show="housePickerOpen" x-cloak class="house-dialog" aria-labelledby="house-dialog-title" aria-modal="true">
+    <?php
+        $isPublicWorkPicker = ($pickerCategory ?? 'house') === \App\Models\House::CATEGORY_PUBLIC_WORK;
+        $pickerUnitLabel = $isPublicWorkPicker ? 'pekerjaan umum' : 'rumah';
+    ?>
     <div class="house-dialog-header">
         <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-            <h2 id="house-dialog-title" class="h5 fw-bold mb-0">{{ $activeTab === 'return' ? 'Pilih rumah asal alat' : ($activeTab === 'vendor-service' && $vendor_service_target === 'house' ? 'Pilih satu rumah untuk jasa vendor' : 'Pilih rumah tujuan') }}</h2>
-            <button type="button" class="btn-close" aria-label="Tutup pilihan rumah" @click="housePickerOpen = false" wire:click="closeHousePicker"></button>
+            <h2 id="house-dialog-title" class="h5 fw-bold mb-0">{{ $activeTab === 'return' ? "Pilih {$pickerUnitLabel} asal alat" : ($activeTab === 'vendor-service' && $vendor_service_target === 'house' ? "Pilih satu {$pickerUnitLabel} untuk jasa vendor" : "Pilih {$pickerUnitLabel} tujuan") }}</h2>
+            <button type="button" class="btn-close" aria-label="Tutup pilihan {{ $pickerUnitLabel }}" @click="housePickerOpen = false" wire:click="closeHousePicker"></button>
         </div>
         <div class="row g-2">
             <div class="col-7">
-                <label for="house-search" class="form-label small fw-semibold">Cari rumah</label>
-                <input id="house-search" autofocus type="search" wire:model.live.debounce.250ms="houseSearch" class="form-control" placeholder="Nama, kode, atau tipe rumah" />
+                <label for="house-search" class="form-label small fw-semibold">Cari {{ $pickerUnitLabel }}</label>
+                <input id="house-search" autofocus type="search" wire:model.live.debounce.250ms="houseSearch" class="form-control" placeholder="{{ $isPublicWorkPicker ? 'Nama atau kode pekerjaan umum' : 'Nama, kode, atau tipe rumah' }}" />
             </div>
             <div class="col-5">
                 <label for="house-cluster" class="form-label small fw-semibold">Cluster</label>
@@ -1188,15 +1192,15 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2">
             <label class="d-flex align-items-center gap-2 small house-filter-toggle">
                 <input type="checkbox" wire:model.live="selectedHousesOnly" class="form-check-input m-0" />
-                Hanya dipilih ({{ count($house_ids) }})
+                Hanya dipilih ({{ $selectedInCategoryCount ?? count($house_ids) }})
             </label>
             @if ($activeTab === 'vendor-service' && $vendor_service_target === 'house')
-                <span class="small text-secondary">Pilih satu rumah</span>
+                <span class="small text-secondary">Pilih satu {{ $pickerUnitLabel }}</span>
             @else
                 <button type="button" wire:click="selectVisibleHouses" wire:loading.attr="disabled" class="btn btn-link btn-sm" @disabled($houseResults->isEmpty())>Pilih {{ $houseResults->count() }} di halaman ini</button>
             @endif
         </div>
-        <span wire:loading.delay wire:target="houseSearch,houseCluster,selectedHousesOnly,housePage" class="small text-secondary" role="status">Memuat rumah...</span>
+        <span wire:loading.delay wire:target="houseSearch,houseCluster,selectedHousesOnly,housePage" class="small text-secondary" role="status">Memuat {{ $pickerUnitLabel }}...</span>
     </div>
     <div class="house-dialog-results" wire:loading.class="opacity-50" wire:target="houseSearch,houseCluster,selectedHousesOnly,housePage,toggleHouse,selectVisibleHouses,clearHouses">
         @forelse ($houseResults as $house)
@@ -1216,24 +1220,24 @@
             </label>
         @empty
             <div class="text-center p-4">
-                <p class="fw-semibold mb-1">{{ $selectedHousesOnly ? 'Tidak ada rumah dipilih yang cocok' : 'Tidak ada rumah yang cocok' }}</p>
-                <p class="small text-secondary mb-0">{{ $activeTab === 'return' ? 'Coba kata kunci lain. Hanya rumah dengan peminjaman aktif yang ditampilkan.' : (in_array($activeTab, ['allocation', 'material', 'tool', 'spreadsheet'], true) ? 'Coba kata kunci atau cluster lain. Rumah selesai hanya ditampilkan selama masa garansi.' : ($activeTab === 'vendor-service' ? 'Coba kata kunci atau cluster lain.' : 'Coba kata kunci atau cluster lain. Rumah yang sudah selesai tidak ditampilkan.')) }}</p>
+                <p class="fw-semibold mb-1">{{ $selectedHousesOnly ? "Tidak ada {$pickerUnitLabel} dipilih yang cocok" : "Tidak ada {$pickerUnitLabel} yang cocok" }}</p>
+                <p class="small text-secondary mb-0">{{ $activeTab === 'return' ? "Coba kata kunci lain. Hanya {$pickerUnitLabel} dengan peminjaman aktif yang ditampilkan." : (in_array($activeTab, ['allocation', 'material', 'tool', 'spreadsheet'], true) ? "Coba kata kunci atau cluster lain. " . ucfirst($pickerUnitLabel) . " selesai hanya ditampilkan selama masa garansi." : ($activeTab === 'vendor-service' ? 'Coba kata kunci atau cluster lain.' : "Coba kata kunci atau cluster lain. " . ucfirst($pickerUnitLabel) . " yang sudah selesai tidak ditampilkan.")) }}</p>
             </div>
         @endforelse
     </div>
     <div class="house-dialog-footer">
         <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
             <span class="small text-secondary" role="status">
-                {{ $houseResultCount ? ($housePage - 1) * 8 + 1 : 0 }}-{{ min($housePage * 8, $houseResultCount) }} dari {{ $houseResultCount }} rumah
+                {{ $houseResultCount ? ($housePage - 1) * 8 + 1 : 0 }}-{{ min($housePage * 8, $houseResultCount) }} dari {{ $houseResultCount }} {{ $pickerUnitLabel }}
             </span>
-            <div class="d-flex gap-1" aria-label="Halaman rumah">
+            <div class="d-flex gap-1" aria-label="Halaman {{ $pickerUnitLabel }}">
                 <button type="button" wire:click="$set('housePage', {{ $housePage - 1 }})" class="btn log-row-action log-row-action--quiet" @disabled($housePage <= 1) wire:loading.attr="disabled">Sebelumnya</button>
                 <button type="button" wire:click="$set('housePage', {{ $housePage + 1 }})" class="btn log-row-action log-row-action--quiet" @disabled($housePage >= $housePages) wire:loading.attr="disabled">Berikutnya</button>
             </div>
         </div>
         <div class="d-flex align-items-center justify-content-between gap-2 border-top pt-3">
-            <button type="button" wire:click="clearHouses" class="btn btn-link text-secondary btn-sm" @disabled(empty($house_ids))>Kosongkan pilihan</button>
-            <button type="button" @click="housePickerOpen = false" wire:click="closeHousePicker" class="btn log-row-action log-row-action--edit">Selesai · {{ count($house_ids) }} rumah</button>
+            <button type="button" wire:click="clearHouses" class="btn btn-link text-secondary btn-sm" @disabled(($selectedInCategoryCount ?? count($house_ids)) === 0)>Kosongkan pilihan</button>
+            <button type="button" @click="housePickerOpen = false" wire:click="closeHousePicker" class="btn log-row-action log-row-action--edit">Selesai · {{ $selectedInCategoryCount ?? count($house_ids) }} {{ $pickerUnitLabel }}</button>
         </div>
     </div>
 </dialog>
@@ -1454,11 +1458,12 @@
         }
         .spreadsheet-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.25rem; }
         .spreadsheet-table-scroll { border-top: 1px solid var(--transaction-line); }
-        .spreadsheet-house-cell { min-width: 260px; vertical-align: top; }
+        .spreadsheet-house-cell { min-width: 310px; vertical-align: top; }
         .spreadsheet-house-picker { width: 100%; min-width: 0; font-weight: 400; }
         .spreadsheet-table-scroll > .data-table.table-hover > tbody > tr:hover > .spreadsheet-house-cell { background-color: var(--transaction-surface) !important; box-shadow: none; }
         .spreadsheet-house-picker-control { position: relative; }
-        .spreadsheet-house-picker-control .form-control { min-height: 48px; padding-right: 6.25rem; }
+        .spreadsheet-house-picker-control .form-control { min-height: 48px; padding-right: 3rem; }
+        .spreadsheet-house-picker-control.has-selection .form-control { padding-right: 6.25rem; }
         .spreadsheet-house-picker-actions { position: absolute; top: 50%; right: .25rem; display: flex; align-items: center; gap: .15rem; transform: translateY(-50%); }
         .spreadsheet-house-picker-action { display: grid; width: 44px; min-height: 44px; place-items: center; padding: 0; border: 0; border-radius: 6px; color: var(--bs-secondary-color); background: transparent; }
         .spreadsheet-house-picker-action:hover, .spreadsheet-house-picker-action:focus-visible { color: var(--bs-body-color); background: var(--transaction-surface-muted); }

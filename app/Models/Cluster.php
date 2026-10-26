@@ -14,6 +14,16 @@ class Cluster extends Model
 
     public function houses(): HasMany
     {
+        return $this->hasMany(House::class)->where('houses.category', House::CATEGORY_HOUSE);
+    }
+
+    public function publicWorks(): HasMany
+    {
+        return $this->hasMany(House::class)->where('houses.category', House::CATEGORY_PUBLIC_WORK);
+    }
+
+    public function allUnits(): HasMany
+    {
         return $this->hasMany(House::class);
     }
 

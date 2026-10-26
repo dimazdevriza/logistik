@@ -14,6 +14,7 @@ class House extends Model
 
     protected $fillable = [
         'cluster_id',
+        'category',
         'house_code',
         'name',
         'type',
@@ -24,6 +25,43 @@ class House extends Model
         'warranty_expires_at',
         'completed_by_id',
     ];
+
+    public const CATEGORY_HOUSE = 'house';
+
+    public const CATEGORY_PUBLIC_WORK = 'public_work';
+
+    public function scopeHousesOnly(Builder $query): Builder
+    {
+        return $query->where('houses.category', self::CATEGORY_HOUSE);
+    }
+
+    public function scopePublicWorksOnly(Builder $query): Builder
+    {
+        return $query->where('houses.category', self::CATEGORY_PUBLIC_WORK);
+    }
+
+    public function isPublicWork(): bool
+    {
+        return $this->category === self::CATEGORY_PUBLIC_WORK;
+    }
+
+    /**
+     * Public work code: [Year]-PU-[NAME], e.g. "Jalan Utama Blok A" -> "2026-PU-JALANUTAMABLOKA".
+     */
+    public static function generatePublicWorkCode(string $name): string
+    {
+        $slug = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name));
+        $base = date('Y').'-PU-'.substr($slug !== '' ? $slug : 'PEKERJAAN', 0, 36);
+        $code = $base;
+        $suffix = 2;
+
+        while (self::where('house_code', $code)->exists()) {
+            $code = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $code;
+    }
 
     public function scopeForUser(Builder $query, User $user): Builder
     {

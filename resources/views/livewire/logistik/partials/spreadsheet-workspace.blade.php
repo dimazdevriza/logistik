@@ -1,12 +1,17 @@
 <section class="spreadsheet-workspace" x-show="activeTab === 'spreadsheet'" x-cloak aria-labelledby="spreadsheet-title">
             <div class="spreadsheet-heading">
                 <div>
-                    <h2 id="spreadsheet-title" class="h5 fw-bold mb-1">Alokasi per rumah</h2>
-                    <p class="small text-secondary mb-0">Susun material, alat, dan pengembalian untuk setiap rumah.</p>
+                    <h2 id="spreadsheet-title" class="h5 fw-bold mb-1">Alokasi per rumah / pekerjaan umum</h2>
+                    <p class="small text-secondary mb-0">Susun material, alat, dan pengembalian untuk setiap rumah atau pekerjaan umum.</p>
                 </div>
-                <button type="button" @click="housePickerOpen = true" wire:click="openHousePicker" wire:loading.attr="disabled" wire:target="activeTab" class="btn transaction-house-button flex-shrink-0" aria-haspopup="dialog" aria-controls="house-dialog">
-                    {{ count($house_ids) ? 'Ubah rumah' : 'Pilih rumah' }}
-                </button>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" @click="housePickerOpen = true" wire:click="openHousePicker('house')" wire:loading.attr="disabled" wire:target="activeTab" class="btn transaction-house-button flex-shrink-0" aria-haspopup="dialog" aria-controls="house-dialog">
+                        {{ $houses->where('category', \App\Models\House::CATEGORY_HOUSE)->whereIn('id', $house_ids)->isNotEmpty() ? 'Ubah rumah' : 'Pilih rumah' }}
+                    </button>
+                    <button type="button" @click="housePickerOpen = true" wire:click="openHousePicker('public_work')" wire:loading.attr="disabled" wire:target="activeTab" class="btn transaction-house-button flex-shrink-0" aria-haspopup="dialog" aria-controls="house-dialog">
+                        {{ $houses->where('category', \App\Models\House::CATEGORY_PUBLIC_WORK)->whereIn('id', $house_ids)->isNotEmpty() ? 'Ubah pekerjaan umum' : 'Pilih pekerjaan umum' }}
+                    </button>
+                </div>
             </div>
 
             @php
@@ -31,11 +36,12 @@
                     ->groupBy(fn ($line) => (int) $line['batch_id'])
                     ->map(fn ($lines) => $lines->sum(fn ($line) => (float) ($line['quantity'] ?? 0)));
             @endphp
-            <div class="table-responsive spreadsheet-table-scroll" x-data="{ pickerOpen: false }" :class="{ 'has-open-picker': pickerOpen }" @spreadsheet-picker-open="pickerOpen = $event.detail" tabindex="0" role="region" aria-label="Tabel alokasi per rumah">
+
+            <div class="table-responsive spreadsheet-table-scroll" x-data="{ pickerOpen: false }" :class="{ 'has-open-picker': pickerOpen }" @spreadsheet-picker-open="pickerOpen = $event.detail" tabindex="0" role="region" aria-label="Tabel alokasi per rumah dan pekerjaan umum">
                 <table class="table table-hover align-middle mb-0 data-table">
                     <thead>
                         <tr>
-                            <th scope="col">Rumah</th>
+                            <th scope="col">Rumah / Pekerjaan umum</th>
                             <th scope="col">Material</th>
                             <th scope="col">Alat</th>
                             <th scope="col">Pengembalian alat</th>
@@ -74,7 +80,7 @@
                                     ->map(fn ($house) => [
                                         'id' => (string) $house->id,
                                         'label' => $house->name,
-                                        'meta' => $house->house_code,
+                                        'meta' => $house->isPublicWork() ? $house->house_code.' · Pekerjaan Umum' : $house->house_code,
                                     ])->values()->all();
                                 $selectedReturnUsageIds = collect($returnLines)
                                     ->reject(fn ($returnLine, $returnIndex) => (int) $returnIndex === $lineIndex)
@@ -96,7 +102,7 @@
                                     ])->values()->all();
                                 $returnEmptyMessage = $houseUsages->isNotEmpty()
                                     ? 'Semua peminjaman aktif sudah dipilih.'
-                                    : 'Tidak ada peminjaman aktif di rumah ini.';
+                                    : 'Tidak ada peminjaman aktif di unit ini.';
                             @endphp
                             <tr wire:key="spreadsheet-house-{{ $rowIndex }}-{{ $houseId }}-line-{{ $lineIndex }}" class="{{ $lineIndex === 0 ? 'spreadsheet-group-start' : '' }}">
                                 @if ($lineIndex === 0)
@@ -105,8 +111,8 @@
                                         'pickerId' => 'spreadsheet-house-'.$rowIndex,
                                         'pickerItems' => $spreadsheetHouseOptions,
                                         'pickerValue' => $row['house_id'] ?? '',
-                                        'pickerPlaceholder' => 'Pilih rumah',
-                                        'pickerEmptyMessage' => 'Tidak ada rumah tersedia yang cocok.',
+                                        'pickerPlaceholder' => 'Pilih rumah / pekerjaan umum',
+                                        'pickerEmptyMessage' => 'Tidak ada rumah atau pekerjaan umum tersedia yang cocok.',
                                         'pickerError' => "spreadsheetRows.$rowIndex.house_id",
                                         'pickerTarget' => null,
                                         'pickerModel' => "spreadsheetRows.{$rowIndex}.house_id",
@@ -114,7 +120,7 @@
                                 </th>
                                 @endif
                                 @if (empty($row['house_id']))
-                                    <td colspan="3" class="small text-secondary align-middle">Pilih rumah untuk menambahkan material, alat, atau pengembalian.</td>
+                                    <td colspan="3" class="small text-secondary align-middle">Pilih rumah atau pekerjaan umum untuk menambahkan material, alat, atau pengembalian.</td>
                                 @else
                                     <td class="spreadsheet-action-cell">
                                         @if (isset($materialLines[$lineIndex]))

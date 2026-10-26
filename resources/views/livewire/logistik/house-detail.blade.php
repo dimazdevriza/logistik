@@ -1,3 +1,6 @@
+@php
+    $unitLabelLower = $house->isPublicWork() ? 'pekerjaan umum' : 'rumah';
+@endphp
 <div>
     <div class="container-fluid p-0">
         <!-- Hero Header -->
@@ -5,9 +8,9 @@
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
                     <div class="d-flex align-items-center gap-3 mb-2">
-                        <a href="{{ route('logistik.houses') }}" wire:navigate class="back-link">
+                        <a href="{{ $house->isPublicWork() ? route('logistik.public-works') : route('logistik.houses') }}" wire:navigate class="back-link">
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
-                            Kembali
+                            {{ $house->isPublicWork() ? 'Kembali ke Pekerjaan Umum' : 'Kembali' }}
                         </a>
                         @php
                             $statusClasses = ['perencanaan' => 'bg-warning-subtle text-warning', 'pembangunan' => 'bg-primary-subtle text-primary', 'selesai' => 'bg-success-subtle text-success'];
@@ -26,7 +29,7 @@
                             <span class="badge bg-secondary-subtle text-secondary font-mono fs-6 house-detail-code">{{ $house->house_code }}</span>
                         @endif
                     </div>
-                    <p class="text-secondary mb-0 mt-1">Tipe Unit: {{ $house->type }}</p>
+                    <p class="text-secondary mb-0 mt-1">{{ $house->isPublicWork() ? 'Cluster: ' . ($house->cluster?->name ?? 'Tanpa Cluster') : 'Tipe Unit: ' . ($house->type ?: '-') }}</p>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
@@ -40,7 +43,7 @@
                         </button>
                     @endif
                     @if($house->status !== 'selesai')
-                        <a href="{{ route('logistik.house-finish', $house) }}" wire:navigate class="btn btn-warning font-semibold">Selesaikan Rumah</a>
+                        <a href="{{ route('logistik.house-finish', $house) }}" wire:navigate class="btn btn-warning font-semibold">{{ $house->isPublicWork() ? 'Selesaikan Pekerjaan' : 'Selesaikan Rumah' }}</a>
                     @else
                         <span class="badge bg-success-subtle text-success p-2">{{ $house->isUnderWarranty() ? 'Proyek selesai · Masa garansi aktif' : 'Proyek selesai · Data terkunci' }}</span>
                     @endif
@@ -171,7 +174,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="10" class="house-detail-log-empty text-center py-4 text-secondary">{{ $search !== '' ? 'Tidak ada catatan yang cocok dengan pencarian.' : ($activeTab === 'warranty-material' ? 'Belum ada material yang dialokasikan selama masa garansi.' : 'Belum ada data penggunaan material untuk rumah ini.') }}</td>
+                                <td colspan="10" class="house-detail-log-empty text-center py-4 text-secondary">{{ $search !== '' ? 'Tidak ada catatan yang cocok dengan pencarian.' : ($activeTab === 'warranty-material' ? 'Belum ada material yang dialokasikan selama masa garansi.' : "Belum ada data penggunaan material untuk {$unitLabelLower} ini.") }}</td>
                             </tr>
                             @endforelse
                         </tbody>
@@ -221,7 +224,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="6" class="house-detail-log-empty text-center py-4 text-secondary">{{ $search !== '' ? 'Tidak ada catatan yang cocok dengan pencarian.' : ($activeTab === 'warranty-tool' ? 'Belum ada alat yang dialokasikan selama masa garansi.' : 'Belum ada data peminjaman alat untuk rumah ini.') }}</td>
+                                <td colspan="6" class="house-detail-log-empty text-center py-4 text-secondary">{{ $search !== '' ? 'Tidak ada catatan yang cocok dengan pencarian.' : ($activeTab === 'warranty-tool' ? 'Belum ada alat yang dialokasikan selama masa garansi.' : "Belum ada data peminjaman alat untuk {$unitLabelLower} ini.") }}</td>
                             </tr>
                             @endforelse
                         </tbody>
@@ -234,7 +237,7 @@
             @if($activeTab === 'vendor-service')
             <div>
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-                    <h5 id="house-vendor-service-title" class="fw-bold mb-0 font-outfit">Jasa Vendor Rumah</h5>
+                    <h5 id="house-vendor-service-title" class="fw-bold mb-0 font-outfit">Jasa Vendor {{ $house->isPublicWork() ? 'Pekerjaan Umum' : 'Rumah' }}</h5>
                     <div class="flex-grow-1" style="max-width: 340px;">
                         <input type="search" wire:model.live.debounce.300ms="vendorServiceSearch" class="form-control" placeholder="Cari pekerjaan atau vendor..." aria-label="Cari pekerjaan atau vendor" autocomplete="off">
                     </div>
@@ -259,7 +262,7 @@
                                     <td data-label="Pencatat" class="text-secondary small">{{ $expense->createdBy?->name ?? '-' }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="text-center py-4 text-secondary">{{ $vendorServiceSearch !== '' ? 'Tidak ada jasa vendor yang cocok dengan pencarian.' : 'Belum ada jasa vendor yang dicatat untuk rumah ini.' }}</td></tr>
+                                <tr><td colspan="6" class="text-center py-4 text-secondary">{{ $vendorServiceSearch !== '' ? 'Tidak ada jasa vendor yang cocok dengan pencarian.' : "Belum ada jasa vendor yang dicatat untuk {$unitLabelLower} ini." }}</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -303,7 +306,7 @@
                                     <td data-label="Pencatat" class="small text-secondary">{{ $expense->createdBy?->name ?? '-' }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8" class="text-center py-4 text-secondary">{{ $vendorRentalSearch !== '' ? 'Tidak ada sewa alat yang cocok dengan pencarian.' : 'Belum ada sewa alat vendor yang dicatat untuk rumah ini.' }}</td></tr>
+                                <tr><td colspan="8" class="text-center py-4 text-secondary">{{ $vendorRentalSearch !== '' ? 'Tidak ada sewa alat yang cocok dengan pencarian.' : "Belum ada sewa alat vendor yang dicatat untuk {$unitLabelLower} ini." }}</td></tr>
                             @endforelse
                         </tbody>
                     </table>

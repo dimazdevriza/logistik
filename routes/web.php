@@ -74,6 +74,7 @@ Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan|pengawas'])
     Route::middleware('role:admin|logistik|pengawas')->group(function () {
         Route::get('transfers', InventoryTransfers::class)->name('logistik.transfers');
         Route::get('houses', Houses::class)->name('logistik.houses');
+        Route::get('pekerjaan-umum', Houses::class)->name('logistik.public-works');
         Route::get('houses/{house}', HouseDetail::class)->name('logistik.house-detail');
         Route::get('houses/{house}/finish', HouseFinish::class)->name('logistik.house-finish');
         Route::get('alokasi', TransaksiLogistik::class)->name('logistik.alokasi');

@@ -217,7 +217,7 @@ class HouseDetail extends Component
             'vendorServiceExpenses' => $vendorServiceExpenses,
             'vendorRentalCount' => $vendorRentalCount,
             'vendorRentalExpenses' => $vendorRentalExpenses,
-        ])->layout('layouts.app', ['title' => 'Detail Rumah: ' . $this->house->name]);
+        ])->layout('layouts.app', ['title' => ($this->house->isPublicWork() ? 'Detail Pekerjaan Umum: ' : 'Detail Rumah: ') . $this->house->name]);
     }
 
     public function exportExcel()

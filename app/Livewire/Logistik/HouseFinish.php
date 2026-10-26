@@ -114,12 +114,14 @@ class HouseFinish extends Component
 
     public function mount(House $house)
     {
-        abort_unless($house->isAccessibleBy(auth()->user()), 403);
+        $user = auth()->user();
+        abort_unless($user && ($user->role === 'logistik' || $house->isAccessibleBy($user)), 403);
         $this->house = $house;
 
         // Redirect if already selesai
         if ($house->status === 'selesai') {
-            session()->flash('error', 'Rumah ini sudah ditandai selesai.');
+            $unitLabel = $house->isPublicWork() ? 'Pekerjaan umum' : 'Rumah';
+            session()->flash('error', "{$unitLabel} ini sudah ditandai selesai.");
             $this->redirect(route('logistik.house-detail', $house));
 
             return;
@@ -146,9 +148,15 @@ class HouseFinish extends Component
     {
         try {
             DB::transaction(function () {
-                $house = House::forUser(auth()->user())->lockForUpdate()->findOrFail($this->house->id);
+                $user = auth()->user();
+                $house = House::query()
+                    ->when($user->role !== 'logistik', fn ($q) => $q->forUser($user))
+                    ->lockForUpdate()
+                    ->findOrFail($this->house->id);
+                $unitLabel = $house->isPublicWork() ? 'Pekerjaan umum' : 'Rumah';
+                $unitLabelLower = strtolower($unitLabel);
                 if ($house->status === 'selesai') {
-                    throw new \Exception('Rumah ini sudah ditandai selesai.');
+                    throw new \Exception("{$unitLabel} ini sudah ditandai selesai.");
                 }
 
                 $openRequests = MaterialToolRequest::where('house_id', $house->id)
@@ -157,7 +165,7 @@ class HouseFinish extends Component
                     ->get()
                     ->filter(fn (MaterialToolRequest $request) => $request->blocksHouseCompletion());
                 if ($openRequests->isNotEmpty()) {
-                    throw new \Exception('Selesaikan atau batalkan permintaan material/alat yang masih terbuka sebelum rumah ditandai selesai.');
+                    throw new \Exception("Selesaikan atau batalkan permintaan material/alat yang masih terbuka sebelum {$unitLabelLower} ditandai selesai.");
                 }
 
                 // Pre-flight check: ensure all active usages are included in selections
@@ -249,7 +257,10 @@ class HouseFinish extends Component
 
     public function render()
     {
-        $this->house = House::forUser(auth()->user())->findOrFail($this->house->id);
+        $user = auth()->user();
+        $this->house = House::query()
+            ->when($user->role !== 'logistik', fn ($q) => $q->forUser($user))
+            ->findOrFail($this->house->id);
         $materialUsages = MaterialUsage::with('material')
             ->where('house_id', $this->house->id)
             ->tap(fn ($query) => $this->applyTableSort($query))

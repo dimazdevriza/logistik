@@ -5,19 +5,25 @@
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
-                        Daftar Unit <span class="text-success">Rumah Proyek</span>
+                        @if ($isPublicWork)
+                            Daftar <span class="text-success">Pekerjaan Umum</span>
+                        @else
+                            Daftar Unit <span class="text-success">Rumah Proyek</span>
+                        @endif
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
-                        Pantau pembangunan unit rumah dan rincian alokasi material per unit.
+                        {{ $isPublicWork ? 'Pantau pembangunan fasilitas umum seperti jalan, drainase, dan rincian alokasi material per pekerjaan.' : 'Pantau pembangunan unit rumah dan rincian alokasi material per unit.' }}
                     </p>
                 </div>
                 <div class="d-flex flex-column gap-2" style="min-width: 260px;">
                     @if(in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas']))
                         <div class="d-flex gap-2">
-                            <button type="button" wire:click="openImportModal" class="btn btn-hero-action flex-fill">
-                                <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
-                                <span>Import</span>
-                            </button>
+                            @unless ($isPublicWork)
+                                <button type="button" wire:click="openImportModal" class="btn btn-hero-action flex-fill">
+                                    <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
+                                    <span>Import</span>
+                                </button>
+                            @endunless
                             <button type="button" wire:click="exportExcel" class="btn btn-hero-action flex-fill">
                                 <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
                                 <span>Export</span>
@@ -26,14 +32,14 @@
                     @endif
                     <button type="button" wire:click="create" class="btn btn-hero-primary w-100">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/></svg>
-                        <span>Tambah Rumah</span>
+                        <span>{{ $isPublicWork ? 'Tambah Pekerjaan Baru' : 'Tambah Rumah' }}</span>
                     </button>
                 </div>
             </div>
         </div>
 
         @if ($clusterAssignmentMissing)
-            <div class="alert alert-warning rounded-3" role="alert">Akun belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum mengelola rumah.</div>
+            <div class="alert alert-warning rounded-3" role="alert">Akun belum memiliki cluster tugas. Minta Admin menetapkan cluster sebelum mengelola {{ $isPublicWork ? 'pekerjaan umum' : 'rumah' }}.</div>
         @endif
 
         @if (session('success'))
@@ -48,12 +54,12 @@
 
         <div class="card border shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary standard-table-panel">
             <div class="standard-table-toolbar">
-                <h2 class="h5 fw-bold mb-0 font-outfit">Daftar rumah</h2>
+                <h2 class="h5 fw-bold mb-0 font-outfit">{{ $isPublicWork ? 'Daftar pekerjaan umum' : 'Daftar rumah' }}</h2>
                 <div class="standard-table-toolbar-controls">
-                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Cari rumah, kode, atau tipe..." aria-label="Cari rumah, kode, atau tipe" class="form-control standard-table-toolbar-search" />
+                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="{{ $isPublicWork ? 'Cari pekerjaan umum, kode, atau cluster...' : 'Cari rumah, kode, atau tipe...' }}" aria-label="{{ $isPublicWork ? 'Cari pekerjaan umum, kode, atau cluster' : 'Cari rumah, kode, atau tipe' }}" class="form-control standard-table-toolbar-search" />
                 <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-uppercase text-secondary">Status Rumah</label>
+                        <label class="form-label small fw-bold text-uppercase text-secondary">{{ $isPublicWork ? 'Status Pekerjaan' : 'Status Rumah' }}</label>
                         <select wire:model.live="filterStatus" class="form-select">
                             <option value="">Semua Status</option>
                             <option value="perencanaan">Perencanaan</option>
@@ -74,19 +80,23 @@
                 </div>
             </div>
 
-            <div class="table-responsive data-table-scroll house-table-scroll standard-table-frame" role="region" aria-label="Daftar unit rumah" tabindex="0">
+            <div class="table-responsive data-table-scroll house-table-scroll standard-table-frame" role="region" aria-label="{{ $isPublicWork ? 'Daftar pekerjaan umum' : 'Daftar unit rumah' }}" tabindex="0">
                 <table class="table table-hover align-middle mb-0 data-table standard-data-table">
                     <thead class="table-light text-uppercase small font-geist">
                         <tr>
                             <th class="text-center" style="width: 50px;">No.</th>
                             <x-sortable-th field="code" :sort="$sort">Kode</x-sortable-th>
-                            <x-sortable-th field="name" :sort="$sort">Nama / Blok</x-sortable-th>
+                            <x-sortable-th field="name" :sort="$sort">{{ $isPublicWork ? 'Nama Pekerjaan' : 'Nama / Blok' }}</x-sortable-th>
                             <x-sortable-th field="cluster" :sort="$sort">Cluster</x-sortable-th>
-                            <x-sortable-th field="type" :sort="$sort">Tipe</x-sortable-th>
+                            @unless ($isPublicWork)
+                                <x-sortable-th field="type" :sort="$sort">Tipe</x-sortable-th>
+                            @endunless
                             <x-sortable-th field="status" :sort="$sort">Status</x-sortable-th>
                             <x-sortable-th field="cost" :sort="$sort" class="text-end">Total Biaya</x-sortable-th>
                             <x-sortable-th field="start_date" :sort="$sort">Mulai</x-sortable-th>
-                            <x-sortable-th field="target_end_date" :sort="$sort">Target Selesai</x-sortable-th>
+                            @unless ($isPublicWork)
+                                <x-sortable-th field="target_end_date" :sort="$sort">Target Selesai</x-sortable-th>
+                            @endunless
                             <th class="text-end" style="width: 120px;">Aksi</th>
                         </tr>
                     </thead>
@@ -97,7 +107,9 @@
                             <td class="font-mono text-secondary small data-key-code" title="{{ $house->house_code ?? '-' }}">{{ $house->house_code ?? '-' }}</td>
                             <td class="fw-bold text-body data-key-name" title="{{ $house->name }}">{{ $house->name }}</td>
                             <td class="text-secondary small data-cell-truncate" title="{{ $house->cluster?->name ?? 'Belum dikelompokkan' }}">{{ $house->cluster?->name ?? '-' }}</td>
-                            <td class="text-secondary small data-cell-truncate" title="{{ $house->type ?? '-' }}">{{ $house->type ?: '-' }}</td>
+                            @unless ($isPublicWork)
+                                <td class="text-secondary small data-cell-truncate" title="{{ $house->type ?? '-' }}">{{ $house->type ?: '-' }}</td>
+                            @endunless
                             <td>
                                 @php
                                     $statusClasses = ['perencanaan' => 'bg-warning-subtle text-warning', 'pembangunan' => 'bg-primary-subtle text-primary', 'selesai' => 'bg-success-subtle text-success'];
@@ -106,7 +118,9 @@
                             </td>
                             <td class="text-end font-mono fw-bold text-body data-number">Rp {{ number_format($house->total_material_cost, 0, ',', '.') }}</td>
                             <td class="text-secondary small data-date">{{ $house->start_date?->format('d/m/Y') ?? '-' }}</td>
-                            <td class="text-secondary small data-date">{{ $house->target_end_date?->format('d/m/Y') ?? '-' }}</td>
+                            @unless ($isPublicWork)
+                                <td class="text-secondary small data-date">{{ $house->target_end_date?->format('d/m/Y') ?? '-' }}</td>
+                            @endunless
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm data-row-actions">
                                     <a href="{{ route('logistik.house-detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit d-inline-flex align-items-center justify-content-center" title="Lihat Detail" aria-label="Lihat detail {{ $house->name }}">
@@ -115,7 +129,7 @@
                                     <button type="button" wire:click="edit({{ $house->id }})" class="btn log-row-action log-row-action--quiet d-inline-flex align-items-center justify-content-center" title="Edit" aria-label="Edit {{ $house->name }}">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>
                                     </button>
-                                    <button type="button" wire:click="confirm('delete', {{ $house->id }}, 'Hapus Rumah?', 'Yakin ingin menghapus data rumah ini? Semua data penggunaan material dan peminjaman alat terkait akan ikut dihapus secara permanen.')" class="btn log-row-action log-row-action--danger d-inline-flex align-items-center justify-content-center" title="Hapus" aria-label="Hapus {{ $house->name }}">
+                                    <button type="button" wire:click="confirm('delete', {{ $house->id }}, '{{ $isPublicWork ? 'Hapus Pekerjaan Umum?' : 'Hapus Rumah?' }}', '{{ $isPublicWork ? 'Yakin ingin menghapus data pekerjaan umum ini? Semua data penggunaan material dan peminjaman alat terkait akan ikut dihapus secara permanen.' : 'Yakin ingin menghapus data rumah ini? Semua data penggunaan material dan peminjaman alat terkait akan ikut dihapus secara permanen.' }}')" class="btn log-row-action log-row-action--danger d-inline-flex align-items-center justify-content-center" title="Hapus" aria-label="Hapus {{ $house->name }}">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
                                     </button>
                                 </div>
@@ -123,7 +137,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="10" class="text-center py-4 text-secondary">Belum ada data rumah.</td>
+                            <td colspan="{{ $isPublicWork ? 8 : 10 }}" class="text-center py-4 text-secondary">{{ $isPublicWork ? 'Belum ada data pekerjaan umum.' : 'Belum ada data rumah.' }}</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -134,17 +148,100 @@
         <div class="d-flex justify-content-end">{{ $houses->links() }}</div>
     </div>
 
-    <!-- Modal: Create / Edit House -->
+    <!-- Modal: Create / Edit House or Public Work -->
     @if($showModal)
     @teleport('body')
         <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" aria-labelledby="house-form-title" role="dialog" x-on:keydown.escape.window="$wire.set('showModal', false)">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable {{ !$editMode && (int) $houseCount > 1 ? 'modal-lg' : 'modal-md' }}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable {{ !$isPublicWork && !$editMode && (int) $houseCount > 1 ? 'modal-lg' : 'modal-md' }}">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header border-bottom">
-                    <h5 id="house-form-title" class="modal-title font-outfit fw-bold">{{ $editMode ? 'Edit Rumah' : 'Tambah Rumah' }}</h5>
-                    <button type="button" class="btn-close" wire:click="$set('showModal', false)" aria-label="Tutup form rumah"></button>
+                    <h5 id="house-form-title" class="modal-title font-outfit fw-bold">{{ $isPublicWork ? ($editMode ? 'Edit Pekerjaan Umum' : 'Tambah Pekerjaan Baru') : ($editMode ? 'Edit Rumah' : 'Tambah Rumah') }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showModal', false)" aria-label="Tutup form"></button>
                 </div>
                 <div class="modal-body py-4">
+                    @if ($isPublicWork)
+                        <div class="mb-3">
+                            <label for="house-name" class="form-label font-semibold">Nama Pekerjaan</label>
+                            <input id="house-name" type="text" wire:model="name" class="form-control" placeholder="Contoh: Pembangunan Jalan Utama, Saluran Drainase..." />
+                            @error('name') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="mb-3" x-data="{ clusterPickerOpen: false, clusterSearch: '' }">
+                            <label for="house-cluster" class="form-label font-semibold">Pilih Cluster</label>
+                            <div class="position-relative" @click.outside="clusterPickerOpen = false">
+                                <div class="position-relative d-flex align-items-center">
+                                    <input
+                                        id="house-cluster"
+                                        type="text"
+                                        wire:model="cluster_name"
+                                        class="form-control pe-5"
+                                        placeholder="Pilih atau ketik cluster (mis. Cluster A, Cluster B)..."
+                                        autocomplete="off"
+                                        role="combobox"
+                                        aria-autocomplete="list"
+                                        aria-controls="house-cluster-options"
+                                        :aria-expanded="clusterPickerOpen.toString()"
+                                        @disabled(! $this->canManageClusters())
+                                        @focus="clusterPickerOpen = true; clusterSearch = $el.value"
+                                        @input="clusterPickerOpen = true; clusterSearch = $el.value; $wire.cluster_id = ''"
+                                        @keydown.escape="clusterPickerOpen = false"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="btn btn-link text-secondary text-decoration-none position-absolute end-0 me-2 p-1 d-flex align-items-center"
+                                        @disabled(! $this->canManageClusters())
+                                        @click="clusterPickerOpen = !clusterPickerOpen; clusterSearch = ''"
+                                        aria-label="Tampilkan pilihan cluster"
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" class="transition-transform" :class="clusterPickerOpen ? 'rotate-180' : ''" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div x-show="clusterPickerOpen" x-cloak class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden" style="max-height: 220px; z-index: 1050;">
+                                    <div id="house-cluster-options" role="listbox" class="p-1.5" style="max-height: 210px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                        @foreach ($clusters as $cluster)
+                                            <button
+                                                type="button"
+                                                role="option"
+                                                aria-selected="{{ (string) $cluster_id === (string) $cluster->id ? 'true' : 'false' }}"
+                                                class="dropdown-item rounded-2 py-2 px-3 text-start w-100"
+                                                :class="$wire.cluster_name === @js($cluster->name) ? 'active bg-success text-white' : ''"
+                                                x-show="clusterSearch === '' || @js(strtolower($cluster->name)).includes(clusterSearch.toLowerCase())"
+                                                @click="$wire.cluster_id = @js($cluster->id); $wire.cluster_name = @js($cluster->name); clusterPickerOpen = false; clusterSearch = @js($cluster->name)"
+                                            >
+                                                <span class="fw-medium text-truncate d-block">{{ $cluster->name }}</span>
+                                            </button>
+                                        @endforeach
+                                        <div
+                                            x-show="clusterSearch.trim() !== '' && clusterSearch.trim().toLowerCase() !== 'tanpa cluster' && !@js($clusters->pluck('name')->map(fn ($name) => strtolower($name))->values()->all()).includes(clusterSearch.trim().toLowerCase())"
+                                            class="px-3 py-2 extra-small text-secondary fst-italic border-top"
+                                        >
+                                            Gunakan "<span class="fw-bold text-body" x-text="clusterSearch.trim()"></span>" sebagai cluster baru
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @error('cluster_id') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                            @error('cluster_name') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="house-status" class="form-label font-semibold">Status</label>
+                                <select id="house-status" wire:model="status" class="form-select">
+                                    <option value="perencanaan">Perencanaan</option>
+                                    <option value="pembangunan">Pembangunan</option>
+                                    <option value="selesai">Selesai</option>
+                                </select>
+                                @error('status') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label for="house-start-date" class="form-label font-semibold">Mulai</label>
+                                <input id="house-start-date" type="date" wire:model="start_date" class="form-control" />
+                                @error('start_date') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    @else
                     @if (!$editMode)
                         <div class="mb-3">
                             <label for="house-count" class="form-label font-semibold">Jumlah rumah</label>
@@ -174,6 +271,12 @@
                             </div>
                             <p class="form-text mt-n2 mb-3">Nama dibuat berurutan, misalnya Blok A-01 sampai Blok A-10.</p>
                         @endif
+                    @else
+                        <div class="mb-3">
+                            <label for="house-name" class="form-label font-semibold">Nama / Blok</label>
+                            <input id="house-name" type="text" wire:model="name" class="form-control" placeholder="Blok A-01" />
+                            @error('name') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
                     @endif
 
                     <div class="row g-3 mb-3">
@@ -344,12 +447,13 @@
                             @endif
                         </section>
                     @endif
+                    @endif
                 </div>
                 <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
                     <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showModal', false)">Batal</button>
-                    <button type="button" class="btn btn-success fw-semibold" wire:click="save" wire:loading.attr="disabled" wire:target="save" @disabled(!$editMode && (int) $houseCount > 1 && $bulkPreviewReady && count($bulkRows) === 0)>
-                        <span wire:loading.remove wire:target="save">{{ $editMode ? 'Perbarui' : (!$editMode && (int) $houseCount > 1 ? 'Simpan ' . ($bulkPreviewReady ? count($bulkRows) : (int) $houseCount) . ' rumah' : 'Simpan') }}</span>
-                        <span wire:loading wire:target="save">Menyimpan rumah…</span>
+                    <button type="button" class="btn btn-success fw-semibold" wire:click="save" wire:loading.attr="disabled" wire:target="save" @disabled(!$isPublicWork && !$editMode && (int) $houseCount > 1 && $bulkPreviewReady && count($bulkRows) === 0)>
+                        <span wire:loading.remove wire:target="save">{{ $editMode ? 'Perbarui' : (!$isPublicWork && !$editMode && (int) $houseCount > 1 ? 'Simpan ' . ($bulkPreviewReady ? count($bulkRows) : (int) $houseCount) . ' rumah' : 'Simpan') }}</span>
+                        <span wire:loading wire:target="save">{{ $isPublicWork ? 'Menyimpan pekerjaan…' : 'Menyimpan rumah…' }}</span>
                     </button>
                 </div>
             </div>

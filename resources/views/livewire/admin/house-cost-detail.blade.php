@@ -5,12 +5,12 @@
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
                     <div class="mb-2">
-                        <a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs' : 'logistik.house-costs') }}" wire:navigate class="back-link">
+                        <a href="{{ $house->isPublicWork() && $house->cluster_id ? route('clusters.expenses', $house->cluster_id) : route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs' : 'logistik.house-costs') }}" wire:navigate class="back-link">
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
                             Kembali
                         </a>
                     </div>
-                    <h1 class="display-5 fw-black text-body mb-1 font-outfit">{{ $house->name }} - {{ $house->type }}</h1>
+                    <h1 class="display-5 fw-black text-body mb-1 font-outfit">{{ $house->name }}{{ $house->type ? ' - ' . $house->type : '' }}</h1>
                     <p class="text-secondary mb-0">Detail pengeluaran dan rincian alokasi material pembangunan.</p>
                 </div>
 
@@ -86,7 +86,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="house-cost-detail-empty text-center py-4 text-secondary">Belum ada penggunaan material untuk rumah ini.</td>
+                            <td colspan="7" class="house-cost-detail-empty text-center py-4 text-secondary">Belum ada penggunaan material untuk {{ $house->isPublicWork() ? 'pekerjaan umum' : 'rumah' }} ini.</td>
                         </tr>
                         @endforelse
                     </tbody>

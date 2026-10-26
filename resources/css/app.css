@@ -1787,6 +1787,7 @@ html.is-rail-initial .user-profile-card > div,
 }
 
 #cluster-expense-show-houses:checked + label,
+#cluster-expense-show-public-works:checked + label,
 #cluster-expense-show-rentals:checked + label,
 #cluster-expense-show-vendor-services:checked + label {
     border-color: var(--bs-success-border-subtle);
@@ -1795,19 +1796,22 @@ html.is-rail-initial .user-profile-card > div,
 }
 
 #cluster-expense-show-houses:checked + label .house-log-filter-count,
+#cluster-expense-show-public-works:checked + label .house-log-filter-count,
 #cluster-expense-show-rentals:checked + label .house-log-filter-count,
 #cluster-expense-show-vendor-services:checked + label .house-log-filter-count {
     color: var(--bs-success-text-emphasis);
     background: rgba(var(--bs-success-rgb), 0.12);
 }
 
-#cluster-expense-show-houses:checked ~ .cluster-expense-table-panels .cluster-rental-table-panel,
-#cluster-expense-show-houses:checked ~ .cluster-expense-table-panels .cluster-vendor-service-table-panel,
-#cluster-expense-show-rentals:checked ~ .cluster-expense-table-panels .cluster-house-table-panel,
-#cluster-expense-show-rentals:checked ~ .cluster-expense-table-panels .cluster-vendor-service-table-panel,
-#cluster-expense-show-vendor-services:checked ~ .cluster-expense-table-panels .cluster-house-table-panel,
-#cluster-expense-show-vendor-services:checked ~ .cluster-expense-table-panels .cluster-rental-table-panel {
+.cluster-expense-table-panels > div {
     display: none;
+}
+
+#cluster-expense-show-houses:checked ~ .cluster-expense-table-panels .cluster-house-table-panel,
+#cluster-expense-show-public-works:checked ~ .cluster-expense-table-panels .cluster-public-work-table-panel,
+#cluster-expense-show-rentals:checked ~ .cluster-expense-table-panels .cluster-rental-table-panel,
+#cluster-expense-show-vendor-services:checked ~ .cluster-expense-table-panels .cluster-vendor-service-table-panel {
+    display: block;
 }
 
 .cluster-expense-table-switch .small {
@@ -5659,7 +5663,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .spreadsheet-table-scroll > .data-table th,
 .spreadsheet-table-scroll > .data-table td {
-    width: 25%;
+    width: 24%;
+}
+
+.spreadsheet-table-scroll > .data-table th:first-child,
+.spreadsheet-table-scroll > .data-table td:first-child {
+    width: 28%;
 }
 
 .spreadsheet-table-scroll > .data-table thead th {
@@ -5694,6 +5703,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .spreadsheet-house-picker-control .form-control {
     min-height: 3.25rem;
+    padding-right: 2.75rem;
+}
+
+.spreadsheet-house-picker-control.has-selection .form-control {
     padding-right: 5rem;
 }
 

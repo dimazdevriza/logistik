@@ -88,6 +88,7 @@ class HouseCosts extends Component
 
         return MaterialUsage::query()
             ->whereNull('voided_at')
+            ->whereHas('house', fn ($houses) => $houses->housesOnly())
             ->when(in_array($user->role, ['logistik', 'pengawas'], true), fn ($query) => $query->whereHas(
                 'house', fn ($houses) => $houses->forUser($user)
             ))
@@ -105,6 +106,7 @@ class HouseCosts extends Component
             : ($user->cluster?->name ?? 'Cluster belum ditetapkan');
 
         $query = House::query()
+            ->housesOnly()
             ->when(in_array($user->role, ['logistik', 'pengawas'], true), fn ($q) => $q->forUser($user))
             ->with('cluster')
             ->withSum(['materialUsages' => fn ($q) => $q->whereNull('voided_at')], 'total_cost')

@@ -228,7 +228,12 @@ class ClusterExpenses extends Component
             ->whereNull('voided_at')
             ->whereHas('house', fn ($houses) => $houses->where('cluster_id', $this->cluster->id));
 
+        $houseUsages = MaterialUsage::query()
+            ->whereNull('voided_at')
+            ->whereHas('house', fn ($houses) => $houses->housesOnly()->where('cluster_id', $this->cluster->id));
+
         $houseQuery = House::query()
+            ->housesOnly()
             ->where('cluster_id', $this->cluster->id)
             ->with('cluster')
             ->withSum(['materialUsages' => fn ($query) => $query->whereNull('voided_at')], 'total_cost');
@@ -267,11 +272,20 @@ class ClusterExpenses extends Component
 
         $monthlyTotals = [];
         for ($month = 1; $month <= 12; $month++) {
-            $monthlyTotals[$month] = (clone $clusterUsages)
+            $monthlyTotals[$month] = (clone $houseUsages)
                 ->whereYear('usage_date', $selectedYear)
                 ->whereMonth('usage_date', $month)
                 ->sum('total_cost');
         }
+
+        $publicWorks = House::query()
+            ->publicWorksOnly()
+            ->where('cluster_id', $this->cluster->id)
+            ->with('cluster')
+            ->withSum(['materialUsages' => fn ($query) => $query->whereNull('voided_at')], 'total_cost')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get();
 
         $rentalExpenses = $this->cluster->expenses()
             ->whereIn('type', ['rental', 'rental_extension'])
@@ -299,22 +313,29 @@ class ClusterExpenses extends Component
         $vendorServiceRows = $vendorServiceExpenses->flatMap(fn ($expense) => $expense->houses->isNotEmpty()
             ? $expense->houses->map(fn ($house) => [
                 'key' => 'vendor-service-'.$expense->id.'-house-'.$house->id,
-                'target' => 'Rumah · '.$house->name,
+                'target' => ($house->isPublicWork() ? 'Pekerjaan umum · ' : 'Rumah · ').$house->name,
                 'expense' => $expense,
             ])
             : [[
                 'key' => 'vendor-service-'.$expense->id.'-cluster',
-                'target' => $expense->house ? 'Rumah · '.$expense->house->name : 'Area bersama · '.$this->cluster->name,
+                'target' => $expense->house ? ($expense->house->isPublicWork() ? 'Pekerjaan umum · ' : 'Rumah · ').$expense->house->name : 'Area bersama · '.$this->cluster->name,
                 'expense' => $expense,
             ]]);
         $houseSubtotal = MaterialUsage::query()
             ->join('houses', 'houses.id', '=', 'material_usages.house_id')
             ->where('houses.cluster_id', $this->cluster->id)
+            ->where('houses.category', House::CATEGORY_HOUSE)
             ->whereNull('material_usages.voided_at')
             ->sum('material_usages.total_cost');
-        $clusterTotal = $houseSubtotal + $vendorRentalSubtotal + $vendorServiceSubtotal;
+        $publicWorkSubtotal = MaterialUsage::query()
+            ->join('houses', 'houses.id', '=', 'material_usages.house_id')
+            ->where('houses.cluster_id', $this->cluster->id)
+            ->where('houses.category', House::CATEGORY_PUBLIC_WORK)
+            ->whereNull('material_usages.voided_at')
+            ->sum('material_usages.total_cost');
+        $clusterTotal = $houseSubtotal + $publicWorkSubtotal + $vendorRentalSubtotal + $vendorServiceSubtotal;
 
-        return view('livewire.logistik.cluster-expenses', compact('rentalRows', 'houseSubtotal', 'vendorRentalSubtotal', 'vendorServiceRows', 'vendorServiceSubtotal', 'clusterTotal', 'houses', 'years', 'selectedYear', 'monthlyTotals'))
+        return view('livewire.logistik.cluster-expenses', compact('rentalRows', 'houseSubtotal', 'publicWorkSubtotal', 'publicWorks', 'vendorRentalSubtotal', 'vendorServiceRows', 'vendorServiceSubtotal', 'clusterTotal', 'houses', 'years', 'selectedYear', 'monthlyTotals'))
             ->layout('layouts.app', ['title' => 'Biaya Cluster: '.$this->cluster->name]);
     }
 

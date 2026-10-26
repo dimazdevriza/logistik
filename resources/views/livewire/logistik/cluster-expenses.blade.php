@@ -22,21 +22,28 @@
         @error('parent_expense_id') <div class="alert alert-warning" role="alert">{{ $message }}</div> @enderror
 
         <div class="row g-3 mb-3">
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
                     <div class="small text-secondary text-uppercase fw-bold mb-2">Total Biaya Rumah</div>
                     <div class="fs-4 fw-black font-mono text-success">Rp {{ number_format($houseSubtotal, 0, ',', '.') }}</div>
                     <div class="small text-secondary mt-2">Material yang sudah dipakai unit</div>
                 </div>
             </div>
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
+                    <div class="small text-secondary text-uppercase fw-bold mb-2">Total Biaya Pekerjaan Umum</div>
+                    <div class="fs-4 fw-black font-mono text-success">Rp {{ number_format($publicWorkSubtotal, 0, ',', '.') }}</div>
+                    <div class="small text-secondary mt-2">Material jalan, drainase, &amp; fasilitas</div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
                     <div class="small text-secondary text-uppercase fw-bold mb-2">Total Sewa Jasa Vendor</div>
                     <div class="fs-4 fw-black font-mono text-success">Rp {{ number_format($vendorServiceSubtotal, 0, ',', '.') }}</div>
                     <div class="small text-secondary mt-2">Pekerjaan jasa vendor di cluster</div>
                 </div>
             </div>
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary h-100">
                     <div class="small text-secondary text-uppercase fw-bold mb-2">Total Sewa Alat Vendor</div>
                     <div class="fs-4 fw-black font-mono text-success">Rp {{ number_format($vendorRentalSubtotal, 0, ',', '.') }}</div>
@@ -48,7 +55,7 @@
             <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
                 <div>
                     <div class="small text-secondary text-uppercase fw-bold">Total Keseluruhan</div>
-                    <div class="small text-secondary mt-1">Biaya rumah + jasa vendor + sewa alat vendor</div>
+                    <div class="small text-secondary mt-1">Biaya rumah + pekerjaan umum + jasa vendor + sewa alat vendor</div>
                 </div>
                 <div class="fs-3 fw-black font-mono text-success">Rp {{ number_format($clusterTotal, 0, ',', '.') }}</div>
             </div>
@@ -62,6 +69,12 @@
                 <svg width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-houses"/></svg>
                 <span>Rumah dalam cluster</span>
                 <span class="house-log-filter-count">{{ $houses->total() }}</span>
+            </label>
+            <input type="radio" class="btn-check" name="cluster-expense-table" id="cluster-expense-show-public-works" autocomplete="off">
+            <label class="house-log-filter-button" for="cluster-expense-show-public-works">
+                <svg width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-wrench"/></svg>
+                <span>Pekerjaan umum</span>
+                <span class="house-log-filter-count">{{ $publicWorks->count() }}</span>
             </label>
             <input type="radio" class="btn-check" name="cluster-expense-table" id="cluster-expense-show-rentals" autocomplete="off">
             <label class="house-log-filter-button" for="cluster-expense-show-rentals">
@@ -198,6 +211,44 @@
                         </div>
                     </div>
                     <div class="d-flex justify-content-end">{{ $houses->links() }}</div>
+                </div>
+
+                <div class="cluster-public-work-table-panel">
+                    <div class="cluster-expense-panel-heading mb-3">
+                        <h2 class="h4 fw-bold mb-2 font-outfit">Pekerjaan umum dalam cluster</h2>
+                        <p class="small text-secondary mb-0">Rincian biaya pemakaian material untuk fasilitas umum (jalan, drainase, gerbang, dan lainnya) yang dibebankan ke cluster ini.</p>
+                    </div>
+                    <div class="table-responsive cluster-expense-table-scroll" tabindex="0" role="region" aria-label="Daftar pekerjaan umum dalam cluster">
+                        <table class="table table-hover align-middle mb-0 cluster-expense-table">
+                            <thead class="table-light text-uppercase small font-geist">
+                                <tr>
+                                    <th>Kode</th>
+                                    <th>Nama pekerjaan</th>
+                                    <th>Status</th>
+                                    <th>Mulai</th>
+                                    <th class="text-end">Total biaya material</th>
+                                    <th class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($publicWorks as $pw)
+                                    @php
+                                        $pwStatusClasses = ['perencanaan' => 'bg-warning-subtle text-warning', 'pembangunan' => 'bg-primary-subtle text-primary', 'selesai' => 'bg-success-subtle text-success'];
+                                    @endphp
+                                    <tr wire:key="cluster-public-work-{{ $pw->id }}">
+                                        <td data-label="Kode"><span class="cluster-expense-cell-value font-mono small text-secondary">{{ $pw->house_code ?? '-' }}</span></td>
+                                        <td data-label="Nama pekerjaan"><span class="cluster-expense-cell-value fw-semibold">{{ $pw->name }}</span></td>
+                                        <td data-label="Status"><span class="cluster-expense-cell-value"><span class="badge {{ $pwStatusClasses[$pw->status] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($pw->status) }}</span></span></td>
+                                        <td data-label="Mulai"><span class="cluster-expense-cell-value small text-secondary">{{ $pw->start_date?->format('d/m/Y') ?? '-' }}</span></td>
+                                        <td data-label="Total biaya material" class="text-end"><span class="cluster-expense-cell-value font-mono fw-bold text-success">Rp {{ number_format((float) ($pw->material_usages_sum_total_cost ?? 0), 0, ',', '.') }}</span></td>
+                                        <td data-label="Aksi" class="text-end"><a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $pw) }}" wire:navigate class="btn log-row-action log-row-action--edit">Lihat</a></td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="6" class="cluster-expense-empty text-center py-5 text-secondary">Belum ada pekerjaan umum untuk cluster ini.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div class="cluster-rental-table-panel">

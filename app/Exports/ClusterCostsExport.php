@@ -20,9 +20,10 @@ class ClusterCostsExport implements WithMultipleSheets
             clusterScope: (int) $this->cluster->id,
             sheetTitle: $this->sheetTitle($this->cluster->name, $usedTitles),
             reportTitle: 'Laporan Biaya Cluster: '.$this->cluster->name,
+            category: null,
         )];
 
-        foreach ($this->cluster->houses()->orderBy('name')->orderBy('id')->get() as $house) {
+        foreach ($this->cluster->allUnits()->orderBy('name')->orderBy('id')->get() as $house) {
             $sheets[] = new ClusterCostsSheet($this->cluster, $house, $this->sheetTitle($house->name, $usedTitles));
         }
 
