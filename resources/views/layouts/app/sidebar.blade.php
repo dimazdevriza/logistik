@@ -128,25 +128,24 @@
 
         <aside class="sidebar" aria-label="Navigasi utama">
             <!-- Brand -->
-            <div class="app-header d-flex align-items-center justify-content-between px-3 border-bottom overflow-hidden" @click="if (rail) rail = false">
-                <a href="{{ route('dashboard') }}" class="d-flex align-items-center text-decoration-none overflow-hidden my-auto" @click="if (rail) { $event.preventDefault(); }">
+            <div class="app-header d-flex align-items-center justify-content-between px-3 border-bottom overflow-hidden">
+                <a href="{{ route('dashboard') }}" class="rail-hide d-flex align-items-center text-decoration-none overflow-hidden my-auto">
                     <img src="{{ asset('images/logo-light.png') }}" alt="D'Royal Village" class="sidebar-label img-fluid d-dark-none" style="height: 32px; object-fit: contain;" />
                     <img src="{{ asset('images/logo-dark.png') }}" alt="D'Royal Village" class="sidebar-label img-fluid d-light-none" style="height: 32px; object-fit: contain;" />
-                    <span class="d-none rail-show align-items-center justify-content-center fw-bold text-success font-outfit fs-5 lh-1">
-                        D'R
-                    </span>
                 </a>
 
                 <!-- Desktop rail toggle button -->
                 <button
                     type="button"
-                    class="btn btn-sm btn-icon text-secondary p-1.5 d-none d-lg-inline-flex align-items-center justify-content-center rounded-2 hover-bg flex-shrink-0 ms-1"
+                    class="btn btn-sm btn-icon text-secondary p-1.5 d-none d-lg-inline-flex align-items-center justify-content-center rounded-2 hover-bg flex-shrink-0"
+                    :class="{ 'ms-1': !rail, 'mx-auto': rail }"
                     @click.stop="rail = !rail"
                     :aria-label="rail ? 'Lebarkan menu' : 'Ciutkan menu'"
                     :title="rail ? 'Lebarkan menu' : 'Ciutkan menu'"
                 >
-                    <svg width="14" height="14" fill="currentColor" :style="rail ? 'transform: rotate(180deg);' : ''" aria-hidden="true">
-                        <use href="#i-chevron-left"/>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect width="18" height="18" x="3" y="3" rx="2"/>
+                        <path d="M9 3v18"/>
                     </svg>
                 </button>
             </div>

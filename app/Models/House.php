@@ -19,6 +19,9 @@ class House extends Model
         'name',
         'type',
         'status',
+        'material_budget',
+        'physical_progress',
+        'progress_stages',
         'start_date',
         'target_end_date',
         'completed_at',
@@ -96,11 +99,83 @@ class House extends Model
     protected function casts(): array
     {
         return [
+            'material_budget' => 'float',
+            'physical_progress' => 'float',
+            'progress_stages' => 'array',
             'start_date' => 'date',
             'target_end_date' => 'date',
             'completed_at' => 'datetime',
             'warranty_expires_at' => 'datetime',
         ];
+    }
+
+    public static function defaultProgressStages(?string $category = self::CATEGORY_HOUSE): array
+    {
+        if ($category === self::CATEGORY_PUBLIC_WORK) {
+            return [];
+        }
+
+        return [
+            ['name' => 'Persiapan', 'weight' => 5, 'completed' => false],
+            ['name' => 'Pondasi', 'weight' => 15, 'completed' => false],
+            ['name' => 'Struktur (sloof, kolom, ring balok)', 'weight' => 20, 'completed' => false],
+            ['name' => 'Dinding & plester', 'weight' => 20, 'completed' => false],
+            ['name' => 'Atap', 'weight' => 15, 'completed' => false],
+            ['name' => 'Kusen, pintu, jendela', 'weight' => 7, 'completed' => false],
+            ['name' => 'Lantai & keramik', 'weight' => 8, 'completed' => false],
+            ['name' => 'Instalasi listrik & air', 'weight' => 5, 'completed' => false],
+            ['name' => 'Finishing & cat', 'weight' => 5, 'completed' => false],
+        ];
+    }
+
+    public function resolvedProgressStages(): array
+    {
+        $stages = $this->progress_stages;
+        if (! is_array($stages) || empty($stages)) {
+            $stages = self::defaultProgressStages($this->category);
+        }
+
+        if ($this->status === 'selesai') {
+            return array_map(function ($stage) {
+                $stage['completed'] = true;
+                return $stage;
+            }, $stages);
+        }
+
+        return $stages;
+    }
+
+    public static function calculatePhysicalProgress(array $stages): float
+    {
+        $total = 0.0;
+        foreach ($stages as $stage) {
+            if (! empty($stage['completed'])) {
+                $total += (float) ($stage['weight'] ?? 0);
+            }
+        }
+
+        return round(min(100.0, max(0.0, $total)), 2);
+    }
+
+    public function getBobotRumahAttribute(): float
+    {
+        if ($this->status === 'selesai') {
+            return 100.0;
+        }
+
+        return (float) ($this->physical_progress ?? 0);
+    }
+
+    public function getBobotBahanAttribute(): ?float
+    {
+        $budget = (float) ($this->material_budget ?? 0);
+        if ($budget <= 0) {
+            return null;
+        }
+
+        $used = (float) $this->total_material_cost;
+
+        return round(($used / $budget) * 100, 1);
     }
 
     public function materialUsages(): HasMany
@@ -168,7 +243,7 @@ class House extends Model
      */
     public function getTotalMaterialCostAttribute(): float
     {
-        return (float) $this->materialUsages()->whereNull('voided_at')->sum('total_cost');
+        return (float) ($this->material_usages_sum_total_cost ?? $this->materialUsages()->whereNull('voided_at')->sum('total_cost'));
     }
 
     /**

@@ -87,6 +87,156 @@
             </div>
         </div>
 
+        <!-- Bobot Rumah & Bobot Bahan Panel (Hanya untuk Rumah, bukan Pekerjaan Umum) -->
+        @unless ($house->isPublicWork())
+        @php
+            $stages = $house->resolvedProgressStages();
+            $bobotRumah = $house->bobot_rumah;
+            $bobotBahan = $house->bobot_bahan;
+            $isOverBudget = $bobotBahan !== null && $bobotBahan > 100;
+            $canManageProgress = in_array(auth()->user()->role, ['admin', 'pengawas']);
+            $canManageBudget = in_array(auth()->user()->role, ['admin', 'logistik']);
+        @endphp
+        <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-body-tertiary">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                <div>
+                    <h2 class="h5 fw-bold mb-1 font-outfit text-body">Bobot &amp; Progres Pembangunan</h2>
+                    <p class="text-secondary small mb-0">Pantau perbandingan progres fisik bangunan (bobot rumah) terhadap penyerapan anggaran material (bobot bahan).</p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    @if ($canManageBudget)
+                        <button type="button" wire:click="openBudgetModal" class="btn btn-sm btn-outline-secondary font-semibold d-inline-flex align-items-center gap-1">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1H1zm7 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M0 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V5zm3 0a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2h10a2 2 0 0 1 2-2V7a2 2 0 0 1-2-2H3z"/></svg>
+                            <span>Atur Anggaran (RAP)</span>
+                        </button>
+                    @endif
+                    @if ($canManageProgress && $house->status !== 'selesai')
+                        <button type="button" wire:click="openStageModal" class="btn btn-sm btn-outline-secondary font-semibold d-inline-flex align-items-center gap-1">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>
+                            <span>Atur Tahap &amp; Bobot</span>
+                        </button>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Two Progress Bars Grid -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="p-3 rounded-3 border bg-body h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-secondary text-uppercase tracking-wider">Bobot Rumah (Fisik)</span>
+                                <span class="fs-4 fw-black font-mono text-body">{{ number_format($bobotRumah, 1, ',', '.') }}%</span>
+                            </div>
+                            <p class="extra-small text-secondary mb-3">Persentase tahapan pekerjaan fisik yang telah selesai.</p>
+                        </div>
+                        <div>
+                            <div class="progress rounded-pill bg-body-tertiary" style="height: 10px;">
+                                <div class="progress-bar bg-success rounded-pill" role="progressbar" style="width: {{ min(100, $bobotRumah) }}%;" aria-valuenow="{{ $bobotRumah }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="p-3 rounded-3 border bg-body h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-secondary text-uppercase tracking-wider">Bobot Bahan (Material)</span>
+                                @if ($bobotBahan !== null)
+                                    <span class="fs-4 fw-black font-mono {{ $isOverBudget ? 'text-danger' : 'text-body' }}">
+                                        {{ number_format($bobotBahan, 1, ',', '.') }}%
+                                    </span>
+                                @else
+                                    <span class="small text-secondary italic">Belum diatur</span>
+                                @endif
+                            </div>
+                            <p class="extra-small text-secondary mb-3">
+                                @if ($house->material_budget > 0)
+                                    Rp {{ number_format($house->total_material_cost, 0, ',', '.') }} terpakai dari pagu Rp {{ number_format($house->material_budget, 0, ',', '.') }}
+                                    @if ($isOverBudget)
+                                        <span class="text-danger fw-semibold d-block mt-1">Melebihi anggaran ({{ number_format($bobotBahan - 100, 1, ',', '.') }}% lebih tinggi)</span>
+                                    @endif
+                                @else
+                                    Anggaran material (RAP) belum ditentukan.
+                                    @if ($canManageBudget)
+                                        <a href="javascript:void(0)" wire:click="openBudgetModal" class="text-success text-decoration-none fw-semibold">Tentukan anggaran &rarr;</a>
+                                    @endif
+                                @endif
+                            </p>
+                        </div>
+                        <div>
+                            <div class="progress rounded-pill bg-body-tertiary" style="height: 10px;">
+                                @if ($bobotBahan !== null)
+                                    <div class="progress-bar rounded-pill {{ $isOverBudget ? 'bg-danger' : 'bg-success' }}" role="progressbar" style="width: {{ min(100, $bobotBahan) }}%;" aria-valuenow="{{ $bobotBahan }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                @else
+                                    <div class="progress-bar rounded-pill bg-secondary text-opacity-25" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stages Checklist -->
+            <div class="border-top pt-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="h6 fw-bold mb-0 font-outfit text-body">
+                        Tahapan Pekerjaan <span class="text-secondary fw-normal">({{ count($stages) }} tahap)</span>
+                    </h3>
+                    @if ($canManageProgress && $house->status !== 'selesai')
+                        <span class="extra-small text-secondary">Klik kotak untuk menandai tahap selesai</span>
+                    @endif
+                </div>
+
+                @if (empty($stages))
+                    <div class="p-3 text-center text-secondary small bg-body rounded-3 border">
+                        Belum ada tahapan pekerjaan untuk unit ini.
+                        @if ($canManageProgress && $house->status !== 'selesai')
+                            <button type="button" wire:click="openStageModal" class="btn btn-link btn-sm text-success p-0 text-decoration-none d-block mx-auto mt-1">Tambah tahapan sekarang &rarr;</button>
+                        @endif
+                    </div>
+                @else
+                    <div class="row g-2">
+                        @foreach ($stages as $idx => $stage)
+                            @php
+                                $isDone = ! empty($stage['completed']);
+                            @endphp
+                            <div class="col-md-6 col-lg-4" wire:key="stage-item-{{ $idx }}">
+                                <div class="py-2 px-3 rounded-3 border {{ $isDone ? 'bg-success-subtle bg-opacity-10 border-success-subtle' : 'bg-body' }} d-flex align-items-center justify-content-between gap-2 transition-colors" style="min-height: 44px;">
+                                    <label class="d-flex align-items-center gap-2 mb-0 flex-grow-1 min-w-0 {{ $canManageProgress && $house->status !== 'selesai' ? 'cursor-pointer' : '' }}">
+                                        @if ($canManageProgress && $house->status !== 'selesai')
+                                            <input type="checkbox"
+                                                class="form-check-input m-0 flex-shrink-0"
+                                                style="width: 18px; height: 18px; cursor: pointer;"
+                                                wire:click="toggleStage({{ $idx }})"
+                                                {{ $isDone ? 'checked' : '' }}
+                                                aria-label="Tandai {{ $stage['name'] }} selesai">
+                                        @else
+                                            <input type="checkbox"
+                                                class="form-check-input m-0 flex-shrink-0"
+                                                style="width: 18px; height: 18px;"
+                                                disabled
+                                                {{ $isDone ? 'checked' : '' }}>
+                                        @endif
+                                        <span class="small fw-semibold text-truncate {{ $isDone ? 'text-body text-decoration-line-through text-opacity-75' : 'text-body' }}" title="{{ $stage['name'] }}">
+                                            {{ $stage['name'] }}
+                                        </span>
+                                    </label>
+                                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                        <span class="badge {{ $isDone ? 'bg-success text-white' : 'bg-secondary-subtle text-secondary' }} font-mono small">
+                                            {{ $stage['weight'] }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+        @endunless
+
         <!-- Tabs Container -->
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary">
             @php
@@ -316,4 +466,157 @@
             @endif
         </div>
     </div>
+
+    @unless ($house->isPublicWork())
+    <!-- Modal Atur Anggaran (Logistik / Admin) -->
+    @if ($showBudgetModal)
+    @teleport('body')
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog" x-on:keydown.escape.window="$wire.set('showBudgetModal', false)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">Atur Anggaran Material (RAP)</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showBudgetModal', false)" aria-label="Tutup modal"></button>
+                </div>
+                <form wire:submit="saveMaterialBudget">
+                    <div class="modal-body py-4">
+                        @if ($otherHouses->isNotEmpty())
+                            <div class="mb-3">
+                                <label for="copy-budget-select" class="form-label small fw-bold text-secondary text-uppercase">Salin Anggaran dari Unit Lain (Opsional)</label>
+                                <select id="copy-budget-select" wire:model.live="copyBudgetHouseId" class="form-select">
+                                    <option value="">-- Pilih unit untuk disalin --</option>
+                                    @foreach ($otherHouses as $oh)
+                                        @if ($oh->material_budget > 0)
+                                            <option value="{{ $oh->id }}">{{ $oh->name }} (Rp {{ number_format($oh->material_budget, 0, ',', '.') }})</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+
+                        <div class="mb-3">
+                            <label for="budget-amount-input" class="form-label font-semibold">Pagu Anggaran Material (Rp)</label>
+                            <div class="input-group">
+                                <span class="input-group-text font-mono">Rp</span>
+                                <input id="budget-amount-input" type="number" step="any" min="0" wire:model="budgetAmount" class="form-control font-mono" placeholder="Contoh: 150000000" />
+                            </div>
+                            <div class="form-text">Masukkan total pagu biaya material (RAP) untuk unit ini.</div>
+                            @error('budgetAmount') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                        <button type="button" class="btn btn-secondary btn-sm fw-semibold" wire:click="$set('showBudgetModal', false)">Batal</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-semibold">Simpan Anggaran</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endteleport
+    @endif
+
+    <!-- Modal Atur Tahap & Bobot (Pengawas / Admin) -->
+    @if ($showStageModal)
+    @teleport('body')
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog" x-on:keydown.escape.window="$wire.set('showStageModal', false)">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">Atur Tahapan &amp; Bobot Pekerjaan</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showStageModal', false)" aria-label="Tutup modal"></button>
+                </div>
+                <form wire:submit="saveStages">
+                    <div class="modal-body py-4">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+                            <p class="text-secondary small mb-0">Total bobot semua tahapan harus berjumlah tepat <strong>100%</strong>.</p>
+                            <div class="d-flex gap-2">
+                                <button type="button" wire:click="resetDefaultStages" class="btn btn-outline-secondary btn-sm">
+                                    Template Default (9 Tahap)
+                                </button>
+                            </div>
+                        </div>
+
+                        @if ($otherHouses->isNotEmpty())
+                            <div class="mb-3">
+                                <label for="copy-stage-select" class="form-label small fw-bold text-secondary text-uppercase">Salin Tahapan dari Unit Lain</label>
+                                <select id="copy-stage-select" wire:model.live="copyStageHouseId" class="form-select form-select-sm">
+                                    <option value="">-- Pilih unit untuk disalin --</option>
+                                    @foreach ($otherHouses as $oh)
+                                        <option value="{{ $oh->id }}">{{ $oh->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+
+                        @error('editableStages')
+                            <div class="alert alert-danger py-2 small mb-3" role="alert">{{ $message }}</div>
+                        @enderror
+
+                        <div class="table-responsive border rounded-3 mb-3">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small font-geist text-uppercase">
+                                    <tr>
+                                        <th style="width: 45px;">No.</th>
+                                        <th>Nama Tahapan</th>
+                                        <th style="width: 140px;" class="text-end">Bobot (%)</th>
+                                        <th style="width: 50px;" class="text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php $calcTotal = 0; @endphp
+                                    @foreach ($editableStages as $idx => $stg)
+                                        @php $calcTotal += (float) ($stg['weight'] ?? 0); @endphp
+                                        <tr wire:key="edit-stage-row-{{ $idx }}">
+                                            <td class="text-secondary small font-mono">{{ $loop->iteration }}</td>
+                                            <td>
+                                                <input type="text" wire:model="editableStages.{{ $idx }}.name" class="form-control form-control-sm" placeholder="Nama tahapan..." required />
+                                                @error("editableStages.{$idx}.name") <span class="text-danger extra-small">{{ $message }}</span> @enderror
+                                            </td>
+                                            <td>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" step="0.01" min="0.01" max="100" wire:model.blur="editableStages.{{ $idx }}.weight" class="form-control form-control-sm text-end font-mono" placeholder="0" required />
+                                                    <span class="input-group-text">%</span>
+                                                </div>
+                                                @error("editableStages.{$idx}.weight") <span class="text-danger extra-small">{{ $message }}</span> @enderror
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" wire:click="removeStageRow({{ $idx }})" class="btn btn-sm btn-link text-danger p-0 text-decoration-none d-inline-flex align-items-center justify-content-center" style="min-width: 36px; min-height: 36px;" title="Hapus baris" aria-label="Hapus tahapan">
+                                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="table-light border-top">
+                                    <tr>
+                                        <td colspan="2" class="fw-bold font-geist text-end">Total Bobot:</td>
+                                        <td class="text-end font-mono fw-bold {{ abs($calcTotal - 100.0) <= 0.01 ? 'text-success' : 'text-danger' }}">
+                                            {{ number_format($calcTotal, 2, ',', '.') }}%
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button type="button" wire:click="addStageRow" class="btn btn-outline-success btn-sm font-semibold">
+                                + Tambah Tahapan
+                            </button>
+                            <span class="extra-small fw-semibold {{ abs($calcTotal - 100.0) <= 0.01 ? 'text-success' : 'text-danger' }}">
+                                {{ abs($calcTotal - 100.0) <= 0.01 ? 'Total bobot tepat 100%' : 'Total bobot harus tepat 100%' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                        <button type="button" class="btn btn-secondary btn-sm fw-semibold" wire:click="$set('showStageModal', false)">Batal</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-semibold">Simpan Perubahan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endteleport
+    @endif
+    @endunless
 </div>

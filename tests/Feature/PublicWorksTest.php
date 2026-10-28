@@ -50,10 +50,25 @@ class PublicWorksTest extends TestCase
             ->call('save')
             ->assertHasErrors(['cluster_name']);
 
-        // Create Pekerjaan Umum with new cluster via searchable/creatable combobox
+        // Reject Pekerjaan Umum with non-existent cluster
         Livewire::test(Houses::class, ['category' => House::CATEGORY_PUBLIC_WORK])
             ->call('create')
             ->set('name', 'Saluran Drainase Utama')
+            ->set('cluster_name', 'Cluster Tidak Terdaftar')
+            ->set('status', 'pembangunan')
+            ->set('start_date', '2026-10-26')
+            ->call('save')
+            ->assertHasErrors(['cluster_name' => 'Cluster tidak ditemukan. Pilih dari cluster yang tersedia.']);
+
+        $this->assertNull(Cluster::where('name', 'Cluster Tidak Terdaftar')->first());
+
+        // Create Pekerjaan Umum with existing cluster
+        $newCluster = Cluster::create(['name' => 'Cluster Infrastruktur']);
+
+        Livewire::test(Houses::class, ['category' => House::CATEGORY_PUBLIC_WORK])
+            ->call('create')
+            ->set('name', 'Saluran Drainase Utama')
+            ->set('cluster_id', (string) $newCluster->id)
             ->set('cluster_name', 'Cluster Infrastruktur')
             ->set('status', 'pembangunan')
             ->set('start_date', '2026-10-26')
@@ -61,7 +76,6 @@ class PublicWorksTest extends TestCase
             ->assertHasNoErrors()
             ->assertSet('showModal', false);
 
-        $newCluster = Cluster::where('name', 'Cluster Infrastruktur')->firstOrFail();
         $publicWork = House::where('name', 'Saluran Drainase Utama')->firstOrFail();
 
         $this->assertSame(House::CATEGORY_PUBLIC_WORK, $publicWork->category);
@@ -288,5 +302,38 @@ class PublicWorksTest extends TestCase
             ->set('search', $pwB->house_code)
             ->assertSee('Cluster Beta')
             ->assertDontSee('Cluster Alpha');
+    }
+
+    public function test_public_works_does_not_have_bobot_ui_or_actions(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $cluster = Cluster::create(['name' => 'Cluster Infrastruktur']);
+        $publicWork = House::factory()->create([
+            'name' => 'Pembuatan Taman & Pos Jaga',
+            'category' => House::CATEGORY_PUBLIC_WORK,
+            'cluster_id' => $cluster->id,
+            'status' => 'pembangunan',
+        ]);
+
+        $this->actingAs($admin);
+
+        // Listing on /pekerjaan-umum does not show Bobot column
+        Livewire::test(Houses::class, ['category' => House::CATEGORY_PUBLIC_WORK])
+            ->assertDontSee('Bobot (Fisik / Bahan)');
+
+        // Detail page does not render Bobot & Progres Pembangunan card or stage checklist
+        Livewire::test(\App\Livewire\Logistik\HouseDetail::class, ['house' => $publicWork])
+            ->assertDontSee('Bobot & Progres Pembangunan')
+            ->assertDontSee('Bobot Rumah (Fisik)')
+            ->assertDontSee('Bobot Bahan (Material)')
+            ->assertDontSee('Tahapan Pekerjaan')
+            ->assertDontSee('Atur Anggaran (RAP)')
+            ->assertDontSee('Atur Tahap & Bobot')
+            ->call('openBudgetModal')
+            ->assertForbidden();
+
+        Livewire::test(\App\Livewire\Logistik\HouseDetail::class, ['house' => $publicWork])
+            ->call('openStageModal')
+            ->assertForbidden();
     }
 }

@@ -227,12 +227,23 @@ class HouseFinish extends Component
 
                 // Lock the house as selesai
                 $completedAt = now();
-                $house->update([
+                $updateData = [
                     'status' => 'selesai',
                     'completed_at' => $completedAt,
                     'warranty_expires_at' => $completedAt->copy()->addYear(),
                     'completed_by_id' => auth()->id(),
-                ]);
+                ];
+
+                if (! $house->isPublicWork()) {
+                    $stages = $house->resolvedProgressStages();
+                    $updateData['physical_progress'] = 100.0;
+                    $updateData['progress_stages'] = array_map(function ($stage) {
+                        $stage['completed'] = true;
+                        return $stage;
+                    }, $stages);
+                }
+
+                $house->update($updateData);
             });
 
             session()->flash('success', 'Proyek berhasil diselesaikan. Semua alat telah dipertanggungjawabkan.');

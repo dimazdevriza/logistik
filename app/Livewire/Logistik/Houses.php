@@ -110,6 +110,7 @@ class Houses extends Component
                     ->whereNull('material_usages.voided_at'),
                 $direction
             ),
+            'progress' => 'houses.physical_progress',
             'start_date' => 'houses.start_date',
             'target_end_date' => 'houses.target_end_date',
         ];
@@ -121,6 +122,7 @@ class Houses extends Component
     public $name = '';
     public $type = '';
     public $status = 'perencanaan';
+    public $material_budget = '';
     public $cluster_id = '';
     public $cluster_name = '';
 
@@ -139,6 +141,7 @@ class Houses extends Component
         $this->name = '';
         $this->type = '';
         $this->status = 'perencanaan';
+        $this->material_budget = '';
         $this->cluster_id = '';
         $this->cluster_name = '';
 
@@ -278,6 +281,7 @@ class Houses extends Component
 
             'start_date' => 'nullable|date',
             'target_end_date' => 'nullable|date|after_or_equal:start_date',
+            'material_budget' => 'nullable|numeric|min:0|max:999999999999',
             'houseCount' => 'required|integer|min:1|max:100',
         ];
     }
@@ -312,7 +316,7 @@ class Houses extends Component
             return $existing->id;
         }
 
-        return Cluster::create(['name' => $name])->id;
+        return null;
     }
 
     public function create()
@@ -332,6 +336,7 @@ class Houses extends Component
         $this->name = $house->name;
         $this->type = $house->type;
         $this->status = $house->status;
+        $this->material_budget = $house->material_budget ? (string) $house->material_budget : '';
         $this->cluster_id = $house->cluster_id ?? '';
         $this->cluster_name = $house->cluster?->name ?? '';
 
@@ -373,16 +378,21 @@ class Houses extends Component
         }
 
         $resolvedClusterId = $this->canManageClusters() ? $this->resolveClusterId() : $user->cluster_id;
+        if ($this->canManageClusters() && $this->cluster_name !== '' && $this->cluster_name !== null && strcasecmp(trim((string) $this->cluster_name), 'Tanpa Cluster') !== 0 && ! $resolvedClusterId) {
+            $this->addError('cluster_name', 'Cluster tidak ditemukan. Pilih dari cluster yang tersedia.');
+            return;
+        }
         if ($this->isPublicWork && ! $resolvedClusterId) {
-            $this->addError('cluster_name', 'Pilih atau ketik nama cluster terlebih dahulu.');
+            $this->addError('cluster_name', 'Pilih cluster yang tersedia terlebih dahulu.');
             return;
         }
         if ($user->role === 'logistik' && ! $user->cluster_id && $resolvedClusterId) {
             $user->update(['cluster_id' => $resolvedClusterId]);
         }
 
+        $category = $this->isPublicWork ? House::CATEGORY_PUBLIC_WORK : House::CATEGORY_HOUSE;
         $data = [
-            'category' => $this->isPublicWork ? House::CATEGORY_PUBLIC_WORK : House::CATEGORY_HOUSE,
+            'category' => $category,
             'name' => $this->name,
             'type' => $this->isPublicWork ? 'Pekerjaan Umum' : $this->type,
             'status' => $this->status,
@@ -391,7 +401,17 @@ class Houses extends Component
             'target_end_date' => $this->isPublicWork ? null : ($this->target_end_date ?: null),
         ];
 
+        if (!$this->isPublicWork && in_array($user->role, ['admin', 'logistik'], true)) {
+            $data['material_budget'] = ($this->material_budget !== '' && $this->material_budget !== null)
+                ? (float) $this->material_budget
+                : null;
+        }
+
         if (!$this->editMode) {
+            if (!$this->isPublicWork) {
+                $data['progress_stages'] = House::defaultProgressStages($category);
+                $data['physical_progress'] = 0.0;
+            }
             $generatedCode = $this->isPublicWork
                 ? House::generatePublicWorkCode($this->name)
                 : House::generateCode($this->name);
@@ -430,6 +450,7 @@ class Houses extends Component
             'cluster_name' => 'nullable|string|max:255',
             'start_date' => 'nullable|date',
             'target_end_date' => 'nullable|date|after_or_equal:start_date',
+            'material_budget' => 'nullable|numeric|min:0|max:999999999999',
         ], [
             'houseCount.min' => 'Jumlah rumah minimal 2 untuk membuat beberapa unit.',
             'houseCount.max' => 'Maksimal 100 rumah sekali simpan.',
@@ -479,16 +500,28 @@ class Houses extends Component
         }
 
         $resolvedClusterId = $this->canManageClusters() ? $this->resolveClusterId() : $user->cluster_id;
+        if ($this->canManageClusters() && $this->cluster_name !== '' && $this->cluster_name !== null && strcasecmp(trim((string) $this->cluster_name), 'Tanpa Cluster') !== 0 && ! $resolvedClusterId) {
+            $this->addError('cluster_name', 'Cluster tidak ditemukan. Pilih dari cluster yang tersedia.');
+            return;
+        }
         if ($user->role === 'logistik' && ! $user->cluster_id && $resolvedClusterId) {
             $user->update(['cluster_id' => $resolvedClusterId]);
         }
 
+        $budget = (in_array($user->role, ['admin', 'logistik'], true) && $this->material_budget !== '' && $this->material_budget !== null)
+            ? (float) $this->material_budget
+            : null;
+        $defaultStages = json_encode(House::defaultProgressStages(House::CATEGORY_HOUSE));
         $timestamp = now();
         $houses = array_map(fn ($row) => [
             'house_code' => House::generateCode(trim($row['name'])),
+            'category' => House::CATEGORY_HOUSE,
             'name' => trim($row['name']),
             'type' => trim($row['type']),
             'status' => $validated['status'],
+            'material_budget' => $budget,
+            'physical_progress' => 0.0,
+            'progress_stages' => $defaultStages,
             'cluster_id' => $resolvedClusterId,
             'start_date' => $validated['start_date'] ?: null,
             'target_end_date' => $validated['target_end_date'] ?: null,
@@ -609,6 +642,7 @@ class Houses extends Component
     {
         $houses = $this->baseHouseQuery()
             ->with('cluster')
+            ->withSum(['materialUsages' => fn ($q) => $q->whereNull('voided_at')], 'total_cost')
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")

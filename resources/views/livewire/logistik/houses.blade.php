@@ -92,6 +92,9 @@
                                 <x-sortable-th field="type" :sort="$sort">Tipe</x-sortable-th>
                             @endunless
                             <x-sortable-th field="status" :sort="$sort">Status</x-sortable-th>
+                            @unless ($isPublicWork)
+                                <x-sortable-th field="progress" :sort="$sort">Bobot (Fisik / Bahan)</x-sortable-th>
+                            @endunless
                             <x-sortable-th field="cost" :sort="$sort" class="text-end">Total Biaya</x-sortable-th>
                             <x-sortable-th field="start_date" :sort="$sort">Mulai</x-sortable-th>
                             @unless ($isPublicWork)
@@ -116,6 +119,38 @@
                                 @endphp
                                 <span class="badge {{ $statusClasses[$house->status] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($house->status) }}</span>
                             </td>
+                            @unless ($isPublicWork)
+                            <td>
+                                @php
+                                    $bobotRumah = $house->bobot_rumah;
+                                    $bobotBahan = $house->bobot_bahan;
+                                    $isOverBudget = $bobotBahan !== null && $bobotBahan > 100;
+                                @endphp
+                                <div class="d-flex flex-column gap-1" style="min-width: 130px;">
+                                    <div class="d-flex justify-content-between align-items-center extra-small">
+                                        <span class="text-secondary">Fisik:</span>
+                                        <span class="font-mono fw-bold text-body">{{ number_format($bobotRumah, 1, ',', '.') }}%</span>
+                                    </div>
+                                    <div class="progress bg-body-tertiary" style="height: 4px;">
+                                        <div class="progress-bar bg-success" style="width: {{ min(100, $bobotRumah) }}%;"></div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center extra-small mt-1">
+                                        <span class="text-secondary">Bahan:</span>
+                                        @if ($bobotBahan !== null)
+                                            <span class="font-mono fw-bold {{ $isOverBudget ? 'text-danger' : 'text-body' }}">{{ number_format($bobotBahan, 1, ',', '.') }}%</span>
+                                        @else
+                                            <span class="text-secondary italic">-</span>
+                                        @endif
+                                    </div>
+                                    <div class="progress bg-body-tertiary" style="height: 4px;">
+                                        @if ($bobotBahan !== null)
+                                            <div class="progress-bar {{ $isOverBudget ? 'bg-danger' : 'bg-success' }}" style="width: {{ min(100, $bobotBahan) }}%;"></div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
+                            @endunless
                             <td class="text-end font-mono fw-bold text-body data-number">Rp {{ number_format($house->total_material_cost, 0, ',', '.') }}</td>
                             <td class="text-secondary small data-date">{{ $house->start_date?->format('d/m/Y') ?? '-' }}</td>
                             @unless ($isPublicWork)
@@ -137,7 +172,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="{{ $isPublicWork ? 8 : 10 }}" class="text-center py-4 text-secondary">{{ $isPublicWork ? 'Belum ada data pekerjaan umum.' : 'Belum ada data rumah.' }}</td>
+                            <td colspan="{{ $isPublicWork ? 8 : 11 }}" class="text-center py-4 text-secondary">{{ $isPublicWork ? 'Belum ada data pekerjaan umum.' : 'Belum ada data rumah.' }}</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -174,7 +209,7 @@
                                         type="text"
                                         wire:model="cluster_name"
                                         class="form-control pe-5"
-                                        placeholder="Pilih atau ketik cluster (mis. Cluster A, Cluster B)..."
+                                        placeholder="Pilih cluster yang tersedia..."
                                         autocomplete="off"
                                         role="combobox"
                                         aria-autocomplete="list"
@@ -214,10 +249,10 @@
                                             </button>
                                         @endforeach
                                         <div
-                                            x-show="clusterSearch.trim() !== '' && clusterSearch.trim().toLowerCase() !== 'tanpa cluster' && !@js($clusters->pluck('name')->map(fn ($name) => strtolower($name))->values()->all()).includes(clusterSearch.trim().toLowerCase())"
-                                            class="px-3 py-2 extra-small text-secondary fst-italic border-top"
+                                            x-show="clusterSearch.trim() !== '' && !@js($clusters->pluck('name')->map(fn ($name) => strtolower($name))->values()->all()).some(n => n.includes(clusterSearch.trim().toLowerCase()))"
+                                            class="px-3 py-2 extra-small text-secondary fst-italic"
                                         >
-                                            Gunakan "<span class="fw-bold text-body" x-text="clusterSearch.trim()"></span>" sebagai cluster baru
+                                            Cluster tidak ditemukan. Pilih dari cluster yang tersedia.
                                         </div>
                                     </div>
                                 </div>
@@ -306,7 +341,7 @@
                                     type="text"
                                     wire:model="cluster_name"
                                     class="form-control pe-5"
-                                    placeholder="Pilih atau ketik cluster (mis. Cluster A, Cluster B)..."
+                                        placeholder="Pilih cluster yang tersedia..."
                                     autocomplete="off"
                                     role="combobox"
                                     aria-autocomplete="list"
@@ -332,6 +367,17 @@
 
                             <div x-show="clusterPickerOpen" x-cloak class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden" style="max-height: 220px; z-index: 1050;">
                                 <div id="house-cluster-options" role="listbox" class="p-1.5" style="max-height: 210px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                    <button
+                                        type="button"
+                                        role="option"
+                                        aria-selected="{{ $cluster_id === '' || $cluster_id === null ? 'true' : 'false' }}"
+                                        class="dropdown-item rounded-2 py-2 px-3 text-start w-100"
+                                        :class="!$wire.cluster_name || $wire.cluster_name.toLowerCase() === 'tanpa cluster' ? 'active bg-success text-white' : ''"
+                                        x-show="clusterSearch === '' || 'tanpa cluster'.includes(clusterSearch.toLowerCase())"
+                                        @click="$wire.cluster_id = ''; $wire.cluster_name = 'Tanpa Cluster'; clusterPickerOpen = false; clusterSearch = 'Tanpa Cluster'"
+                                    >
+                                        <span class="fw-medium text-truncate d-block text-secondary fst-italic">Tanpa Cluster</span>
+                                    </button>
                                     @foreach ($clusters as $cluster)
                                         <button
                                             type="button"
@@ -346,10 +392,10 @@
                                         </button>
                                     @endforeach
                                     <div
-                                        x-show="clusterSearch.trim() !== '' && clusterSearch.trim().toLowerCase() !== 'tanpa cluster' && !@js($clusters->pluck('name')->map(fn ($name) => strtolower($name))->values()->all()).includes(clusterSearch.trim().toLowerCase())"
-                                        class="px-3 py-2 extra-small text-secondary fst-italic border-top"
+                                        x-show="clusterSearch.trim() !== '' && clusterSearch.trim().toLowerCase() !== 'tanpa cluster' && !@js($clusters->pluck('name')->map(fn ($name) => strtolower($name))->values()->all()).some(n => n.includes(clusterSearch.trim().toLowerCase()))"
+                                        class="px-3 py-2 extra-small text-secondary fst-italic"
                                     >
-                                        Gunakan "<span class="fw-bold text-body" x-text="clusterSearch.trim()"></span>" sebagai cluster baru
+                                        Cluster tidak ditemukan. Pilih dari cluster yang tersedia.
                                     </div>
                                 </div>
                             </div>
@@ -380,6 +426,18 @@
                             @error('target_end_date') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
                         </div>
                     </div>
+
+                    @if (in_array(auth()->user()->role, ['admin', 'logistik']))
+                        <div class="mt-3">
+                            <label for="house-material-budget" class="form-label font-semibold">Anggaran Material (RAP) <span class="text-secondary fw-normal small">(Opsional)</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text font-mono">Rp</span>
+                                <input id="house-material-budget" type="number" step="any" min="0" wire:model="material_budget" class="form-control font-mono" placeholder="0" />
+                            </div>
+                            <div class="form-text">Pagu anggaran biaya material yang direncanakan.</div>
+                            @error('material_budget') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
+                    @endif
 
                     @if (!$editMode && (int) $houseCount > 1)
                         <section class="house-bulk-preview mt-4 pt-3 border-top" aria-labelledby="house-bulk-preview-title" aria-live="polite">
