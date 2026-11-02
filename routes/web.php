@@ -96,7 +96,8 @@ Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan|pengawas'])
             (string) ($filters['house'] ?? ''),
             (string) ($filters['supplier'] ?? ''),
             $filters['sort'] ?? 'date_desc',
-            in_array($user->role, ['logistik', 'pengawas'], true) ? (int) ($user->cluster_id ?? 0) : null
+            in_array($user->role, ['logistik', 'pengawas'], true) ? (int) ($user->cluster_id ?? 0) : null,
+            $user->assignedWarehouseId()
         );
 
         return Excel::download($export, 'catatan-material-'.now()->format('Ymd-His').'.xlsx');

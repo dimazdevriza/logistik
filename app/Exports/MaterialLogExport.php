@@ -32,13 +32,16 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
 
     private $rowNumber = 0;
 
+    private float $totalCost = 0.0;
+
     public function __construct(
         private string $search = '',
         private string $filterType = '',
         private string $filterHouse = '',
         private string $filterSupplier = '',
         private string $sort = 'date_desc',
-        private ?int $clusterScope = null
+        private ?int $clusterScope = null,
+        private ?int $warehouseScope = null
     ) {}
 
     private function sortParts(): array
@@ -102,10 +105,12 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 'material_usages.transaction_code as event_code'
             )
             ->join('materials', 'material_usages.material_id', '=', 'materials.id')
+            ->leftJoin('stock_ins', 'material_usages.stock_in_id', '=', 'stock_ins.id')
             ->leftJoin('suppliers', 'materials.supplier_id', '=', 'suppliers.id')
             ->join('houses', 'material_usages.house_id', '=', 'houses.id')
             ->join('users', 'material_usages.user_id', '=', 'users.id')
             ->when($this->clusterScope !== null, fn ($q) => $q->where('houses.cluster_id', $this->clusterScope))
+            ->when($this->warehouseScope !== null, fn ($q) => $q->whereRaw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id) = ?', [$this->warehouseScope]))
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('materials.name', 'like', "%{$this->search}%")
                 ->orWhere('material_usages.transaction_code', 'like', "%{$this->search}%")))
@@ -119,7 +124,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 'materials.code as material_code',
                 'materials.name as material_name',
                 'materials.unit as material_unit',
-                DB::raw("'-' as blok_rumah"),
+                DB::raw("CASE WHEN stock_ins.entry_type = 'transfer' THEN CONCAT('Asal: ', COALESCE(transfer_source.name, 'tidak tercatat'), '; tujuan: ', COALESCE(transfer_destination.name, 'tidak tercatat')) ELSE COALESCE(receipt_warehouse.name, '-') END as blok_rumah"),
                 'stock_ins.notes as keterangan_pekerjaan',
                 'suppliers.name as supplier_name',
                 DB::raw("CASE WHEN stock_ins.entry_type = 'transfer' THEN 'Transfer gudang' ELSE COALESCE(suppliers.name, '-') END as reference"),
@@ -132,8 +137,15 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 'stock_ins.entry_code as event_code'
             )
             ->join('materials', 'stock_ins.material_id', '=', 'materials.id')
+            ->leftJoin('warehouses as receipt_warehouse', DB::raw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id)'), '=', 'receipt_warehouse.id')
+            ->leftJoin('inventory_transfers as inventory_transfer', 'inventory_transfer.destination_stock_in_id', '=', 'stock_ins.id')
+            ->leftJoin('warehouses as transfer_source', 'inventory_transfer.source_warehouse_id', '=', 'transfer_source.id')
+            ->leftJoin('warehouses as transfer_destination', 'inventory_transfer.destination_warehouse_id', '=', 'transfer_destination.id')
             ->leftJoin('suppliers', 'stock_ins.supplier_id', '=', 'suppliers.id')
             ->leftJoin('users', 'stock_ins.user_id', '=', 'users.id')
+            ->when($this->warehouseScope !== null, fn ($q) => $q->where(fn ($sub) => $sub
+                ->whereRaw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id) = ?', [$this->warehouseScope])
+                ->orWhere('inventory_transfer.source_warehouse_id', $this->warehouseScope)))
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('materials.name', 'like', "%{$this->search}%")
                 ->orWhere('stock_ins.entry_code', 'like', "%{$this->search}%")))
@@ -149,11 +161,12 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
 
             $query = DB::table(DB::raw("({$unionQuery->toSql()}) as combined"))
                 ->mergeBindings($unionQuery->getQuery());
-
-            return collect($this->applySort($query)->get());
         }
 
-        return collect($this->applySort($query)->get());
+        $rows = collect($this->applySort($query)->get());
+        $this->totalCost = (float) $rows->sum('total_cost');
+
+        return $rows;
     }
 
     public function headings(): array
@@ -435,18 +448,8 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 }
 
                 if ($this->filterType === 'keluar') {
-                    // Calculate Total
-                    $totalCost = MaterialUsage::query()
-                        ->join('materials', 'material_usages.material_id', '=', 'materials.id')
-                        ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
-                            ->where('materials.name', 'like', "%{$this->search}%")
-                            ->orWhere('material_usages.transaction_code', 'like', "%{$this->search}%")))
-                        ->when($this->filterHouse, fn ($q) => $q->where('material_usages.house_id', $this->filterHouse))
-                        ->whereNull('material_usages.voided_at')
-                        ->sum('material_usages.total_cost');
-
                     $event->sheet->append([
-                        ['', '', '', '', '', '', '', '', '', '', '', 'TOTAL', $totalCost, ''],
+                        ['', '', '', '', '', '', '', '', '', '', '', 'TOTAL', $this->totalCost, ''],
                     ]);
 
                     $finalRow = $event->sheet->getHighestRow();
@@ -472,31 +475,10 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                     return;
                 }
 
-                // Calculate Total from DB directly
-                $keluarTotal = MaterialUsage::query()
-                    ->join('materials', 'material_usages.material_id', '=', 'materials.id')
-                    ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
-                        ->where('materials.name', 'like', "%{$this->search}%")
-                        ->orWhere('material_usages.transaction_code', 'like', "%{$this->search}%")))
-                    ->when($this->filterHouse, fn ($q) => $q->where('material_usages.house_id', $this->filterHouse))
-                    ->whereNull('material_usages.voided_at')
-                    ->when($this->filterType !== 'masuk', fn ($q) => $q, fn ($q) => $q->whereRaw('1=0'))
-                    ->sum('material_usages.total_cost');
-
-                $masukTotal = StockIn::query()
-                    ->join('materials', 'stock_ins.material_id', '=', 'materials.id')
-                    ->leftJoin('suppliers', 'stock_ins.supplier_id', '=', 'suppliers.id')
-                    ->when($this->search, fn ($q) => $q->where('materials.name', 'like', "%{$this->search}%"))
-                    ->when($this->filterSupplier, fn ($q) => $q->where('stock_ins.supplier_id', $this->filterSupplier))
-                    ->when($this->filterType !== 'keluar', fn ($q) => $q, fn ($q) => $q->whereRaw('1=0'))
-                    ->sum('stock_ins.total_cost');
-
-                $totalCost = $keluarTotal + $masukTotal;
-
                 // Add Footer Row
                 $event->sheet->append([
                     [],
-                    ['', '', '', '', '', '', '', '', 'Total Biaya', $totalCost],
+                    ['', '', '', '', '', '', '', '', 'Total Biaya', $this->totalCost],
                 ]);
 
                 $finalRow = $event->sheet->getHighestRow();

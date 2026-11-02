@@ -247,6 +247,7 @@ class PublicWorksTest extends TestCase
         $clusterA = Cluster::create(['name' => 'Cluster Alpha']);
         $clusterB = Cluster::create(['name' => 'Cluster Beta']);
 
+        $admin = User::factory()->create(['role' => 'admin']);
         $logistik = User::factory()->create([
             'role' => 'logistik',
             'cluster_id' => $clusterA->id,
@@ -258,19 +259,25 @@ class PublicWorksTest extends TestCase
 
         $this->actingAs($logistik);
 
-        // Create same-named Pekerjaan Umum in Cluster A and Cluster B
+        // Assigned logistik creating Pekerjaan Umum is locked to their assigned Cluster Alpha
         Livewire::test(Houses::class, ['category' => House::CATEGORY_PUBLIC_WORK])
             ->call('create')
+            ->assertSet('cluster_id', (string) $clusterA->id)
+            ->assertSet('cluster_name', 'Cluster Alpha')
             ->set('name', 'Pembangunan Jalan Utama')
-            ->set('cluster_name', 'Cluster Alpha')
+            ->set('cluster_name', 'Cluster Beta') // Ignored because logistik is assigned to Cluster Alpha
             ->set('status', 'pembangunan')
             ->set('start_date', '2026-10-26')
             ->call('save')
             ->assertHasNoErrors();
 
+        // Admin creates same-named Pekerjaan Umum in Cluster B
+        $this->actingAs($admin);
+
         Livewire::test(Houses::class, ['category' => House::CATEGORY_PUBLIC_WORK])
             ->call('create')
             ->set('name', 'Pembangunan Jalan Utama')
+            ->set('cluster_id', (string) $clusterB->id)
             ->set('cluster_name', 'Cluster Beta')
             ->set('status', 'pembangunan')
             ->set('start_date', '2026-10-26')
@@ -282,6 +289,13 @@ class PublicWorksTest extends TestCase
 
         $this->assertSame(now()->year . '-PU-PEMBANGUNANJALANUTAMA', $pwA->house_code);
         $this->assertSame(now()->year . '-PU-PEMBANGUNANJALANUTAMA-2', $pwB->house_code);
+
+        // Assigned logistik only sees Pekerjaan Umum in their assigned cluster
+        $this->actingAs($logistik);
+
+        Livewire::test(Houses::class, ['category' => House::CATEGORY_PUBLIC_WORK])
+            ->assertSee($pwA->house_code)
+            ->assertDontSee($pwB->house_code);
 
         // Logistik assigned to Cluster A can finish Pekerjaan Umum in Cluster B
         Livewire::test(HouseFinish::class, ['house' => $pwB])

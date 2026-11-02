@@ -45,7 +45,7 @@ class HouseDetail extends Component
     public function mount(House $house)
     {
         $user = auth()->user();
-        abort_unless($user && ($user->role === 'logistik' || $house->isAccessibleBy($user)), 403);
+        abort_unless($user && $house->isAccessibleBy($user), 403);
         $this->house = $house;
     }
 
@@ -122,7 +122,7 @@ class HouseDetail extends Component
     public function render()
     {
         $user = auth()->user();
-        $this->house = ($user && $user->role === 'logistik' ? House::query() : House::forUser($user))->findOrFail($this->house->id);
+        $this->house = House::forUser($user)->findOrFail($this->house->id);
         $materialUsages = null;
         $toolUsages = null;
 
@@ -217,7 +217,7 @@ class HouseDetail extends Component
 
         $user = auth()->user();
         $otherHouses = ($this->showBudgetModal || $this->showStageModal)
-            ? ($user->role === 'logistik' ? House::query() : House::forUser($user))
+            ? House::forUser($user)
                 ->where('id', '!=', $this->house->id)
                 ->where('category', $this->house->category)
                 ->orderBy('name')
@@ -253,7 +253,7 @@ class HouseDetail extends Component
     public function updatedCopyBudgetHouseId($value): void
     {
         abort_unless(in_array(auth()->user()->role, ['admin', 'logistik']), 403);
-        if ($value && ($source = House::find($value))) {
+        if ($value && ($source = House::forUser(auth()->user())->find($value))) {
             $this->budgetAmount = $source->material_budget ? (string) $source->material_budget : '';
         }
     }

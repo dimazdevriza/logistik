@@ -24,6 +24,13 @@ class Warehouses extends Component
     public string $address = '';
     public ?int $confirmingId = null;
 
+    public function mount(): void
+    {
+        if ($wId = auth()->user()?->assignedWarehouseId()) {
+            $this->redirectRoute('logistik.warehouse-detail', ['warehouse' => $wId]);
+        }
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -47,6 +54,9 @@ class Warehouses extends Component
 
     public function edit(int $id): void
     {
+        if (($wId = auth()->user()?->assignedWarehouseId()) && $id !== $wId) {
+            abort(403);
+        }
         $warehouse = Warehouse::findOrFail($id);
         $this->warehouseId = $warehouse->id;
         $this->name = $warehouse->name;
@@ -59,6 +69,8 @@ class Warehouses extends Component
     {
         if (! $this->editMode) {
             abort_unless(auth()->user()?->role === 'admin', 403, 'Hanya Admin yang dapat menambahkan gudang.');
+        } elseif (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->warehouseId !== $wId) {
+            abort(403);
         }
 
         $data = $this->validate();
@@ -76,6 +88,9 @@ class Warehouses extends Component
 
     public function confirmDelete(int $id): void
     {
+        if (($wId = auth()->user()?->assignedWarehouseId()) && $id !== $wId) {
+            abort(403);
+        }
         $this->resetValidation('delete');
         $warehouse = Warehouse::findOrFail($id);
         if (Warehouse::count() === 1) {
@@ -93,6 +108,9 @@ class Warehouses extends Component
 
     public function delete(): void
     {
+        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->confirmingId !== $wId) {
+            abort(403);
+        }
         $warehouse = Warehouse::findOrFail($this->confirmingId);
         if (Warehouse::count() === 1 || $warehouse->hasInventory()) {
             $this->addError('delete', 'Gudang tidak dapat dihapus selama masih menyimpan inventaris atau menjadi satu-satunya gudang.');
@@ -125,6 +143,7 @@ class Warehouses extends Component
     public function render()
     {
         $warehouses = Warehouse::query()
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->whereKey($wId))
             ->withCount(['toolBalances as tools_count'])
             ->addSelect([
                 'materials_count' => StockIn::query()

@@ -231,7 +231,7 @@
                                         @elseif ($req->status === 'approved')
                                             <span class="extra-small text-success fw-bold d-inline-flex align-items-center gap-1"><svg width="12" height="12" fill="currentColor" aria-hidden="true"><use href="#i-check"/></svg> Disetujui</span>
                                         @elseif ($req->status === 'rejected' && $req->dispatched_at && ! $req->rejected_returned_at)
-                                            <button type="button" class="btn log-row-action log-row-action--edit" wire:click="receiveRejectedReturn({{ $req->id }})" wire:confirm="Pastikan barang sudah benar-benar kembali ke gudang sebelum mencatatnya.">
+                                            <button type="button" class="btn log-row-action log-row-action--edit" wire:click="confirm('receiveRejectedReturn', {{ $req->id }}, 'Catat Barang Kembali?', 'Pastikan barang sudah benar-benar kembali ke gudang sebelum mencatatnya.')">
                                                 Catat barang kembali
                                             </button>
                                         @endif
@@ -528,6 +528,28 @@
                             <span wire:loading.remove wire:target="submitResolution">Simpan penyelesaian</span>
                             <span wire:loading wire:target="submitResolution">Menyimpan…</span>
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endteleport
+    @endif
+
+    @if ($showConfirmation)
+        @teleport('body')
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="modal-header border-bottom p-3 bg-body-tertiary">
+                        <h5 class="modal-title font-outfit fw-bold text-body fs-6">{{ $confirmTitle ?: 'Konfirmasi' }}</h5>
+                        <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <p class="text-secondary small mb-0">{{ $confirmMessage ?: 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                    </div>
+                    <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 p-3 d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm fw-semibold px-3" wire:click="$set('showConfirmation', false)">Batal</button>
+                        <button type="button" class="btn btn-success btn-sm fw-semibold px-3 shadow-xs" wire:click="executeConfirmedAction" wire:loading.attr="disabled" wire:target="executeConfirmedAction">Ya, Catat</button>
                     </div>
                 </div>
             </div>

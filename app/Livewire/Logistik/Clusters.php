@@ -28,8 +28,14 @@ class Clusters extends Component
 
     public function mount(): void
     {
-        abort_unless(in_array(auth()->user()?->role, ['admin', 'keuangan', 'pengawas'], true), 403);
-        $this->isCostPage = request()->routeIs('logistik.cluster-costs') || auth()->user()->role === 'keuangan';
+        $user = auth()->user();
+        abort_unless(in_array($user?->role, ['admin', 'keuangan', 'pengawas'], true), 403);
+
+        if (! $user->canAccessAllClusters() && $user->cluster_id) {
+            $this->redirectRoute('clusters.expenses', ['cluster' => $user->cluster_id], navigate: true);
+        }
+
+        $this->isCostPage = request()->routeIs('logistik.cluster-costs') || $user->role === 'keuangan';
         $this->filterYear = (string) now()->year;
     }
 

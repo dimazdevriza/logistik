@@ -48,6 +48,33 @@ class MaterialLog extends Component
     public string $receiptReference = '';
     public string $receiptCancelReason = '';
 
+    public bool $showConfirmation = false;
+    public string $confirmingAction = '';
+    public ?int $confirmingId = null;
+    public string $confirmTitle = '';
+    public string $confirmMessage = '';
+
+    public function confirm(string $action, ?int $id = null, string $title = '', string $message = ''): void
+    {
+        $this->confirmingAction = $action;
+        $this->confirmingId = $id;
+        $this->confirmTitle = $title;
+        $this->confirmMessage = $message;
+        $this->showConfirmation = true;
+    }
+
+    public function executeConfirmedAction(): void
+    {
+        match ($this->confirmingAction) {
+            'voidMaterial' => $this->voidMaterial((int) $this->confirmingId),
+            default => null,
+        };
+
+        $this->showConfirmation = false;
+        $this->confirmingAction = '';
+        $this->confirmingId = null;
+    }
+
     protected function sortableColumns(): array
     {
         return [
@@ -116,15 +143,27 @@ class MaterialLog extends Component
         return $ids;
     }
 
+    private function ensureReceiptWarehouseAccess(StockIn $receipt, bool $allowTransferSource = false): void
+    {
+        if ($wId = auth()->user()?->assignedWarehouseId()) {
+            $receiptWarehouseId = (int) ($receipt->warehouse_id ?: $receipt->material()->value('warehouse_id'));
+            $isTransferSource = $allowTransferSource && InventoryTransfer::where('destination_stock_in_id', $receipt->id)
+                ->where('source_warehouse_id', $wId)
+                ->exists();
+            abort_if($receiptWarehouseId !== $wId && ! $isTransferSource, 403);
+        }
+    }
+
     public function openReceiptEditor(int $id): void
     {
         $this->ensureInventoryAccess();
         $receipt = StockIn::where('entry_type', 'receipt')->findOrFail($id);
+        $this->ensureReceiptWarehouseAccess($receipt);
         $this->activeReceiptId = $receipt->id;
         $this->receiptQuantity = (string) $receipt->quantity;
         $this->receiptUnitPrice = (string) $receipt->unit_price;
         $this->receiptSupplierId = (string) ($receipt->supplier_id ?? '');
-        $this->receiptWarehouseId = (string) ($receipt->warehouse_id ?? '');
+        $this->receiptWarehouseId = (string) (auth()->user()?->assignedWarehouseId() ?? $receipt->warehouse_id ?? '');
         $this->receiptDate = $receipt->date?->format('Y-m-d') ?? '';
         $this->receiptReceivedAt = $receipt->received_at?->format('Y-m-d\\TH:i') ?? '';
         $this->receiptNotes = (string) ($receipt->notes ?? '');
@@ -137,6 +176,9 @@ class MaterialLog extends Component
     public function saveReceiptCorrection(): void
     {
         $this->ensureInventoryAccess();
+        if ($wId = auth()->user()?->assignedWarehouseId()) {
+            $this->receiptWarehouseId = (string) $wId;
+        }
         $this->validate([
             'activeReceiptId' => 'required|integer|exists:stock_ins,id',
             'receiptQuantity' => 'required|numeric|min:0.01|max:999999999.99',
@@ -154,6 +196,7 @@ class MaterialLog extends Component
             $affectedHouseCost = 0.0;
             DB::transaction(function () use (&$affectedHouseCost): void {
                 $receipt = StockIn::where('entry_type', 'receipt')->lockForUpdate()->findOrFail($this->activeReceiptId);
+                $this->ensureReceiptWarehouseAccess($receipt);
                 $material = Material::lockForUpdate()->findOrFail($receipt->material_id);
                 $directUsedQuantity = (float) MaterialUsage::where('stock_in_id', $receipt->id)
                     ->whereNull('voided_at')->lockForUpdate()->sum('quantity');
@@ -269,7 +312,8 @@ class MaterialLog extends Component
     public function openReceiptHistory(int $id): void
     {
         $this->ensureInventoryAccess();
-        StockIn::findOrFail($id);
+        $receipt = StockIn::findOrFail($id);
+        $this->ensureReceiptWarehouseAccess($receipt, true);
         $this->historyReceiptId = $id;
         $this->showReceiptHistoryModal = true;
     }
@@ -277,7 +321,8 @@ class MaterialLog extends Component
     public function openReceiptCancel(int $id): void
     {
         $this->ensureInventoryAccess();
-        StockIn::where('entry_type', 'receipt')->findOrFail($id);
+        $receipt = StockIn::where('entry_type', 'receipt')->findOrFail($id);
+        $this->ensureReceiptWarehouseAccess($receipt);
         $this->cancelReceiptId = $id;
         $this->receiptCancelReason = '';
         $this->resetValidation('receiptCancelReason');
@@ -291,6 +336,7 @@ class MaterialLog extends Component
         try {
             DB::transaction(function (): void {
                 $receipt = StockIn::where('entry_type', 'receipt')->lockForUpdate()->findOrFail($this->cancelReceiptId);
+                $this->ensureReceiptWarehouseAccess($receipt);
                 if (MaterialUsage::where('stock_in_id', $receipt->id)->whereNull('voided_at')->exists()
                     || InventoryTransfer::where('source_stock_in_id', $receipt->id)->exists()
                     || $receipt->reservedQuantityForUpdate() > 0) {
@@ -329,6 +375,10 @@ class MaterialLog extends Component
         try {
             DB::transaction(function () use ($usageId) {
                 $usage = MaterialUsage::whereHas('house', fn ($query) => $query->forUser(auth()->user()))
+                    ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where(fn ($sub) => $sub
+                        ->whereHas('stockIn', fn ($sq) => $sq->where('warehouse_id', $wId))
+                        ->orWhere(fn ($fallback) => $fallback->whereNull('stock_in_id')
+                            ->whereHas('material', fn ($mq) => $mq->where('warehouse_id', $wId)))))
                     ->lockForUpdate()->findOrFail($usageId);
                 if (! is_null($usage->voided_at)) {
                     throw new \Exception('Alokasi ini sudah dibatalkan sebelumnya.');
@@ -356,6 +406,10 @@ class MaterialLog extends Component
     {
         return MaterialUsage::with(['house', 'material', 'user'])
             ->whereHas('house', fn ($query) => $query->forUser(auth()->user()))
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where(fn ($sub) => $sub
+                ->whereHas('stockIn', fn ($sq) => $sq->where('warehouse_id', $wId))
+                ->orWhere(fn ($fallback) => $fallback->whereNull('stock_in_id')
+                    ->whereHas('material', fn ($mq) => $mq->where('warehouse_id', $wId)))))
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('transaction_code', 'like', "%{$this->search}%")
                 ->orWhereHas('material', fn ($material) => $material->where('name', 'like', "%{$this->search}%"))))
@@ -365,6 +419,10 @@ class MaterialLog extends Component
     protected function getMasukQuery()
     {
         return StockIn::with(['material', 'supplier', 'user'])
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where(fn ($sub) => $sub
+                ->where('warehouse_id', $wId)
+                ->orWhere(fn ($fallback) => $fallback->whereNull('warehouse_id')
+                    ->whereHas('material', fn ($mq) => $mq->where('warehouse_id', $wId)))))
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('entry_code', 'like', "%{$this->search}%")
                 ->orWhereHas('material', fn ($mq) => $mq->where('name', 'like', "%{$this->search}%"))))
@@ -411,6 +469,7 @@ class MaterialLog extends Component
             ->addSelect(DB::raw('0 as transferred_quantity'))
             ->addSelect(DB::raw('0 as price_correction_count'))
             ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($q) => $q->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->whereRaw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id) = ?', [$wId]))
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('materials.name', 'like', "%{$this->search}%")
                 ->orWhere('material_usages.transaction_code', 'like', "%{$this->search}%")
@@ -432,7 +491,7 @@ class MaterialLog extends Component
                 DB::raw("COALESCE(users.name, 'Tidak tercatat') as admin_name"),
                 'users.role as admin_role',
                 DB::raw('NULL as taken_by'),
-                DB::raw("CASE WHEN stock_ins.entry_type = 'transfer' THEN CONCAT('Asal: ', COALESCE(transfer_source.name, 'tidak tercatat'), '; tujuan: ', COALESCE(transfer_destination.name, 'tidak tercatat')) ELSE '-' END as house_name"),
+                DB::raw("CASE WHEN stock_ins.entry_type = 'transfer' THEN CONCAT('Asal: ', COALESCE(transfer_source.name, 'tidak tercatat'), '; tujuan: ', COALESCE(transfer_destination.name, 'tidak tercatat')) ELSE COALESCE(receipt_warehouse.name, '-') END as house_name"),
                 'stock_ins.notes as job_notes',
                 'materials.code as item_code',
                 'materials.name as item_name',
@@ -449,11 +508,15 @@ class MaterialLog extends Component
             ->addSelect(DB::raw('(SELECT COALESCE(SUM(it.quantity), 0) FROM inventory_transfers it WHERE it.source_stock_in_id = stock_ins.id) as transferred_quantity'))
             ->addSelect(DB::raw("(SELECT COUNT(*) FROM inventory_adjustments ia WHERE ia.adjustable_type = '".addslashes((new StockIn)->getMorphClass())."' AND ia.adjustable_id = stock_ins.id AND ia.field = 'unit_price') as price_correction_count"))
             ->join('materials', 'stock_ins.material_id', '=', 'materials.id')
+            ->leftJoin('warehouses as receipt_warehouse', DB::raw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id)'), '=', 'receipt_warehouse.id')
             ->leftJoin('inventory_transfers as inventory_transfer', 'inventory_transfer.destination_stock_in_id', '=', 'stock_ins.id')
             ->leftJoin('warehouses as transfer_source', 'inventory_transfer.source_warehouse_id', '=', 'transfer_source.id')
             ->leftJoin('warehouses as transfer_destination', 'inventory_transfer.destination_warehouse_id', '=', 'transfer_destination.id')
             ->leftJoin('suppliers', 'stock_ins.supplier_id', '=', 'suppliers.id')
             ->leftJoin('users', 'stock_ins.user_id', '=', 'users.id')
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where(fn ($sub) => $sub
+                ->whereRaw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id) = ?', [$wId])
+                ->orWhere('inventory_transfer.source_warehouse_id', $wId)))
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('materials.name', 'like', "%{$this->search}%")
                 ->orWhere('stock_ins.entry_code', 'like', "%{$this->search}%")
@@ -488,7 +551,7 @@ class MaterialLog extends Component
     {
         $houses = House::forUser(auth()->user())->orderBy('name')->get();
         $suppliers = Supplier::orderBy('name')->get();
-        $warehouses = Warehouse::orderBy('name')->get();
+        $warehouses = Warehouse::when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->whereKey($wId))->orderBy('name')->get();
         $activeReceipt = $this->showReceiptModal && $this->activeReceiptId
             ? StockIn::with('material')->find($this->activeReceiptId)
             : null;

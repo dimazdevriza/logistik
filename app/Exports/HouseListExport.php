@@ -3,27 +3,31 @@
 namespace App\Exports;
 
 use App\Models\House;
-use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithDrawings;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Shared\Drawing as ColumnDrawing;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColumnFormatting, WithStyles, WithEvents, ShouldAutoSize, WithTitle
+class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting, WithDrawings, WithEvents, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     use Exportable;
 
     private $rowNumber = 0;
+
     private int $year;
 
     public function __construct(
@@ -35,13 +39,14 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
         private ?string $sheetTitle = null,
         private ?string $reportTitle = null,
         private ?string $category = House::CATEGORY_HOUSE,
+        private ?int $houseId = null,
     ) {
         $this->year = $year ?: (int) now()->year;
     }
 
     public function title(): string
     {
-        return $this->sheetTitle ?? 'Biaya Rumah ' . $this->year;
+        return $this->sheetTitle ?? 'Biaya Rumah '.$this->year;
     }
 
     public function query()
@@ -53,15 +58,16 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
 
         for ($m = 1; $m <= 12; $m++) {
             $query->withSum([
-                'materialUsages as month_' . $m . '_cost' => function ($q) use ($m) {
+                'materialUsages as month_'.$m.'_cost' => function ($q) use ($m) {
                     $q->whereNull('voided_at')
                         ->whereYear('usage_date', $this->year)
                         ->whereMonth('usage_date', $m);
-                }
+                },
             ], 'total_cost');
         }
 
         return $query
+            ->when($this->houseId !== null, fn ($q) => $q->whereKey($this->houseId))
             ->when($this->category !== null, fn ($q) => $q->where('category', $this->category))
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
@@ -77,9 +83,19 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
 
     public function headings(): array
     {
+        $house = $this->houseId ? House::find($this->houseId) : null;
+        $title = $this->reportTitle ?? ($house
+            ? 'Laporan Biaya Perbulan - '.$house->name
+            : 'D\'ROYAL VILLAGE - LAPORAN MONITORING BIAYA RUMAH PER BULAN (TAHUN '.$this->year.')');
+        $subtitle = $house
+            ? 'Proyek: '.($house->house_code ?? '-').' ('.($house->type ?? '-').') | Tahun '.$this->year
+            : 'Tahun Monitoring: '.$this->year;
+
         return [
-            [$this->reportTitle ?? 'D\'ROYAL VILLAGE - LAPORAN MONITORING BIAYA RUMAH PER BULAN (TAHUN ' . $this->year . ')'],
-            ['Diekspor pada: ' . now()->format('d F Y H:i')],
+            [' '],
+            [$title],
+            ['Diekspor pada: '.now()->format('d F Y H:i')],
+            [$subtitle],
             [],
             [
                 'No.',
@@ -100,10 +116,23 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
                 'Okt',
                 'Nov',
                 'Des',
-                'Total Tahun ' . $this->year,
-                'Total Keseluruhan'
-            ]
+                'Total Tahun '.$this->year,
+                'Total Keseluruhan',
+            ],
         ];
+    }
+
+    public function drawings(): array
+    {
+        $drawing = new Drawing();
+        $drawing->setName('D\'Royal Village');
+        $drawing->setDescription('D\'Royal Village logo');
+        $drawing->setPath(public_path('images/logo-light.png'));
+        $drawing->setHeight(48);
+        $drawing->setCoordinates('A1');
+        $drawing->setOffsetY(4);
+
+        return [$drawing];
     }
 
     public function map($house): array
@@ -113,7 +142,7 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
         $yearTotal = 0;
         $months = [];
         for ($m = 1; $m <= 12; $m++) {
-            $val = (float) ($house->{'month_' . $m . '_cost'} ?? 0);
+            $val = (float) ($house->{'month_'.$m.'_cost'} ?? 0);
             $months[] = $val;
             $yearTotal += $val;
         }
@@ -159,28 +188,52 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
     {
         $sheet->mergeCells('A1:T1');
         $sheet->mergeCells('A2:T2');
+        $sheet->mergeCells('A3:T3');
+        $sheet->mergeCells('A4:T4');
+        $sheet->getRowDimension(1)->setRowHeight(52);
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
+        $sheet->getStyle('A1:T4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        return [
-            1 => [
-                'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '136928']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        $sheet->getStyle('A6:T6')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '334155'],
             ],
-            2 => [
-                'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '555555']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
             ],
-            4 => [
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '1F9B3A'],
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER,
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
                 ],
             ],
-        ];
+        ]);
+
+        $sheet->calculateColumnWidths();
+        $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
+        $columnWidths = [];
+        $totalWidth = 0;
+        for ($column = 1; $column <= 20; $column++) {
+            $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
+            $columnWidths[] = $width;
+            $totalWidth += $width;
+        }
+
+        $offset = max(0, (int) (($totalWidth - $sheet->getDrawingCollection()[0]->getWidth()) / 2));
+        foreach ($columnWidths as $index => $width) {
+            if ($offset < $width) {
+                $sheet->getDrawingCollection()[0]
+                    ->setCoordinates(Coordinate::stringFromColumnIndex($index + 1).'1')
+                    ->setOffsetX($offset);
+                break;
+            }
+            $offset -= $width;
+        }
+
+        return [];
     }
 
     public function registerEvents(): array
@@ -188,9 +241,9 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $highestRow = $sheet->getHighestRow();
+                $highestRow = max(6, $sheet->getHighestRow());
 
-                $sheet->getStyle("A4:T{$highestRow}")->applyFromArray([
+                $sheet->getStyle("A6:T{$highestRow}")->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -198,35 +251,27 @@ class HouseListExport implements FromQuery, WithHeadings, WithMapping, WithColum
                         ],
                     ],
                 ]);
+                $sheet->getStyle('A6:T6')->getBorders()->getAllBorders()->getColor()->setRGB('000000');
 
-                // Alignment for columns
-                $sheet->getStyle("A5:A{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("B5:B{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("F5:F{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("G5:T{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                if ($highestRow >= 7) {
+                    $sheet->getStyle("A7:A{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle("B7:B{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle("F7:F{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle("G7:T{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                }
 
                 // Add summary footer row
                 $totalRow = $highestRow + 1;
                 $sheet->setCellValue("F{$totalRow}", 'TOTAL:');
-                $sheet->setCellValue("G{$totalRow}", "=SUM(G5:G{$highestRow})");
-                $sheet->setCellValue("H{$totalRow}", "=SUM(H5:H{$highestRow})");
-                $sheet->setCellValue("I{$totalRow}", "=SUM(I5:I{$highestRow})");
-                $sheet->setCellValue("J{$totalRow}", "=SUM(J5:J{$highestRow})");
-                $sheet->setCellValue("K{$totalRow}", "=SUM(K5:K{$highestRow})");
-                $sheet->setCellValue("L{$totalRow}", "=SUM(L5:L{$highestRow})");
-                $sheet->setCellValue("M{$totalRow}", "=SUM(M5:M{$highestRow})");
-                $sheet->setCellValue("N{$totalRow}", "=SUM(N5:N{$highestRow})");
-                $sheet->setCellValue("O{$totalRow}", "=SUM(O5:O{$highestRow})");
-                $sheet->setCellValue("P{$totalRow}", "=SUM(P5:P{$highestRow})");
-                $sheet->setCellValue("Q{$totalRow}", "=SUM(Q5:Q{$highestRow})");
-                $sheet->setCellValue("R{$totalRow}", "=SUM(R5:R{$highestRow})");
-                $sheet->setCellValue("S{$totalRow}", "=SUM(S5:S{$highestRow})");
-                $sheet->setCellValue("T{$totalRow}", "=SUM(T5:T{$highestRow})");
+                foreach (range('G', 'T') as $col) {
+                    $sheet->setCellValue("{$col}{$totalRow}", $highestRow >= 7 ? "=SUM({$col}7:{$col}{$highestRow})" : 0);
+                }
 
                 $sheet->getStyle("F{$totalRow}:T{$totalRow}")->applyFromArray([
                     'font' => ['bold' => true],
                 ]);
                 $sheet->getStyle("F{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("G{$totalRow}:T{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                 $sheet->getStyle("G{$totalRow}:T{$totalRow}")->getNumberFormat()->setFormatCode('[$Rp-421] #,##0.00');
             },
         ];

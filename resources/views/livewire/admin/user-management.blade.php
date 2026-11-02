@@ -62,6 +62,7 @@
                             <x-sortable-th field="google" :sort="$sort">Google</x-sortable-th>
                             <x-sortable-th field="role" :sort="$sort">Role</x-sortable-th>
                             <x-sortable-th field="cluster" :sort="$sort">Cluster</x-sortable-th>
+                            <x-sortable-th field="warehouse" :sort="$sort">Gudang</x-sortable-th>
                             <x-sortable-th field="created_at" :sort="$sort">Dibuat</x-sortable-th>
                             <th class="text-end" style="width: 100px;">Aksi</th>
                         </tr>
@@ -83,13 +84,14 @@
                                 <span class="badge {{ $roleClasses[$user->role] ?? 'bg-secondary-subtle text-secondary' }}">{{ $user->role === 'inactive' ? 'Nonaktif' : ucfirst($user->role) }}</span>
                             </span></td>
                             <td data-label="Cluster" class="text-secondary small"><span class="management-cell-value">{{ $user->cluster?->name ?? 'Belum ditetapkan' }}</span></td>
+                            <td data-label="Gudang" class="text-secondary small"><span class="management-cell-value">{{ $user->warehouse?->name ?? 'Belum ditetapkan' }}</span></td>
                             <td data-label="Dibuat" class="text-secondary small"><span class="management-cell-value">{{ $user->created_at->format('d/m/Y') }}</span></td>
                             <td data-label="Aksi" class="text-end"><span class="management-cell-value"><span class="btn-group btn-group-sm data-row-actions">
                                     <button type="button" wire:click="edit({{ $user->id }})" class="btn log-row-action log-row-action--edit d-inline-flex align-items-center justify-content-center" title="Edit" aria-label="Edit {{ $user->name }}">
                                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>
                                     </button>
                                     @if ($user->id !== auth()->id())
-                                        <button type="button" wire:click="delete({{ $user->id }})" wire:confirm="Yakin ingin menghapus user ini?" class="btn log-row-action log-row-action--danger d-inline-flex align-items-center justify-content-center" title="Hapus" aria-label="Hapus {{ $user->name }}">
+                                        <button type="button" wire:click="confirm('delete', {{ $user->id }}, 'Hapus User?', 'Yakin ingin menghapus user ini?')" class="btn log-row-action log-row-action--danger d-inline-flex align-items-center justify-content-center" title="Hapus" aria-label="Hapus {{ $user->name }}">
                                             <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
                                         </button>
                                     @endif
@@ -97,7 +99,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="management-table-empty text-center py-4 text-secondary">Belum ada data user.</td>
+                            <td colspan="8" class="management-table-empty text-center py-4 text-secondary">Belum ada data user.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -159,11 +161,47 @@
                             <div class="form-text">{{ $role === 'pengawas' ? 'Akses Pengawas dibatasi ke cluster ini.' : 'Operasi Logistik dibatasi ke rumah di cluster ini.' }}</div>
                             @error('cluster_id') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label font-semibold">{{ $role === 'pengawas' ? 'Gudang tanggung jawab' : 'Gudang tugas' }}</label>
+                            <select wire:model="warehouse_id" class="form-select">
+                                <option value="">{{ $role === 'pengawas' ? 'Pilih gudang tanggung jawab' : 'Pilih gudang tugas' }}</option>
+                                @foreach ($warehouses as $warehouse)
+                                    <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">{{ $role === 'pengawas' ? 'Inventaris & catatan Pengawas dibatasi ke gudang ini.' : 'Inventaris, alokasi, dan transfer Logistik dibatasi ke gudang ini.' }}</div>
+                            @error('warehouse_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
                     @endif
                 </div>
                 <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
                     <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showModal', false)">Batal</button>
                     <button type="button" class="btn btn-success fw-semibold" wire:click="save" wire:loading.attr="disabled" wire:target="save"><span wire:loading.remove wire:target="save">{{ $editMode ? 'Perbarui' : 'Simpan' }}</span><span wire:loading wire:target="save">Menyimpan…</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endteleport
+    @endif
+
+    @if($showConfirmation)
+    @teleport('body')
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header border-bottom p-3 bg-body-tertiary">
+                    <h5 class="modal-title font-outfit fw-bold text-body fs-6">{{ $confirmTitle ?: 'Konfirmasi' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="p-3 bg-danger-subtle text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+                    </div>
+                    <p class="text-secondary small mb-0">{{ $confirmMessage ?: 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                </div>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 p-3 d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm fw-semibold px-3" wire:click="$set('showConfirmation', false)">Batal</button>
+                    <button type="button" class="btn btn-danger btn-sm fw-semibold px-3 shadow-xs" wire:click="executeConfirmedAction" wire:loading.attr="disabled" wire:target="executeConfirmedAction">Ya, Hapus</button>
                 </div>
             </div>
         </div>

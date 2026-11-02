@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Cluster;
 use App\Models\User;
 
 test('guests are redirected to the login page', function () {
@@ -29,4 +30,21 @@ test('inactive legacy accounts cannot enter the application', function () {
 
     $this->get(route('logistik.alokasi'))->assertForbidden();
     $this->get(route('profile.edit'))->assertForbidden();
+});
+
+test('logistik user sees assigned cluster indicator in sidebar footer', function () {
+    $cluster = Cluster::create(['name' => 'Cluster Zamrud']);
+    $logistik = User::factory()->create(['role' => 'logistik', 'cluster_id' => $cluster->id]);
+
+    $this->actingAs($logistik)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Cluster Zamrud');
+
+    $unassigned = User::factory()->create(['role' => 'logistik', 'cluster_id' => null]);
+
+    $this->actingAs($unassigned)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Belum ditugaskan');
 });

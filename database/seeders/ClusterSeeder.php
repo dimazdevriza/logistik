@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Cluster;
 use App\Models\User;
+use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
 
 class ClusterSeeder extends Seeder
@@ -14,6 +15,9 @@ class ClusterSeeder extends Seeder
         Cluster::firstOrCreate(['name' => 'Cluster B'], ['description' => 'Tahap pembangunan sisi selatan.']);
 
         User::where('email', 'logistik@logistik.com')
-            ->update(['cluster_id' => Cluster::where('name', 'Cluster A')->value('id')]);
+            ->update([
+                'cluster_id' => Cluster::where('name', 'Cluster A')->value('id'),
+                'warehouse_id' => Warehouse::where('name', 'Gudang Utama')->value('id'),
+            ]);
     }
 }

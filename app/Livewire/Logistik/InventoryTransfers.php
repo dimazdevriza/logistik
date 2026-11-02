@@ -12,9 +12,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class InventoryTransfers extends Component
 {
+    use WithPagination;
+
     public string $inventory_type = 'material';
 
     public string $source_warehouse_id = '';
@@ -31,9 +34,36 @@ class InventoryTransfers extends Component
 
     public string $notes = '';
 
+    public string $search = '';
+
+    public string $filterType = '';
+
     public function mount(): void
     {
         $this->transferred_at = now()->toDateString();
+        if ($wId = auth()->user()?->assignedWarehouseId()) {
+            $this->source_warehouse_id = (string) $wId;
+        }
+    }
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterType(): void
+    {
+        $this->resetPage();
+    }
+
+    public function setInventoryType(string $type): void
+    {
+        if (! in_array($type, ['material', 'tool'], true) || $this->inventory_type === $type) {
+            return;
+        }
+
+        $this->inventory_type = $type;
+        $this->updatedInventoryType();
     }
 
     public function updatedInventoryType(): void
@@ -41,17 +71,64 @@ class InventoryTransfers extends Component
         $this->item_id = '';
         $this->stock_in_id = '';
         $this->quantity = '1';
+        $this->resetValidation();
     }
 
     public function updatedSourceWarehouseId(): void
     {
         $this->item_id = '';
         $this->stock_in_id = '';
+        if ($this->destination_warehouse_id !== '' && $this->destination_warehouse_id === $this->source_warehouse_id) {
+            $this->destination_warehouse_id = '';
+        }
+        $this->resetValidation();
+    }
+
+    public function swapWarehouses(): void
+    {
+        [$this->source_warehouse_id, $this->destination_warehouse_id] = [$this->destination_warehouse_id, $this->source_warehouse_id];
+        $this->item_id = '';
+        $this->stock_in_id = '';
+        $this->resetValidation();
     }
 
     public function updatedItemId(): void
     {
         $this->stock_in_id = '';
+        if ($this->inventory_type === 'material' && $this->item_id && $this->source_warehouse_id) {
+            $firstBatchId = StockIn::query()
+                ->where('material_id', $this->item_id)
+                ->where('warehouse_id', $this->source_warehouse_id)
+                ->whereNotNull('remaining_quantity')
+                ->whereAvailableQuantity()
+                ->orderBy('received_at')
+                ->orderBy('id')
+                ->value('id');
+
+            if ($firstBatchId) {
+                $this->stock_in_id = (string) $firstBatchId;
+            }
+        }
+        $this->resetValidation();
+    }
+
+    public function setMaxQuantity(float $max): void
+    {
+        if ($max <= 0) {
+            return;
+        }
+
+        $this->quantity = $this->inventory_type === 'tool'
+            ? (string) max(1, (int) floor($max))
+            : rtrim(rtrim(number_format($max, 2, '.', ''), '0'), '.');
+    }
+
+    public function resetForm(): void
+    {
+        $this->reset(['item_id', 'stock_in_id', 'notes']);
+        $this->quantity = '1';
+        $this->transferred_at = now()->toDateString();
+        $this->resetValidation();
     }
 
     protected function rules(): array
@@ -184,28 +261,58 @@ class InventoryTransfers extends Component
     {
         $warehouses = Warehouse::orderBy('name')->get(['id', 'name']);
         $items = $this->inventory_type === 'material'
-            ? Material::where('warehouse_id', $this->source_warehouse_id ?: 0)
+            ? Material::with('supplier:id,name')
+                ->where('warehouse_id', $this->source_warehouse_id ?: 0)
                 ->where('stock', '>', 0)
                 ->whereHas('stockIns', fn ($query) => $query->where('warehouse_id', $this->source_warehouse_id ?: 0)->whereAvailableQuantity())
                 ->orderBy('name')
-                ->get(['id', 'name', 'unit', 'stock', 'unit_price'])
+                ->get(['id', 'code', 'name', 'unit', 'stock', 'unit_price', 'supplier_id'])
             : Tool::with(['warehouseBalances' => fn ($query) => $query->where('warehouse_id', $this->source_warehouse_id ?: 0)])
                 ->whereHas('warehouseBalances', fn ($query) => $query
                     ->where('warehouse_id', $this->source_warehouse_id ?: 0)
                     ->where('available_qty', '>', 0))
                 ->orderBy('name')
                 ->get(['id', 'name', 'code', 'available_qty', 'total_qty']);
+
         $batches = $this->inventory_type === 'material' && $this->item_id
-            ? StockIn::withReservedQuantity()
+            ? StockIn::with('supplier:id,name')
+                ->withReservedQuantity()
                 ->where('material_id', $this->item_id)
                 ->where('warehouse_id', $this->source_warehouse_id ?: 0)
                 ->whereNotNull('remaining_quantity')
                 ->whereAvailableQuantity()
                 ->orderBy('received_at')
                 ->orderBy('id')
-                ->get(['id', 'entry_code', 'entry_type', 'remaining_quantity', 'unit_price', 'received_at', 'date'])
+                ->get(['id', 'entry_code', 'entry_type', 'remaining_quantity', 'unit_price', 'received_at', 'date', 'supplier_id'])
             : collect();
-        return view('livewire.logistik.inventory-transfers', compact('warehouses', 'items', 'batches'))
+
+        $transfers = InventoryTransfer::query()
+            ->with([
+                'sourceWarehouse:id,name',
+                'destinationWarehouse:id,name',
+                'material:id,code,name,unit,unit_price',
+                'tool:id,code,name',
+                'sourceBatch:id,entry_code,unit_price',
+                'createdBy:id,name',
+            ])
+            ->when($this->filterType === 'material', fn ($q) => $q->whereNotNull('material_id'))
+            ->when($this->filterType === 'tool', fn ($q) => $q->whereNotNull('tool_id'))
+            ->when($this->search, function ($q) {
+                $term = "%{$this->search}%";
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('transfer_code', 'like', $term)
+                        ->orWhere('notes', 'like', $term)
+                        ->orWhereHas('sourceWarehouse', fn ($w) => $w->where('name', 'like', $term))
+                        ->orWhereHas('destinationWarehouse', fn ($w) => $w->where('name', 'like', $term))
+                        ->orWhereHas('material', fn ($m) => $m->where('name', 'like', $term)->orWhere('code', 'like', $term))
+                        ->orWhereHas('tool', fn ($t) => $t->where('name', 'like', $term)->orWhere('code', 'like', $term));
+                });
+            })
+            ->orderByDesc('transferred_at')
+            ->orderByDesc('id')
+            ->paginate(10);
+
+        return view('livewire.logistik.inventory-transfers', compact('warehouses', 'items', 'batches', 'transfers'))
             ->layout('layouts.app', ['title' => 'Transfer Gudang']);
     }
 }

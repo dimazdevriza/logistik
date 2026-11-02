@@ -9,6 +9,7 @@ use App\Models\Warehouse;
 use App\Models\ToolWarehouseBalance;
 use App\Models\Tool;
 use App\Traits\WithTableSorting;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -21,10 +22,42 @@ class WarehouseDetail extends Component
     public string $activeTab = 'material';
     public string $sort = 'name_asc';
     public string $search = '';
+    public bool $showEditModal = false;
+    public string $name = '';
+    public string $address = '';
 
     public function mount(Warehouse $warehouse): void
     {
+        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $warehouse->id !== $wId) {
+            abort(403);
+        }
         $this->warehouse = $warehouse;
+    }
+
+    public function openEditModal(): void
+    {
+        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->warehouse->id !== $wId) {
+            abort(403);
+        }
+        $this->name = $this->warehouse->name;
+        $this->address = $this->warehouse->address ?? '';
+        $this->resetValidation();
+        $this->showEditModal = true;
+    }
+
+    public function saveWarehouse(): void
+    {
+        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->warehouse->id !== $wId) {
+            abort(403);
+        }
+        $data = $this->validate([
+            'name' => ['required', 'string', 'max:255', Rule::unique('warehouses', 'name')->ignore($this->warehouse->id)],
+            'address' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $this->warehouse->update($data);
+        $this->warehouse->refresh();
+        $this->showEditModal = false;
+        session()->flash('success', 'Gudang berhasil diperbarui.');
     }
 
     public function updatingActiveTab(string $value): void
@@ -71,6 +104,9 @@ class WarehouseDetail extends Component
 
     public function exportExcel()
     {
+        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->warehouse->id !== $wId) {
+            abort(403);
+        }
         $export = new WarehouseExport($this->warehouse->id);
         $filename = 'inventaris-gudang-' . $this->warehouse->id . '-' . now()->format('Ymd-His') . '.xlsx';
 

@@ -3,11 +3,19 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    <a href="{{ route('logistik.warehouses') }}" wire:navigate class="back-link mb-3"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>Kembali ke Gudang</a>
+                    @if (auth()->user()->canAccessAllWarehouses())
+                        <a href="{{ route('logistik.warehouses') }}" wire:navigate class="back-link mb-3"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>Kembali ke Gudang</a>
+                    @endif
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">{{ $warehouse->name }}</h1>
                     <p class="text-secondary mb-0">{{ $warehouse->address ?: 'Alamat gudang belum dicatat.' }}</p>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
+                    <button type="button" wire:click="openEditModal" class="btn btn-utility font-semibold">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+                        </svg>
+                        <span>Edit Gudang</span>
+                    </button>
                     <button type="button" wire:click="exportExcel" wire:loading.attr="disabled" wire:target="exportExcel" class="btn btn-utility font-semibold">
                         <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
                             <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
@@ -18,6 +26,13 @@
                 </div>
             </div>
         </div>
+
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
 
         <div class="row g-4 mb-4">
             <div class="col-md-4">
@@ -153,4 +168,35 @@
             @endif
         </div>
     </div>
+
+    @if ($showEditModal)
+        @teleport('body')
+            <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog" wire:keydown.escape.window="$set('showEditModal', false)">
+                <div class="modal-dialog modal-dialog-centered modal-md">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header border-bottom">
+                            <h5 class="modal-title font-outfit fw-bold">Edit Gudang</h5>
+                            <button type="button" class="btn-close" wire:click="$set('showEditModal', false)" aria-label="Tutup"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold" for="warehouse-detail-name">Nama Gudang</label>
+                                <input id="warehouse-detail-name" type="text" wire:model="name" class="form-control" placeholder="Contoh: Gudang Barat" autofocus />
+                                @error('name') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                            </div>
+                            <div>
+                                <label class="form-label fw-semibold" for="warehouse-detail-address">Alamat atau lokasi</label>
+                                <textarea id="warehouse-detail-address" wire:model="address" class="form-control" rows="3" placeholder="Keterangan lokasi, opsional"></textarea>
+                                @error('address') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                            <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showEditModal', false)">Batal</button>
+                            <button type="button" class="btn btn-success fw-semibold" wire:click="saveWarehouse" wire:loading.attr="disabled" wire:target="saveWarehouse"><span wire:loading.remove wire:target="saveWarehouse">Simpan Perubahan</span><span wire:loading wire:target="saveWarehouse">Menyimpan gudang…</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endteleport
+    @endif
 </div>

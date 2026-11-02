@@ -33,6 +33,34 @@ class ToolLog extends Component
 
     public array $repairCostsById = [];
 
+    public bool $showConfirmation = false;
+    public string $confirmingAction = '';
+    public ?int $confirmingId = null;
+    public string $confirmTitle = '';
+    public string $confirmMessage = '';
+
+    public function confirm(string $action, ?int $id = null, string $title = '', string $message = ''): void
+    {
+        $this->confirmingAction = $action;
+        $this->confirmingId = $id;
+        $this->confirmTitle = $title;
+        $this->confirmMessage = $message;
+        $this->showConfirmation = true;
+    }
+
+    public function executeConfirmedAction(): void
+    {
+        match ($this->confirmingAction) {
+            'voidTool' => $this->voidTool((int) $this->confirmingId),
+            'discardBrokenReturn' => $this->resolveBrokenReturn((int) $this->confirmingId, 'discarded'),
+            default => null,
+        };
+
+        $this->showConfirmation = false;
+        $this->confirmingAction = '';
+        $this->confirmingId = null;
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -84,6 +112,7 @@ class ToolLog extends Component
         try {
             DB::transaction(function () use ($usageId) {
                 $usage = ToolUsage::whereHas('house', fn ($query) => $query->forUser(auth()->user()))
+                    ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where('warehouse_id', $wId))
                     ->lockForUpdate()->findOrFail($usageId);
                 if (! is_null($usage->voided_at)) {
                     throw new \Exception('Peminjaman ini sudah dibatalkan sebelumnya.');
@@ -127,6 +156,7 @@ class ToolLog extends Component
 
         DB::transaction(function () use ($returnLogId, $resolution): void {
             $return = ToolReturnLog::whereHas('house', fn ($query) => $query->forUser(auth()->user()))
+                ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where('receiving_warehouse_id', $wId))
                 ->lockForUpdate()->findOrFail($returnLogId);
             if ($return->report_type !== 'broken' || $return->status !== 'pending') {
                 throw ValidationException::withMessages(['resolution' => 'Catatan rusak ini sudah diproses atau tidak dapat diselesaikan.']);
@@ -221,6 +251,7 @@ class ToolLog extends Component
             ->leftJoin('tools as source_tool', 'dispatch_lines.tool_id', '=', 'source_tool.id')
             ->leftJoin('warehouses as source_warehouse', 'dispatch_lines.warehouse_id', '=', 'source_warehouse.id')
             ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->whereRaw('COALESCE(tool_usages.warehouse_id, tools.warehouse_id) = ?', [$wId]))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('tool_usages.transaction_code', 'like', "%{$this->search}%")
                 ->orWhere('tool_usages.dispatch_code', 'like', "%{$this->search}%")
@@ -263,6 +294,7 @@ class ToolLog extends Component
             )
             ->leftJoin('users', 'tools.recorded_by_id', '=', 'users.id')
             ->leftJoin('warehouses', 'tools.warehouse_id', '=', 'warehouses.id')
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where('tools.warehouse_id', $wId))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('tools.entry_code', 'like', "%{$this->search}%")
                 ->orWhere('tools.code', 'like', "%{$this->search}%")
@@ -304,6 +336,7 @@ class ToolLog extends Component
             ->leftJoin('users as receivers', 'tool_return_logs.received_by_id', '=', 'receivers.id')
             ->leftJoin('users as reporters', 'tool_return_logs.reported_by', '=', 'reporters.id')
             ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->whereRaw('COALESCE(tool_return_logs.receiving_warehouse_id, tool_usages.warehouse_id, tools.warehouse_id) = ?', [$wId]))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('tool_return_logs.transaction_code', 'like', "%{$this->search}%")
                 ->orWhereRaw("CONCAT('KMB-', tool_return_logs.id) like ?", ["%{$this->search}%"])
@@ -347,6 +380,9 @@ class ToolLog extends Component
             ->join('warehouses as source_warehouse', 'inventory_transfers.source_warehouse_id', '=', 'source_warehouse.id')
             ->join('warehouses as destination_warehouse', 'inventory_transfers.destination_warehouse_id', '=', 'destination_warehouse.id')
             ->leftJoin('users', 'inventory_transfers.created_by', '=', 'users.id')
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where(fn ($sub) => $sub
+                ->where('inventory_transfers.source_warehouse_id', $wId)
+                ->orWhere('inventory_transfers.destination_warehouse_id', $wId)))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('inventory_transfers.transfer_code', 'like', "%{$this->search}%")
                 ->orWhere('tools.code', 'like', "%{$this->search}%")
@@ -394,6 +430,7 @@ class ToolLog extends Component
             ->where('report_type', 'broken')
             ->where('status', 'pending')
             ->whereHas('house', fn ($query) => $query->forUser(auth()->user()))
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where('receiving_warehouse_id', $wId))
             ->oldest('received_at')
             ->get();
 

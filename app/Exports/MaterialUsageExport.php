@@ -8,18 +8,22 @@ use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Shared\Drawing as ColumnDrawing;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormatting, WithEvents, WithHeadings, WithMapping, WithStyles, WithTitle
+class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormatting, WithDrawings, WithEvents, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     use Exportable;
 
@@ -49,6 +53,7 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
         $house = House::find($this->houseId);
 
         return [
+            [' '],
             ['Laporan Penggunaan Material - '.($house->name ?? 'D\'Royal Village')],
             ['Diekspor pada: '.now()->format('d F Y H:i')],
             ['Proyek: '.($house->house_code ?? '-').' ('.($house->type ?? '-').')'],
@@ -67,6 +72,19 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
                 'Dicatat pada',
             ],
         ];
+    }
+
+    public function drawings(): array
+    {
+        $drawing = new Drawing();
+        $drawing->setName('D\'Royal Village');
+        $drawing->setDescription('D\'Royal Village logo');
+        $drawing->setPath(public_path('images/logo-light.png'));
+        $drawing->setHeight(48);
+        $drawing->setCoordinates('A1');
+        $drawing->setOffsetY(4);
+
+        return [$drawing];
     }
 
     public function map($usage): array
@@ -100,9 +118,14 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
 
     public function styles(Worksheet $sheet)
     {
-        // Styling metadata rows
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A2:A3')->getFont()->setItalic(true)->setSize(10);
+        $sheet->mergeCells('A1:K1');
+        $sheet->mergeCells('A2:K2');
+        $sheet->mergeCells('A3:K3');
+        $sheet->mergeCells('A4:K4');
+        $sheet->getRowDimension(1)->setRowHeight(52);
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
+        $sheet->getStyle('A1:K4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Header Styling (Rule 2: Dark Slate Grey #334155)
         $headerStyle = [
@@ -124,7 +147,28 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
             ],
         ];
 
-        $sheet->getStyle('A5:K5')->applyFromArray($headerStyle);
+        $sheet->getStyle('A6:K6')->applyFromArray($headerStyle);
+
+        $sheet->calculateColumnWidths();
+        $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
+        $columnWidths = [];
+        $totalWidth = 0;
+        for ($column = 1; $column <= 11; $column++) {
+            $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
+            $columnWidths[] = $width;
+            $totalWidth += $width;
+        }
+
+        $offset = max(0, (int) (($totalWidth - $sheet->getDrawingCollection()[0]->getWidth()) / 2));
+        foreach ($columnWidths as $index => $width) {
+            if ($offset < $width) {
+                $sheet->getDrawingCollection()[0]
+                    ->setCoordinates(Coordinate::stringFromColumnIndex($index + 1).'1')
+                    ->setOffsetX($offset);
+                break;
+            }
+            $offset -= $width;
+        }
 
         // Alignment
         $sheet->getStyle('A:B')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -140,9 +184,6 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                $lastRow = $event->sheet->getHighestRow();
-                $footerRow = $lastRow + 1;
-
                 // Calculate Total
                 $totalCost = MaterialUsage::where('house_id', $this->houseId)->whereNull('voided_at')->sum('total_cost');
 

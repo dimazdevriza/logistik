@@ -4,8 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -28,6 +28,7 @@ class User extends Authenticatable
         'password',
         'role',
         'cluster_id',
+        'warehouse_id',
     ];
 
     /**
@@ -73,9 +74,26 @@ class User extends Authenticatable
         return in_array($this->role, ['admin', 'keuangan'], true);
     }
 
+    public function canAccessAllWarehouses(): bool
+    {
+        return in_array($this->role, ['admin', 'keuangan'], true) || ! $this->warehouse_id;
+    }
+
+    public function assignedWarehouseId(): ?int
+    {
+        return in_array($this->role, ['logistik', 'pengawas'], true) && $this->warehouse_id
+            ? (int) $this->warehouse_id
+            : null;
+    }
+
     public function cluster(): BelongsTo
     {
         return $this->belongsTo(Cluster::class);
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     public function materialUsages(): HasMany

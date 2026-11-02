@@ -114,22 +114,28 @@ class DashboardController extends Controller
             $matches = [null, 'date', 'desc'];
         }
 
+        $wId = $user->assignedWarehouseId();
         $recentActivities = MaterialUsage::with(['material', 'house'])
             ->whereNull('voided_at')
             ->whereHas('house', fn ($house) => $house->forUser($user))
+            ->when($wId, fn ($q) => $q->where(fn ($sub) => $sub
+                ->whereHas('stockIn', fn ($sq) => $sq->where('warehouse_id', $wId))
+                ->orWhere(fn ($fb) => $fb->whereNull('stock_in_id')
+                    ->whereHas('material', fn ($mq) => $mq->where('warehouse_id', $wId)))))
             ->orderBy($activitySorters[$matches[1]], $matches[2])
             ->orderByDesc('material_usages.id')
             ->take(5)
             ->get();
 
         $stats = [
-            'total_materials' => Material::count(),
-            'low_stock_count' => cache()->remember('dashboard_low_stock_count', 60, function () {
-                return Material::where('stock', '<=', 10)->count();
+            'total_materials' => Material::when($wId, fn ($q) => $q->where('warehouse_id', $wId))->count(),
+            'low_stock_count' => cache()->remember('dashboard_low_stock_count_'.($wId ?: 'all'), 60, function () use ($wId) {
+                return Material::when($wId, fn ($q) => $q->where('warehouse_id', $wId))->where('stock', '<=', 10)->count();
             }),
-            'tools_on_loan' => cache()->remember('dashboard_tools_on_loan_cluster_'.$user->cluster_id, 60, function () use ($user) {
+            'tools_on_loan' => cache()->remember('dashboard_tools_on_loan_cluster_'.$user->cluster_id.'_'.($wId ?: 'all'), 60, function () use ($user, $wId) {
                 return ToolUsage::whereNull('return_date')->whereNull('voided_at')
                     ->whereHas('house', fn ($house) => $house->forUser($user))
+                    ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
                     ->count();
             }),
             'recent_activities' => $recentActivities,

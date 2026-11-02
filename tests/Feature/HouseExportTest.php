@@ -68,22 +68,28 @@ class HouseExportTest extends TestCase
             fwrite($file, Excel::raw(new HouseExport($house->id), \Maatwebsite\Excel\Excel::XLSX));
             $workbook = IOFactory::load(stream_get_meta_data($file)['uri']);
 
-            $this->assertSame(['Material', 'Alat', 'Jasa Vendor', 'Sewa Alat'], $workbook->getSheetNames());
+            $this->assertSame(['Material', 'Alat', 'Jasa Vendor', 'Sewa Alat', 'Laporan Perbulan'], $workbook->getSheetNames());
             $serviceSheet = $workbook->getSheetByName('Jasa Vendor');
-            $this->assertSame('Laporan Jasa Vendor - TEST Export House', $serviceSheet->getCell('A1')->getValue());
-            $this->assertSame('TEST Export Plumbing', $serviceSheet->getCell('B6')->getValue());
-            $this->assertSame('[$Rp-421] #,##0.00', $serviceSheet->getStyle('D6')->getNumberFormat()->getFormatCode());
+            $this->assertSame('Laporan Jasa Vendor - TEST Export House', $serviceSheet->getCell('A2')->getValue());
+            $this->assertSame('TEST Export Plumbing', $serviceSheet->getCell('B7')->getValue());
+            $this->assertSame('[$Rp-421] #,##0.00', $serviceSheet->getStyle('D7')->getNumberFormat()->getFormatCode());
             $rentalSheet = $workbook->getSheetByName('Sewa Alat');
-            $this->assertSame('Jenis', $rentalSheet->getCell('A5')->getValue());
-            $this->assertSame('TEST Export Excavator', $rentalSheet->getCell('B6')->getValue());
-            $this->assertSame('TEST Export House', $rentalSheet->getCell('J6')->getValue());
-            $this->assertSame(6, $rentalSheet->getHighestDataRow());
+            $this->assertSame('Jenis', $rentalSheet->getCell('A6')->getValue());
+            $this->assertSame('TEST Export Excavator', $rentalSheet->getCell('B7')->getValue());
+            $this->assertSame('TEST Export House', $rentalSheet->getCell('J7')->getValue());
+            $this->assertSame(7, $rentalSheet->getHighestDataRow());
+            $monthlySheet = $workbook->getSheetByName('Laporan Perbulan');
+            $this->assertSame('Laporan Biaya Perbulan - TEST Export House', $monthlySheet->getCell('A2')->getValue());
+            $this->assertSame('Kode Rumah', $monthlySheet->getCell('B6')->getValue());
+            $this->assertSame('TEST Export House', $monthlySheet->getCell('C7')->getValue());
+            $this->assertSame('TEST Export Cluster', $monthlySheet->getCell('D7')->getValue());
 
             foreach ($workbook->getAllSheets() as $sheet) {
-                $this->assertSame('334155', $sheet->getStyle('A5')->getFill()->getStartColor()->getRGB());
-                $this->assertSame('FFFFFF', $sheet->getStyle('A5')->getFont()->getColor()->getRGB());
-                $this->assertEquals(14, $sheet->getStyle('A1')->getFont()->getSize());
-                $this->assertTrue($sheet->getStyle('A2')->getFont()->getItalic());
+                $this->assertSame('334155', $sheet->getStyle('A6')->getFill()->getStartColor()->getRGB());
+                $this->assertSame('FFFFFF', $sheet->getStyle('A6')->getFont()->getColor()->getRGB());
+                $this->assertEquals(14, $sheet->getStyle('A2')->getFont()->getSize());
+                $this->assertTrue($sheet->getStyle('A3')->getFont()->getItalic());
+                $this->assertCount(1, $sheet->getDrawingCollection());
             }
 
             $workbook->disconnectWorksheets();

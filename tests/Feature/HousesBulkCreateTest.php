@@ -69,35 +69,24 @@ class HousesBulkCreateTest extends TestCase
         $this->assertDatabaseCount('houses', 1);
     }
 
-    public function test_admin_and_logistik_can_only_choose_available_clusters_when_saving_houses(): void
+    public function test_admin_can_only_choose_available_clusters_and_assigned_logistik_is_locked_to_cluster(): void
     {
         $existingCluster = Cluster::create(['name' => 'Cluster Existing']);
+        $otherCluster = Cluster::create(['name' => 'Cluster Lain']);
+        $admin = User::factory()->create(['role' => 'admin']);
         $logistik = User::factory()->create(['role' => 'logistik', 'cluster_id' => $existingCluster->id]);
 
+        // Assigned logistik is locked to their assigned cluster even if cluster_name is tampered
         $this->actingAs($logistik);
 
-        // Cannot create on-the-fly cluster with non-existent cluster name
         Livewire::test(Houses::class)
             ->call('create')
             ->assertSet('cluster_id', (string) $existingCluster->id)
             ->assertSet('cluster_name', 'Cluster Existing')
             ->set('name', 'Blok L-01')
             ->set('type', 'Tipe 36/72')
-            ->set('cluster_id', '')
-            ->set('cluster_name', 'Cluster Baru Logistik')
-            ->call('save')
-            ->assertHasErrors(['cluster_name' => 'Cluster tidak ditemukan. Pilih dari cluster yang tersedia.'])
-            ->assertSet('showModal', true);
-
-        $this->assertNull(Cluster::where('name', 'Cluster Baru Logistik')->first());
-
-        // Saving with existing cluster name succeeds
-        Livewire::test(Houses::class)
-            ->call('create')
-            ->set('name', 'Blok L-01')
-            ->set('type', 'Tipe 36/72')
-            ->set('cluster_id', '')
-            ->set('cluster_name', 'cluster existing') // case-insensitive match
+            ->set('cluster_id', (string) $otherCluster->id)
+            ->set('cluster_name', 'Cluster Lain')
             ->call('save')
             ->assertHasNoErrors()
             ->assertSet('showModal', false);
@@ -107,7 +96,38 @@ class HousesBulkCreateTest extends TestCase
             'cluster_id' => $existingCluster->id,
         ]);
 
-        // Bulk creation with non-existent cluster fails
+        // Admin can choose available clusters, but cannot create on-the-fly cluster with non-existent cluster name
+        $this->actingAs($admin);
+
+        Livewire::test(Houses::class)
+            ->call('create')
+            ->set('name', 'Blok L-02')
+            ->set('type', 'Tipe 36/72')
+            ->set('cluster_id', '')
+            ->set('cluster_name', 'Cluster Baru Tidak Ada')
+            ->call('save')
+            ->assertHasErrors(['cluster_name' => 'Cluster tidak ditemukan. Pilih dari cluster yang tersedia.'])
+            ->assertSet('showModal', true);
+
+        $this->assertNull(Cluster::where('name', 'Cluster Baru Tidak Ada')->first());
+
+        // Saving with existing cluster name succeeds for Admin
+        Livewire::test(Houses::class)
+            ->call('create')
+            ->set('name', 'Blok L-02')
+            ->set('type', 'Tipe 36/72')
+            ->set('cluster_id', '')
+            ->set('cluster_name', 'cluster existing') // case-insensitive match
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertSet('showModal', false);
+
+        $this->assertDatabaseHas('houses', [
+            'name' => 'Blok L-02',
+            'cluster_id' => $existingCluster->id,
+        ]);
+
+        // Bulk creation with non-existent cluster fails for Admin
         Livewire::test(Houses::class)
             ->call('create')
             ->set('houseCount', 2)
@@ -140,8 +160,8 @@ class HousesBulkCreateTest extends TestCase
             'cluster_id' => $existingCluster->id,
         ]);
 
-        // Edit house to Tanpa Cluster
-        $house = House::where('name', 'Blok L-01')->firstOrFail();
+        // Edit house to Tanpa Cluster as Admin
+        $house = House::where('name', 'Blok L-02')->firstOrFail();
         Livewire::test(Houses::class)
             ->call('edit', $house->id)
             ->assertSet('cluster_name', 'Cluster Existing')

@@ -127,6 +127,7 @@
                             <option value="hilang">Hilang</option>
                         </select>
                     </div>
+                    @if (auth()->user()->canAccessAllWarehouses())
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-secondary">Gudang</label>
                         <select wire:model.live="filterWarehouse" class="form-select">
@@ -136,6 +137,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @endif
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-secondary">Status Stok</label>
                         <select wire:model.live="filterStock" class="form-select">
@@ -168,7 +170,9 @@
                             <x-sortable-th field="code" :sort="$sort" class="data-key-code">Kode</x-sortable-th>
                             <x-sortable-th field="name" :sort="$sort" class="data-key-name">Nama</x-sortable-th>
                             <x-sortable-th field="category" :sort="$sort">Kategori</x-sortable-th>
-                            <x-sortable-th field="warehouse" :sort="$sort">Gudang</x-sortable-th>
+                            @if (auth()->user()->canAccessAllWarehouses())
+                                <x-sortable-th field="warehouse" :sort="$sort">Gudang</x-sortable-th>
+                            @endif
                             <x-sortable-th field="condition" :sort="$sort">Kondisi</x-sortable-th>
                             <x-sortable-th field="price" :sort="$sort" class="text-end data-number">Harga Beli</x-sortable-th>
                             <x-sortable-th field="qty" :sort="$sort" class="text-end data-number">Total</x-sortable-th>
@@ -202,13 +206,15 @@
                             </td>
                             <td class="fw-bold text-body data-key-name" title="{{ $tool->name }}">{{ $tool->name }}</td>
                             <td class="text-secondary small data-cell-truncate" title="{{ $tool->category?->name ?? 'Kategori tidak tersedia' }}">{{ $tool->category?->name ?? '-' }}</td>
-                            <td class="text-secondary small" title="Lokasi fisik alat">
-                                @forelse ($tool->warehouseBalances->where(fn ($balance) => ($balance->available_qty + $balance->qty_broken) > 0) as $balance)
-                                    <div class="text-nowrap">{{ $balance->warehouse?->name ?? 'Belum ditetapkan' }} <span class="font-mono">· {{ $balance->available_qty }} tersedia</span></div>
-                                @empty
-                                    <span>Belum ditetapkan</span>
-                                @endforelse
-                            </td>
+                            @if (auth()->user()->canAccessAllWarehouses())
+                                <td class="text-secondary small" title="Lokasi fisik alat">
+                                    @forelse ($tool->warehouseBalances->where(fn ($balance) => ($balance->available_qty + $balance->qty_broken) > 0) as $balance)
+                                        <div class="text-nowrap">{{ $balance->warehouse?->name ?? 'Belum ditetapkan' }} <span class="font-mono">· {{ $balance->available_qty }} tersedia</span></div>
+                                    @empty
+                                        <span>Belum ditetapkan</span>
+                                    @endforelse
+                                </td>
+                            @endif
                             <td>
                                 @php 
                                     $badgeClasses = ['baik' => 'bg-success-subtle text-success', 'rusak' => 'bg-danger-subtle text-danger', 'hilang' => 'bg-warning-subtle text-warning'];
@@ -257,7 +263,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="13" class="text-center py-4 text-secondary">Belum ada data alat.</td>
+                            <td colspan="{{ auth()->user()->canAccessAllWarehouses() ? 13 : 12 }}" class="text-center py-4 text-secondary">Belum ada data alat.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -334,6 +340,7 @@
                             @error('code') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     </div>
+                    @if (auth()->user()->canAccessAllWarehouses())
                     <div class="mb-3">
                         <label class="form-label font-semibold small text-secondary">Gudang <span class="text-danger">*</span></label>
                         <select wire:model="warehouse_id" class="form-select" @disabled($hasMultipleWarehouseBalances)>
@@ -344,6 +351,7 @@
                         </select>
                         @error('warehouse_id') <span class="text-danger small">{{ $message }}</span> @enderror
                     </div>
+                    @endif
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label font-semibold small text-secondary">Kondisi Awal</label>

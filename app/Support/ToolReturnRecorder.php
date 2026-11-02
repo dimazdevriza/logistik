@@ -25,7 +25,13 @@ final class ToolReturnRecorder
         ?string $notes = null,
         ?User $actor = null,
     ): ?ToolUsage {
+        $actor = $actor ?? auth()->user();
         $actorId = $actor?->id ?? auth()->id();
+        if (($wId = $actor?->assignedWarehouseId()) && ($qtyNormal + $qtyBroken) > 0 && $receivingWarehouseId !== $wId) {
+            throw ValidationException::withMessages([
+                'returnSelections' => 'Alat harus dikembalikan ke gudang tugas akun Anda.',
+            ]);
+        }
 
         $usage = $usageOrId instanceof ToolUsage
             ? $usageOrId

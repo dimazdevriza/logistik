@@ -4,8 +4,9 @@ namespace App\Livewire\Admin;
 
 use App\Models\Cluster;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use App\Models\Warehouse;
 use App\Traits\WithTableSorting;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -16,28 +17,67 @@ class UserManagement extends Component
     use WithPagination, WithTableSorting;
 
     public $search = '';
+
     public $sort = 'name_asc';
+
     public $showModal = false;
+
     public $editMode = false;
+
     public $userId;
 
     public $name = '';
+
     public $email = '';
+
     public $password = '';
+
     public $role = 'logistik';
+
     public $cluster_id = '';
+
+    public $warehouse_id = '';
+
     public bool $reactivatingLegacyUser = false;
+
+    public bool $showConfirmation = false;
+    public string $confirmingAction = '';
+    public ?int $confirmingId = null;
+    public string $confirmTitle = '';
+    public string $confirmMessage = '';
+
+    public function confirm(string $action, ?int $id = null, string $title = '', string $message = ''): void
+    {
+        $this->confirmingAction = $action;
+        $this->confirmingId = $id;
+        $this->confirmTitle = $title;
+        $this->confirmMessage = $message;
+        $this->showConfirmation = true;
+    }
+
+    public function executeConfirmedAction(): void
+    {
+        match ($this->confirmingAction) {
+            'delete' => $this->delete((int) $this->confirmingId),
+            default => null,
+        };
+
+        $this->showConfirmation = false;
+        $this->confirmingAction = '';
+        $this->confirmingId = null;
+    }
 
     protected function rules()
     {
         $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . ($this->userId ?? 'NULL'),
+            'email' => 'required|email|max:255|unique:users,email,'.($this->userId ?? 'NULL'),
             'role' => 'required|in:admin,logistik,keuangan,pengawas',
             'cluster_id' => [Rule::requiredIf(in_array($this->role, ['logistik', 'pengawas'], true)), 'nullable', 'exists:clusters,id'],
+            'warehouse_id' => [Rule::requiredIf(in_array($this->role, ['logistik', 'pengawas'], true)), 'nullable', 'exists:warehouses,id'],
         ];
 
-        if (!$this->editMode) {
+        if (! $this->editMode) {
             $rules['password'] = 'required|string|min:8';
         } else {
             $rules['password'] = 'nullable|string|min:8';
@@ -62,6 +102,7 @@ class UserManagement extends Component
         $this->role = $user->role === 'inactive' ? 'logistik' : $user->role;
         $this->reactivatingLegacyUser = $user->role === 'inactive';
         $this->cluster_id = $user->cluster_id ?? '';
+        $this->warehouse_id = $user->warehouse_id ?? '';
         $this->password = '';
         $this->editMode = true;
         $this->showModal = true;
@@ -72,11 +113,13 @@ class UserManagement extends Component
         $this->email = strtolower(trim($this->email));
         $this->validate();
 
+        $isFieldRole = in_array($this->role, ['logistik', 'pengawas'], true);
         $data = [
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
-            'cluster_id' => in_array($this->role, ['logistik', 'pengawas'], true) ? ($this->cluster_id ?: null) : null,
+            'cluster_id' => $isFieldRole ? ($this->cluster_id ?: null) : null,
+            'warehouse_id' => $isFieldRole ? ($this->warehouse_id ?: null) : null,
         ];
 
         if ($this->password) {
@@ -112,11 +155,13 @@ class UserManagement extends Component
     {
         if ($id === auth()->id()) {
             session()->flash('error', 'Anda tidak dapat menghapus akun sendiri.');
+
             return;
         }
         $user = User::findOrFail($id);
         if ($user->hasOperationalHistory()) {
             session()->flash('error', 'User tidak dapat dihapus karena memiliki riwayat operasional. Riwayat transaksi harus tetap tersimpan.');
+
             return;
         }
         $user->delete();
@@ -131,6 +176,7 @@ class UserManagement extends Component
         $this->password = '';
         $this->role = 'logistik';
         $this->cluster_id = '';
+        $this->warehouse_id = '';
         $this->reactivatingLegacyUser = false;
         $this->resetValidation();
     }
@@ -152,13 +198,17 @@ class UserManagement extends Component
                 Cluster::select('name')->whereColumn('clusters.id', 'users.cluster_id'),
                 $direction
             ),
+            'warehouse' => fn ($query, $direction) => $query->orderBy(
+                Warehouse::select('name')->whereColumn('warehouses.id', 'users.warehouse_id'),
+                $direction
+            ),
             'created_at' => 'users.created_at',
         ];
     }
 
     public function render()
     {
-        $users = User::with('cluster:id,name')
+        $users = User::with(['cluster:id,name', 'warehouse:id,name'])
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%")
                 ->orWhere('email', 'like', "%{$this->search}%"))
             ->tap(fn ($query) => $this->applyTableSort($query))
@@ -166,8 +216,9 @@ class UserManagement extends Component
             ->paginate(10);
 
         $clusters = Cluster::query()->orderBy('name')->get(['id', 'name']);
+        $warehouses = Warehouse::query()->orderBy('name')->get(['id', 'name']);
 
-        return view('livewire.admin.user-management', compact('users', 'clusters'))
+        return view('livewire.admin.user-management', compact('users', 'clusters', 'warehouses'))
             ->layout('layouts.app', ['title' => 'Manajemen User']);
     }
 }

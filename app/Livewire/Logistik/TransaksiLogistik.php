@@ -275,8 +275,12 @@ class TransaksiLogistik extends Component
         }
 
         if ($type === 'materials') {
+            $wId = auth()->user()?->assignedWarehouseId();
             $available = Material::whereKey($itemId)->where('stock', '>', 0)
-                ->whereHas('stockIns', fn ($query) => $query->whereNotNull('warehouse_id')->whereAvailableQuantity())
+                ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
+                ->whereHas('stockIns', fn ($query) => $query->whereNotNull('warehouse_id')
+                    ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
+                    ->whereAvailableQuantity())
                 ->exists();
             if (! $available) {
                 return;
@@ -334,7 +338,7 @@ class TransaksiLogistik extends Component
             'qty_normal' => 0,
             'qty_broken' => 0,
             'qty_lost' => 0,
-            'receiving_warehouse_id' => (string) (($usage->warehouse_source_recorded ? $usage->warehouse_id : null) ?? $usage->tool->warehouse_id ?? ''),
+            'receiving_warehouse_id' => (string) (auth()->user()?->assignedWarehouseId() ?? ($usage->warehouse_source_recorded ? $usage->warehouse_id : null) ?? $usage->tool->warehouse_id ?? ''),
             'notes' => '',
         ];
 
@@ -859,13 +863,16 @@ class TransaksiLogistik extends Component
         $validated = $this->validate($this->materialRules());
         $houseIds = array_map('intval', $validated['house_ids']);
 
-        $material = Material::with('supplier:id,name')->findOrFail($validated['material_id']);
+        $material = Material::with('supplier:id,name')
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
+            ->findOrFail($validated['material_id']);
         $totalQuantity = (float) $validated['material_quantity'] * count($houseIds);
         $batch = StockIn::with(['warehouse:id,name', 'supplier:id,name'])
             ->withReservedQuantity()
             ->whereKey($validated['material_batch_id'])
             ->where('material_id', $material->id)
             ->whereNotNull('warehouse_id')
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
             ->first();
         if (! $batch) {
             $this->addError('material_batch_id', 'Pilih batch masuk untuk material ini.');
@@ -1089,7 +1096,10 @@ class TransaksiLogistik extends Component
 
     public function selectMaterial(int $materialId): void
     {
-        $material = Material::query()->where('stock', '>', 0)->findOrFail($materialId);
+        $material = Material::query()
+            ->where('stock', '>', 0)
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
+            ->findOrFail($materialId);
         $this->material_id = (string) $material->id;
         $this->material_batch_id = '';
         $this->materialBatchMap = $this->getMaterialBatches()
@@ -1168,7 +1178,7 @@ class TransaksiLogistik extends Component
                 return;
             }
 
-            $receivingWarehouseId = (int) ($sel['receiving_warehouse_id'] ?? ($usage->warehouse_source_recorded ? $usage->warehouse_id : null) ?? $usage->tool->warehouse_id);
+            $receivingWarehouseId = (int) (auth()->user()?->assignedWarehouseId() ?? $sel['receiving_warehouse_id'] ?? ($usage->warehouse_source_recorded ? $usage->warehouse_id : null) ?? $usage->tool->warehouse_id);
             $receivingWarehouse = ($qtyNormal + $qtyBroken) > 0 ? Warehouse::find($receivingWarehouseId) : null;
             if (($qtyNormal + $qtyBroken) > 0 && ! $receivingWarehouse) {
                 $this->addError('returnSelections', 'Pilih gudang penerima untuk alat '.$usage->tool->name.'.');
@@ -1323,10 +1333,14 @@ class TransaksiLogistik extends Component
             $row = (int) $matches[1];
 
             $houseId = (string) ($this->spreadsheetRows[$row]['house_id'] ?? '');
+            $inaccessibleHouse = $houseId !== '' && ! $this->getHouses()->contains('id', (int) $houseId);
             $duplicateHouse = $houseId !== '' && collect($this->spreadsheetRows)->contains(
                 fn ($candidate, $candidateRow) => $candidateRow !== $row && (string) ($candidate['house_id'] ?? '') === $houseId,
             );
-            if ($duplicateHouse) {
+            if ($inaccessibleHouse) {
+                $this->spreadsheetRows[$row]['house_id'] = '';
+                $this->addError('spreadsheetRows', 'Pilih rumah yang termasuk cluster tugas akun Anda.');
+            } elseif ($duplicateHouse) {
                 $this->spreadsheetRows[$row]['house_id'] = '';
                 $this->addError('spreadsheetRows', 'Rumah ini sudah dipilih pada baris lain.');
             } else {
@@ -1437,9 +1451,10 @@ class TransaksiLogistik extends Component
             ->values();
         $normalize = fn ($value) => mb_strtolower(preg_replace('/[\s-]+/u', '', $value));
         $terms = preg_split('/\s+/u', trim($this->houseSearch), -1, PREG_SPLIT_NO_EMPTY);
-        $filtered = ($this->houseCluster === 'all'
+        $effectiveCluster = auth()->user()->canAccessAllClusters() ? $this->houseCluster : 'all';
+        $filtered = ($effectiveCluster === 'all'
                 ? $houses
-                : $houses->filter(fn ($house) => ($house->cluster_id ? (string) $house->cluster_id : 'unassigned') === $this->houseCluster))
+                : $houses->filter(fn ($house) => ($house->cluster_id ? (string) $house->cluster_id : 'unassigned') === $effectiveCluster))
             ->filter(function ($house) use ($normalize, $terms) {
                 $text = $normalize($house->name.' '.$house->house_code.' '.$house->type.' '.($house->cluster?->name ?? 'tanpa cluster'));
 
@@ -1460,9 +1475,14 @@ class TransaksiLogistik extends Component
 
     public function getMaterials()
     {
+        $wId = auth()->user()?->assignedWarehouseId();
+
         return Material::with(['warehouse:id,name', 'supplier:id,name'])
             ->where('stock', '>', 0)
-            ->whereHas('stockIns', fn ($query) => $query->whereNotNull('warehouse_id')->whereAvailableQuantity())
+            ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
+            ->whereHas('stockIns', fn ($query) => $query->whereNotNull('warehouse_id')
+                ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
+                ->whereAvailableQuantity())
             ->orderBy('name')
             ->orderBy('unit_price')
             ->orderBy('id')
@@ -1471,11 +1491,14 @@ class TransaksiLogistik extends Component
 
     public function getMaterialBatches()
     {
+        $wId = auth()->user()?->assignedWarehouseId();
+
         return $this->material_id
             ? StockIn::with(['warehouse:id,name', 'supplier:id,name', 'material:id,unit'])
                 ->withReservedQuantity()
                 ->where('material_id', $this->material_id)
                 ->whereNotNull('warehouse_id')
+                ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
                 ->whereAvailableQuantity()
                 ->orderBy('unit_price')
                 ->orderBy('id')
@@ -1532,6 +1555,7 @@ class TransaksiLogistik extends Component
     {
         $balances = ToolWarehouseBalance::with('warehouse:id,name')
             ->where('tool_id', $toolId)
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
             ->where('available_qty', '>', 0)
             ->orderBy('warehouse_id')
             ->get();
@@ -1589,7 +1613,7 @@ class TransaksiLogistik extends Component
                         'qty_normal' => 0,
                         'qty_broken' => 0,
                         'qty_lost' => 0,
-                        'receiving_warehouse_id' => ($usage->warehouse_source_recorded ? $usage->warehouse_id : null) ?? $usage->tool->warehouse_id,
+                        'receiving_warehouse_id' => auth()->user()?->assignedWarehouseId() ?? ($usage->warehouse_source_recorded ? $usage->warehouse_id : null) ?? $usage->tool->warehouse_id,
                         'notes' => '',
                     ];
                 }
@@ -1610,12 +1634,15 @@ class TransaksiLogistik extends Component
         $spreadsheetMaterialIds = collect($this->spreadsheetRows)
             ->flatMap(fn ($row) => collect($row['materials'] ?? [])->pluck('material_id'))
             ->filter()->map(fn ($id) => (int) $id)->unique()->values();
+        $assignedWarehouseId = auth()->user()?->assignedWarehouseId();
         $spreadsheetBatches = $spreadsheetMaterialIds->isEmpty()
             ? collect()
             : StockIn::with(['warehouse:id,name', 'supplier:id,name'])
                 ->withReservedQuantity()
                 ->whereIn('material_id', $spreadsheetMaterialIds)
-                ->whereNotNull('warehouse_id')->whereAvailableQuantity()->orderBy('id')->get()->groupBy('material_id');
+                ->whereNotNull('warehouse_id')
+                ->when($assignedWarehouseId, fn ($q, $wId) => $q->where('warehouse_id', $wId))
+                ->whereAvailableQuantity()->orderBy('id')->get()->groupBy('material_id');
         $spreadsheetHouseIds = collect($this->spreadsheetRows)->pluck('house_id')->filter()->map(fn ($id) => (int) $id)->unique()->values();
         $spreadsheetUsages = $this->activeTab !== 'spreadsheet' || $spreadsheetHouseIds->isEmpty()
             ? collect()
@@ -1633,7 +1660,7 @@ class TransaksiLogistik extends Component
             compact('houses', 'materials', 'tools', 'activeUsages', 'peruntukkanOptions', 'pengambilOptions', 'toolWarehouseOptions', 'supplierNames', 'clusters', 'spreadsheetBatches', 'spreadsheetUsages'),
             $this->housePickerData($houses),
             [
-                'warehouses' => Warehouse::orderBy('name')->get(['id', 'name']),
+                'warehouses' => Warehouse::when($assignedWarehouseId, fn ($q, $wId) => $q->whereKey($wId))->orderBy('name')->get(['id', 'name']),
                 'clusterAssignmentMissing' => in_array(auth()->user()->role, ['logistik', 'pengawas'], true) && ! auth()->user()->cluster_id,
             ],
         ))

@@ -85,13 +85,27 @@ class Materials extends Component
     public $confirmMessage = '';
     public int $feedbackSequence = 0;
 
+    public function mount(): void
+    {
+        if ($warehouseId = auth()->user()?->assignedWarehouseId()) {
+            $this->filterWarehouse = (string) $warehouseId;
+            $this->warehouse_id = (string) $warehouseId;
+        }
+    }
+
     public function confirm($action, $id = null, $title = '', $message = '')
     {
         $this->feedbackSequence++;
         $this->resetValidation('delete');
-        if ($action === 'delete' && Material::findOrFail($id)->hasTransactionHistory()) {
-            $this->addError('delete', 'Material tidak dapat dihapus karena memiliki riwayat stok, pemakaian, permintaan, atau transfer gudang. Riwayat transaksi harus tetap tersimpan.');
-            return;
+        if ($action === 'delete') {
+            $material = Material::findOrFail($id);
+            if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $material->warehouse_id !== $wId) {
+                abort(403);
+            }
+            if ($material->hasTransactionHistory()) {
+                $this->addError('delete', 'Material tidak dapat dihapus karena memiliki riwayat stok, pemakaian, permintaan, atau transfer gudang. Riwayat transaksi harus tetap tersimpan.');
+                return;
+            }
         }
         $this->confirmingAction = $action;
         $this->confirmingId = $id;
@@ -151,7 +165,7 @@ class Materials extends Component
         $this->filterSupplier = '';
         $this->filterStock = '';
         $this->filterPhoto = '';
-        $this->filterWarehouse = '';
+        $this->filterWarehouse = (string) (auth()->user()?->assignedWarehouseId() ?? '');
         $this->showFilterModal = false;
         $this->resetPage();
     }
@@ -252,7 +266,9 @@ class Materials extends Component
             return;
         }
 
-        $material = Material::with(['supplier', 'category'])->findOrFail($id);
+        $material = Material::with(['supplier', 'category'])
+            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
+            ->findOrFail($id);
         $this->existingMaterialId = (string) $material->id;
         $this->name = $material->name;
         $this->code = $material->code ?? '';
@@ -261,7 +277,7 @@ class Materials extends Component
         $this->category_name = $material->category?->name ?? '';
         $this->unit = $material->unit;
         $this->unit_price = $material->unit_price;
-        $this->warehouse_id = $material->warehouse_id ?? '';
+        $this->warehouse_id = (string) (auth()->user()?->assignedWarehouseId() ?? $material->warehouse_id ?? '');
         $this->stock = 1;
         $this->receiptReceivedAt = now()->format('Y-m-d\\TH:i');
         $this->receiptSubmissionKey = (string) Str::uuid();
@@ -287,6 +303,9 @@ class Materials extends Component
     public function edit($id)
     {
         $material = Material::findOrFail($id);
+        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $material->warehouse_id !== $wId) {
+            abort(403);
+        }
         $this->materialId = $material->id;
         $this->name = $material->name;
         $this->code = $material->code ?? '';
@@ -298,7 +317,7 @@ class Materials extends Component
         $this->stock = $material->stock;
         $this->receiptReceivedAt = '';
         $this->stockAdjustmentReason = '';
-        $this->warehouse_id = $material->warehouse_id ?? '';
+        $this->warehouse_id = (string) ($wId ?? $material->warehouse_id ?? '');
         $this->image = null;
         $this->existingImage = $material->image;
         $this->saveSuccess = '';
@@ -308,6 +327,9 @@ class Materials extends Component
 
     public function save()
     {
+        if ($wId = auth()->user()?->assignedWarehouseId()) {
+            $this->warehouse_id = (string) $wId;
+        }
         if (! $this->editMode && $this->createMode === 'existing') {
             $this->validate([
                 'existingMaterialId' => 'required|exists:materials,id',
@@ -339,6 +361,9 @@ class Materials extends Component
         }
         $this->validate();
         $existing = $this->editMode ? Material::findOrFail($this->materialId) : null;
+        if ($existing && ($wId = auth()->user()?->assignedWarehouseId()) && (int) $existing->warehouse_id !== $wId) {
+            abort(403);
+        }
         $stockChanged = $existing && abs((float) $existing->stock - (float) $this->stock) > 0.0001;
         if ($existing && (int) $existing->warehouse_id !== (int) $this->warehouse_id && $existing->hasTransactionHistory()) {
             $this->addError('warehouse_id', 'Gudang tidak dapat diubah karena material sudah memiliki riwayat transaksi.');
@@ -482,6 +507,9 @@ class Materials extends Component
         $this->resetValidation('delete');
         DB::transaction(function () use ($id) {
             $material = Material::lockForUpdate()->findOrFail($id);
+            if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $material->warehouse_id !== $wId) {
+                abort(403);
+            }
             if ($material->hasTransactionHistory()) {
                 $this->addError('delete', 'Material tidak dapat dihapus karena memiliki riwayat stok, pemakaian, permintaan, atau transfer gudang. Riwayat transaksi harus tetap tersimpan.');
                 return;
@@ -506,7 +534,7 @@ class Materials extends Component
         $this->receiptSubmissionKey = (string) Str::uuid();
         $this->saveSuccess = '';
         $this->stockAdjustmentReason = '';
-        $this->warehouse_id = Warehouse::orderBy('id')->value('id') ?? '';
+        $this->warehouse_id = (string) (auth()->user()?->assignedWarehouseId() ?? Warehouse::orderBy('id')->value('id') ?? '');
         $this->image = null;
         $this->existingImage = null;
         $this->resetValidation();
@@ -537,6 +565,9 @@ class Materials extends Component
 
     public function saveRestock()
     {
+        if ($wId = auth()->user()?->assignedWarehouseId()) {
+            $this->warehouse_id = (string) $wId;
+        }
         $this->validate([
             'restockMaterialId' => 'required|exists:materials,id',
             'warehouse_id' => 'required|exists:warehouses,id',
@@ -561,6 +592,9 @@ class Materials extends Component
                 }
 
                 $sourceMaterial = Material::lockForUpdate()->findOrFail($this->restockMaterialId);
+                if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $sourceMaterial->warehouse_id !== $wId) {
+                    abort(403);
+                }
 
                 $supplierId = null;
                 if (!empty(trim($this->restockSupplierName))) {
@@ -699,6 +733,10 @@ class Materials extends Component
     {
         if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) return;
 
+        if ($wId = auth()->user()?->assignedWarehouseId()) {
+            $this->filterWarehouse = (string) $wId;
+        }
+
         $export = new MaterialInventoryExport(
             $this->search,
             $this->filterCategory,
@@ -715,6 +753,11 @@ class Materials extends Component
 
     public function render()
     {
+        $assignedWarehouseId = auth()->user()?->assignedWarehouseId();
+        if ($assignedWarehouseId) {
+            $this->filterWarehouse = (string) $assignedWarehouseId;
+        }
+
         $materialBatches = StockIn::query()
             ->join('materials', 'materials.id', '=', 'stock_ins.material_id')
             ->select('stock_ins.*')
@@ -751,9 +794,9 @@ class Materials extends Component
 
         $suppliers = Supplier::select('id', 'name')->orderBy('name')->get()->unique('name');
         $categories = Category::where('type', 'material')->orderBy('name')->get()->unique('name');
-        $warehouses = Warehouse::orderBy('name')->get();
+        $warehouses = Warehouse::when($assignedWarehouseId, fn ($q, $wId) => $q->whereKey($wId))->orderBy('name')->get();
         $materialChoices = $this->showModal && ! $this->editMode && $this->createMode === 'existing'
-            ? Material::with('warehouse')->orderBy('name')->orderBy('code')->get(['id', 'name', 'code', 'warehouse_id'])
+            ? Material::with('warehouse')->when($assignedWarehouseId, fn ($q, $wId) => $q->where('warehouse_id', $wId))->orderBy('name')->orderBy('code')->get(['id', 'name', 'code', 'warehouse_id'])
             : collect();
 
         $selectedWarehouse = $this->filterWarehouse

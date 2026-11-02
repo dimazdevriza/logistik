@@ -51,7 +51,7 @@
                                     </div>
                                     <div class="col-md-3 d-flex gap-2">
                                         <button type="button" class="btn btn-success" wire:click="resolveBrokenReturn({{ $brokenReturn->id }}, 'fixed')">Sudah diperbaiki</button>
-                                        <button type="button" class="btn btn-outline-danger" wire:click="resolveBrokenReturn({{ $brokenReturn->id }}, 'discarded')" wire:confirm="Afkir unit rusak ini? Jumlah tercatat akan dikurangi.">Afkir</button>
+                                        <button type="button" class="btn btn-outline-danger" wire:click="confirm('discardBrokenReturn', {{ $brokenReturn->id }}, 'Afkir Alat Rusak?', 'Afkir unit rusak ini? Jumlah tercatat akan dikurangi.')">Afkir</button>
                                     </div>
                                 </div>
                             </div>
@@ -187,7 +187,7 @@
                                 @elseif ($record->voided_at)
                                     <span class="small text-secondary">Dibatalkan</span>
                                 @elseif (!$record->return_date)
-                                    <button type="button" wire:click="voidTool({{ $record->id }})" wire:confirm="Batalkan peminjaman ini? Unit akan dikembalikan ke stok tersedia dan catatan tetap disimpan." class="btn log-row-action log-row-action--danger">Batalkan</button>
+                                    <button type="button" wire:click="confirm('voidTool', {{ $record->id }}, 'Batalkan Peminjaman Alat?', 'Batalkan peminjaman ini? Unit akan dikembalikan ke stok tersedia dan catatan tetap disimpan.')" class="btn log-row-action log-row-action--danger">Batalkan</button>
                                 @else
                                     <span class="small text-secondary">-</span>
                                 @endif
@@ -205,4 +205,29 @@
 
         <div class="d-flex justify-content-end">{{ $records->links() }}</div>
     </div>
+
+    @if ($showConfirmation)
+        @teleport('body')
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="modal-header border-bottom p-3 bg-body-tertiary">
+                        <h5 class="modal-title font-outfit fw-bold text-body fs-6">{{ $confirmTitle ?: 'Konfirmasi' }}</h5>
+                        <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <div class="p-3 bg-danger-subtle text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
+                            <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+                        </div>
+                        <p class="text-secondary small mb-0">{{ $confirmMessage ?: 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                    </div>
+                    <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 p-3 d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm fw-semibold px-3" wire:click="$set('showConfirmation', false)">Batal</button>
+                        <button type="button" class="btn btn-danger btn-sm fw-semibold px-3 shadow-xs" wire:click="executeConfirmedAction" wire:loading.attr="disabled" wire:target="executeConfirmedAction">Ya, Lanjutkan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endteleport
+    @endif
 </div>

@@ -122,6 +122,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @if (auth()->user()->canAccessAllWarehouses())
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-secondary">Gudang</label>
                         <select wire:model.live="filterWarehouse" class="form-select">
@@ -131,6 +132,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @endif
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-secondary">Status Stok</label>
                         <select wire:model.live="filterStock" class="form-select">
@@ -167,7 +169,9 @@
                             <x-sortable-th field="value" :sort="$sort" class="text-end data-number">Estimasi Nilai</x-sortable-th>
                             <x-sortable-th field="category" :sort="$sort">Kategori</x-sortable-th>
                             <x-sortable-th field="supplier" :sort="$sort">Supplier</x-sortable-th>
-                            <x-sortable-th field="warehouse" :sort="$sort">Gudang</x-sortable-th>
+                            @if (auth()->user()->canAccessAllWarehouses())
+                                <x-sortable-th field="warehouse" :sort="$sort">Gudang</x-sortable-th>
+                            @endif
                             <x-sortable-th field="date" :sort="$sort" class="data-date">Tanggal Masuk</x-sortable-th>
                             <th class="text-end" style="width: 128px;">Aksi</th>
                         </tr>
@@ -206,7 +210,9 @@
                             <td class="text-end font-mono fw-bold text-success data-number">Rp {{ number_format($batch->unit_price * (float) $batch->remaining_quantity, 0, ',', '.') }}</td>
                             <td class="text-secondary small data-cell-truncate" title="{{ $material->category?->name ?? 'Kategori tidak tersedia' }}">{{ $material->category?->name ?? '-' }}</td>
                             <td class="text-secondary small data-cell-truncate" title="{{ $batch->supplier?->name ?? $material->supplier?->name ?? 'Supplier tidak tersedia' }}">{{ $batch->supplier?->name ?? $material->supplier?->name ?? '-' }}</td>
-                            <td class="text-secondary small data-cell-truncate" title="{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}">{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}</td>
+                            @if (auth()->user()->canAccessAllWarehouses())
+                                <td class="text-secondary small data-cell-truncate" title="{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}">{{ $batch->warehouse?->name ?? $material->warehouse?->name ?? 'Belum ditetapkan' }}</td>
+                            @endif
                             <td class="font-mono text-secondary small data-date">
                                 <div>{{ $batch->received_at?->format('d/m/Y H:i') ?? $batch->date?->format('d/m/Y') ?? $batch->created_at?->format('d/m/Y H:i') ?? '-' }}</div>
                             </td>
@@ -240,7 +246,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="12" class="text-center py-4 text-secondary">Belum ada batch stok material.</td>
+                            <td colspan="{{ auth()->user()->canAccessAllWarehouses() ? 12 : 11 }}" class="text-center py-4 text-secondary">Belum ada batch stok material.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -378,6 +384,7 @@
                             @error('code') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     </div>
+                    @if (auth()->user()->canAccessAllWarehouses())
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label font-semibold small text-secondary">{{ !$editMode && $createMode === 'existing' ? 'Gudang penyimpanan' : 'Gudang' }} <span class="text-danger">*</span></label>
@@ -390,6 +397,7 @@
                             @error('warehouse_id') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     </div>
+                    @endif
                     <div class="row g-3 mb-3">
                         <div class="col-md-6" x-data="{ categoryPickerOpen: false, categorySearch: '' }">
                             <label class="form-label font-semibold small text-secondary">Kategori <span class="text-danger">*</span></label>

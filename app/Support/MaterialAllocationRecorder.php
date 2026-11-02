@@ -106,6 +106,7 @@ final class MaterialAllocationRecorder
             $batch = StockIn::whereKey($batchId)
                 ->where('material_id', $material->id)
                 ->whereNotNull('warehouse_id')
+                ->when($actor?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
                 ->lockForUpdate()
                 ->first();
 

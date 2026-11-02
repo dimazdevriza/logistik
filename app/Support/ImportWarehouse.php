@@ -3,12 +3,14 @@
 namespace App\Support;
 
 use App\Models\Warehouse;
+use Illuminate\Support\Facades\Auth;
 use RuntimeException;
 
 final class ImportWarehouse
 {
     public static function resolve(array $row, int $rowNumber, string $item): int
     {
+        $assignedWarehouseId = Auth::user()?->assignedWarehouseId();
         $id = $row['warehouseid'] ?? $row['gudangid'] ?? null;
         $name = $row['warehouse'] ?? $row['gudang'] ?? $row['namagudang'] ?? $row['warehousename'] ?? null;
 
@@ -16,6 +18,9 @@ final class ImportWarehouse
             $warehouse = Warehouse::find((int) $id);
             if (! $warehouse) {
                 throw new RuntimeException("Baris {$rowNumber} ({$item}): Gudang dengan ID {$id} tidak ditemukan.");
+            }
+            if ($assignedWarehouseId && (int) $warehouse->id !== $assignedWarehouseId) {
+                throw new RuntimeException("Baris {$rowNumber} ({$item}): Gudang berada di luar gudang tugas Anda.");
             }
 
             return $warehouse->id;
@@ -26,8 +31,15 @@ final class ImportWarehouse
             if (! $warehouse) {
                 throw new RuntimeException("Baris {$rowNumber} ({$item}): Gudang '{$name}' tidak ditemukan. Gunakan nama gudang yang sudah terdaftar.");
             }
+            if ($assignedWarehouseId && (int) $warehouse->id !== $assignedWarehouseId) {
+                throw new RuntimeException("Baris {$rowNumber} ({$item}): Gudang berada di luar gudang tugas Anda.");
+            }
 
             return $warehouse->id;
+        }
+
+        if ($assignedWarehouseId) {
+            return $assignedWarehouseId;
         }
 
         $warehouses = Warehouse::orderBy('id')->get(['id', 'name']);

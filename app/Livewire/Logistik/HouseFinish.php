@@ -115,7 +115,7 @@ class HouseFinish extends Component
     public function mount(House $house)
     {
         $user = auth()->user();
-        abort_unless($user && ($user->role === 'logistik' || $house->isAccessibleBy($user)), 403);
+        abort_unless($user && (($house->isPublicWork() && $user->role === 'logistik') || $house->isAccessibleBy($user)), 403);
         $this->house = $house;
 
         // Redirect if already selesai
@@ -138,7 +138,7 @@ class HouseFinish extends Component
                 'qty_good' => 0,
                 'qty_broken' => 0,
                 'qty_lost' => 0,
-                'receiving_warehouse_id' => ($usage->warehouse_source_recorded ? $usage->warehouse_id : null) ?? $usage->tool->warehouse_id,
+                'receiving_warehouse_id' => $user->assignedWarehouseId() ?? ($usage->warehouse_source_recorded ? $usage->warehouse_id : null) ?? $usage->tool->warehouse_id,
                 'notes' => '',
             ];
         }
@@ -149,8 +149,7 @@ class HouseFinish extends Component
         try {
             DB::transaction(function () {
                 $user = auth()->user();
-                $house = House::query()
-                    ->when($user->role !== 'logistik', fn ($q) => $q->forUser($user))
+                $house = ($user->role === 'logistik' && $this->house->isPublicWork() ? House::query() : House::forUser($user))
                     ->lockForUpdate()
                     ->findOrFail($this->house->id);
                 $unitLabel = $house->isPublicWork() ? 'Pekerjaan umum' : 'Rumah';
@@ -209,7 +208,7 @@ class HouseFinish extends Component
                         throw new \Exception("Jumlah kondisi {$tool->name} harus sama dengan {$qty} unit yang masih dipinjam.");
                     }
 
-                    $receivingWarehouseId = (int) ($sel['receiving_warehouse_id'] ?? 0);
+                    $receivingWarehouseId = (int) ($user->assignedWarehouseId() ?? $sel['receiving_warehouse_id'] ?? 0);
                     if (($qtyGood + $qtyBroken) > 0 && ! Warehouse::whereKey($receivingWarehouseId)->exists()) {
                         throw new \Exception("Pilih gudang penerima untuk alat {$tool->name} yang dikembalikan.");
                     }
@@ -269,8 +268,7 @@ class HouseFinish extends Component
     public function render()
     {
         $user = auth()->user();
-        $this->house = House::query()
-            ->when($user->role !== 'logistik', fn ($q) => $q->forUser($user))
+        $this->house = ($user->role === 'logistik' && $this->house->isPublicWork() ? House::query() : House::forUser($user))
             ->findOrFail($this->house->id);
         $materialUsages = MaterialUsage::with('material')
             ->where('house_id', $this->house->id)
@@ -294,7 +292,7 @@ class HouseFinish extends Component
             'totalMaterialCost' => $totalMaterialCost,
             'activeToolUsages' => $activeToolUsages,
             'completionBlocked' => $completionBlocked,
-            'warehouses' => Warehouse::orderBy('name')->get(['id', 'name']),
+            'warehouses' => Warehouse::when($user?->assignedWarehouseId(), fn ($q, $wId) => $q->whereKey($wId))->orderBy('name')->get(['id', 'name']),
         ])->layout('layouts.app', ['title' => 'Selesaikan Proyek: '.$this->house->name]);
     }
 }

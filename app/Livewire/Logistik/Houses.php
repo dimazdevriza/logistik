@@ -290,7 +290,7 @@ class Houses extends Component
     {
         $user = auth()->user();
 
-        return (bool) ($user && ($user->canAccessAllClusters() || $user->role === 'logistik'));
+        return (bool) ($user && ($user->canAccessAllClusters() || ($user->role === 'logistik' && ! $user->cluster_id)));
     }
 
     public function updatedClusterId($value): void

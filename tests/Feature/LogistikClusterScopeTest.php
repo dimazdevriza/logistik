@@ -24,21 +24,25 @@ class LogistikClusterScopeTest extends TestCase
     public function test_admin_can_assign_a_cluster_to_a_logistik(): void
     {
         $cluster = Cluster::create(['name' => 'Cluster Tugas']);
+        $warehouse = Warehouse::firstOrCreate(['name' => 'Gudang Utama']);
         $logistik = User::factory()->create(['role' => 'logistik']);
         $this->actingAs(User::factory()->create(['role' => 'admin']));
 
         Livewire::test(UserManagement::class)
             ->call('edit', $logistik->id)
             ->set('cluster_id', $cluster->id)
+            ->set('warehouse_id', $warehouse->id)
             ->call('save')
             ->assertHasNoErrors();
 
         $this->assertSame($cluster->id, $logistik->fresh()->cluster_id);
+        $this->assertSame($warehouse->id, $logistik->fresh()->warehouse_id);
     }
 
     public function test_admin_must_assign_a_cluster_to_logistik(): void
     {
         $cluster = Cluster::create(['name' => 'Cluster Logistik']);
+        $warehouse = Warehouse::firstOrCreate(['name' => 'Gudang Utama']);
         $this->actingAs(User::factory()->create(['role' => 'admin']));
 
         Livewire::test(UserManagement::class)
@@ -47,7 +51,7 @@ class LogistikClusterScopeTest extends TestCase
             ->set('password', 'password-123')
             ->set('role', 'logistik')
             ->call('save')
-            ->assertHasErrors(['cluster_id']);
+            ->assertHasErrors(['cluster_id', 'warehouse_id']);
 
         Livewire::test(UserManagement::class)
             ->set('name', 'Logistik Cluster')
@@ -55,12 +59,14 @@ class LogistikClusterScopeTest extends TestCase
             ->set('password', 'password-123')
             ->set('role', 'logistik')
             ->set('cluster_id', $cluster->id)
+            ->set('warehouse_id', $warehouse->id)
             ->call('save')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('users', [
             'email' => 'logistik-cluster@example.test',
             'cluster_id' => $cluster->id,
+            'warehouse_id' => $warehouse->id,
         ]);
     }
 
@@ -71,11 +77,31 @@ class LogistikClusterScopeTest extends TestCase
         $logistik = User::factory()->create(['role' => 'logistik', 'cluster_id' => $assigned->id]);
         $visibleHouse = House::factory()->create(['cluster_id' => $assigned->id, 'name' => 'Visible House']);
         $hiddenHouse = House::factory()->create(['cluster_id' => $other->id, 'name' => 'Hidden House']);
+        $visiblePublicWork = House::factory()->create(['category' => House::CATEGORY_PUBLIC_WORK, 'cluster_id' => $assigned->id, 'name' => 'Visible Drainase']);
+        $hiddenPublicWork = House::factory()->create(['category' => House::CATEGORY_PUBLIC_WORK, 'cluster_id' => $other->id, 'name' => 'Hidden Drainase']);
 
         $this->actingAs($logistik);
 
-        Livewire::test(TransaksiLogistik::class)
-            ->assertViewHas('houses', fn ($houses) => $houses->contains('id', $visibleHouse->id) && ! $houses->contains('id', $hiddenHouse->id));
+        $component = Livewire::test(TransaksiLogistik::class)
+            ->assertDontSeeHtml('id="house-cluster"')
+            ->assertDontSeeHtml('id="vendor-service-cluster"')
+            ->assertViewHas('houses', fn ($houses) => $houses->contains('id', $visibleHouse->id)
+                && $houses->contains('id', $visiblePublicWork->id)
+                && ! $houses->contains('id', $hiddenHouse->id)
+                && ! $houses->contains('id', $hiddenPublicWork->id))
+            ->set('spreadsheetRows.0.house_id', (string) $hiddenHouse->id)
+            ->assertSet('spreadsheetRows.0.house_id', '')
+            ->assertHasErrors(['spreadsheetRows']);
+
+        foreach (['spreadsheet', 'allocation', 'vendor-service', 'rental', 'return'] as $tab) {
+            $component->set('activeTab', $tab)
+                ->call('openHousePicker', House::CATEGORY_HOUSE)
+                ->assertDontSeeHtml('id="house-cluster"')
+                ->assertViewHas('houseResults', fn ($rows) => ! $rows->contains('id', $hiddenHouse->id))
+                ->call('openHousePicker', House::CATEGORY_PUBLIC_WORK)
+                ->assertDontSeeHtml('id="house-cluster"')
+                ->assertViewHas('houseResults', fn ($rows) => ! $rows->contains('id', $hiddenPublicWork->id));
+        }
     }
 
     public function test_house_search_does_not_keep_a_stale_selection_or_leak_another_cluster(): void

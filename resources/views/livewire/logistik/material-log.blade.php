@@ -199,7 +199,7 @@
                                         <button type="button" wire:click="openReceiptHistory({{ $record->id }})" class="btn log-row-action log-row-action--quiet">Lihat Alasan</button>
                                     @elseif ($record->type === 'keluar' && ($record->voided_at ?? null) === null)
                                         <div class="log-row-actions">
-                                            <button type="button" wire:click="voidMaterial({{ $record->id }})" wire:confirm="Batalkan alokasi ini? Stok lot material akan dikembalikan dan catatan tetap disimpan." class="btn log-row-action log-row-action--danger">Batalkan</button>
+                                            <button type="button" wire:click="confirm('voidMaterial', {{ $record->id }}, 'Batalkan Alokasi Material?', 'Batalkan alokasi ini? Stok lot material akan dikembalikan dan catatan tetap disimpan.')" class="btn log-row-action log-row-action--danger">Batalkan</button>
                                             @if (($record->correction_count ?? 0) > 0 && $record->stock_in_id)
                                                 <button type="button" wire:click="openReceiptHistory({{ $record->stock_in_id }})" class="btn log-row-action log-row-action--quiet">Lihat Alasan</button>
                                             @endif
@@ -264,7 +264,7 @@
                                         <input id="receipt-price" type="number" min="0" step="0.01" wire:model="receiptUnitPrice" class="form-control">
                                         @error('receiptUnitPrice') <small class="text-danger">{{ $message }}</small> @enderror
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="{{ auth()->user()->canAccessAllWarehouses() ? 'col-md-6' : 'col-12' }}">
                                         <label class="form-label" for="receipt-supplier">Supplier</label>
                                         <select id="receipt-supplier" wire:model="receiptSupplierId" class="form-select">
                                             <option value="">Pilih supplier</option>
@@ -273,6 +273,7 @@
                                             @endforeach
                                         </select>
                                     </div>
+                                    @if (auth()->user()->canAccessAllWarehouses())
                                     <div class="col-md-6">
                                         <label class="form-label" for="receipt-warehouse">Gudang</label>
                                         <select id="receipt-warehouse" wire:model="receiptWarehouseId" class="form-select" @disabled($activeReceiptUsed > 0 || $activeReceiptTransferred > 0 || (float) $activeReceipt->available_quantity < (float) $activeReceipt->remaining_quantity)>
@@ -281,6 +282,7 @@
                                             @endforeach
                                         </select>
                                     </div>
+                                    @endif
                                     <div class="col-md-6">
                                         <label class="form-label" for="receipt-date">Tanggal penerimaan</label>
                                         <input id="receipt-date" type="date" wire:model="receiptDate" class="form-control">
@@ -376,6 +378,31 @@
                                 <button type="submit" class="btn btn-danger" wire:loading.attr="disabled" wire:target="cancelReceipt">Batalkan barang masuk</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+            @endteleport
+        @endif
+
+        @if ($showConfirmation)
+            @teleport('body')
+            <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                        <div class="modal-header border-bottom p-3 bg-body-tertiary">
+                            <h5 class="modal-title font-outfit fw-bold text-body fs-6">{{ $confirmTitle ?: 'Konfirmasi' }}</h5>
+                            <button type="button" class="btn-close" wire:click="$set('showConfirmation', false)" aria-label="Tutup"></button>
+                        </div>
+                        <div class="modal-body p-4 text-center">
+                            <div class="p-3 bg-danger-subtle text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
+                                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+                            </div>
+                            <p class="text-secondary small mb-0">{{ $confirmMessage ?: 'Apakah Anda yakin ingin melakukan tindakan ini?' }}</p>
+                        </div>
+                        <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4 p-3 d-flex justify-content-center gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm fw-semibold px-3" wire:click="$set('showConfirmation', false)">Batal</button>
+                            <button type="button" class="btn btn-danger btn-sm fw-semibold px-3 shadow-xs" wire:click="executeConfirmedAction" wire:loading.attr="disabled" wire:target="executeConfirmedAction">Ya, Batalkan</button>
+                        </div>
                     </div>
                 </div>
             </div>

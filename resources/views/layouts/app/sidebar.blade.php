@@ -4,6 +4,15 @@
     $isStaff = in_array($role, ['logistik', 'admin', 'keuangan', 'pengawas'], true);
     $isFieldStaff = in_array($role, ['logistik', 'admin', 'pengawas'], true);
     $canAccessAllClusters = $user?->canAccessAllClusters() ?? false;
+    $assignedClusterName = in_array($role, ['logistik', 'pengawas'], true)
+        ? ($user?->cluster?->name ?? 'Belum ditugaskan')
+        : null;
+    $assignedWarehouseName = in_array($role, ['logistik', 'pengawas'], true)
+        ? $user?->warehouse?->name
+        : null;
+    $assignedClusterLabel = in_array($role, ['logistik', 'pengawas'], true)
+        ? (collect([$user?->cluster?->name, $user?->warehouse?->name])->filter()->join(' • ') ?: 'Belum ditugaskan')
+        : null;
 
     // Nav model: each section is a label plus its links. Sections with no
     // visible links are dropped, so role changes never leave an empty header.
@@ -21,7 +30,7 @@
             'links' => [
                 ['route' => 'logistik.materials', 'active' => 'logistik.materials', 'icon' => 'i-box', 'label' => 'Material'],
                 ['route' => 'logistik.tools', 'active' => 'logistik.tools', 'icon' => 'i-wrench', 'label' => 'Alat'],
-                ['route' => 'logistik.warehouses', 'active' => 'logistik.warehouses', 'icon' => 'i-box', 'label' => 'Gudang'],
+                ['route' => $user?->assignedWarehouseId() ? 'logistik.warehouse-detail' : 'logistik.warehouses', 'query' => $user?->assignedWarehouseId() ? ['warehouse' => $user->assignedWarehouseId()] : [], 'active' => 'logistik.warehouses', 'icon' => 'i-box', 'label' => 'Gudang'],
                 ['route' => 'logistik.suppliers', 'active' => 'logistik.suppliers', 'icon' => 'i-truck', 'label' => 'Supplier'],
                 ['route' => 'logistik.categories', 'active' => 'logistik.categories', 'icon' => 'i-tags', 'label' => 'Kategori'],
             ],
@@ -57,10 +66,12 @@
         [
             'label' => 'Keuangan',
             'show' => in_array($role, ['admin', 'keuangan', 'pengawas'], true),
-            'links' => [
+            'links' => array_values(array_filter([
                 ['route' => $canAccessAllClusters ? 'admin.house-costs' : 'logistik.house-costs', 'active' => $canAccessAllClusters ? 'admin.house-costs*' : 'logistik.house-costs*', 'icon' => 'i-chart', 'label' => 'Biaya Rumah'],
-                ['route' => 'logistik.cluster-costs', 'active' => 'logistik.cluster-*', 'icon' => 'i-chart', 'label' => 'Biaya Cluster'],
-            ],
+                $canAccessAllClusters
+                    ? ['route' => 'logistik.cluster-costs', 'active' => 'logistik.cluster-*', 'icon' => 'i-chart', 'label' => 'Biaya Cluster']
+                    : ($user?->cluster_id ? ['route' => 'clusters.expenses', 'query' => [$user->cluster_id], 'active' => 'clusters.expenses', 'icon' => 'i-chart', 'label' => 'Biaya Cluster'] : null),
+            ])),
         ],
         [
             'label' => 'Admin',
@@ -168,7 +179,9 @@
                     </div>
                     @foreach ($section['links'] as $link)
                         @php
-                            $isActive = request()->routeIs($link['active']) || (($link['route'] ?? null) === 'logistik.alokasi' && request()->routeIs('logistik.transaksi'));
+                            $isActive = request()->routeIs($link['active'])
+                                || (($link['route'] ?? null) === 'logistik.alokasi' && request()->routeIs('logistik.transaksi'))
+                                || (in_array($link['route'] ?? null, ['logistik.warehouses', 'logistik.warehouse-detail'], true) && request()->routeIs('logistik.warehouses', 'logistik.warehouse-detail'));
                             if (($link['view'] ?? null) === 'history') {
                                 $isActive = $isActive && request('view') === 'history';
                             } elseif (($link['view'] ?? null) === 'request') {
@@ -193,13 +206,21 @@
             <!-- Account Footer -->
             <div class="border-top p-2 mt-auto">
                 <div class="d-flex align-items-center justify-content-between user-profile-card p-1 rounded-3">
-                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                    <div
+                        class="d-flex align-items-center gap-2 overflow-hidden"
+                        title="{{ trim(($user?->name ?? '') . ' — ' . ucfirst($role ?? '') . ($assignedClusterLabel ? ' • ' . $assignedClusterLabel : '')) }}"
+                    >
                         <span class="d-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success fw-bold flex-shrink-0 extra-small" style="width: 32px; height: 32px;">
                             {{ $user?->initials() }}
                         </span>
                         <span class="sidebar-label overflow-hidden lh-sm">
                             <span class="d-block small fw-semibold text-body text-truncate">{{ $user?->name }}</span>
-                            <span class="d-block extra-small text-secondary text-truncate">{{ ucfirst($role ?? '') }}</span>
+                            <span class="d-block extra-small text-secondary text-truncate">
+                                {{ ucfirst($role ?? '') }}@if ($assignedClusterName) <span class="text-body-secondary">&bull;</span> <span class="{{ $user?->cluster_id ? 'text-success fw-medium' : 'text-warning fw-medium' }}">{{ $assignedClusterName }}</span>@endif
+                            </span>
+                            @if ($assignedWarehouseName)
+                                <span class="d-block extra-small text-success fw-medium text-truncate">{{ $assignedWarehouseName }}</span>
+                            @endif
                         </span>
                     </div>
 
@@ -276,7 +297,9 @@
                             </span>
                             <div class="lh-sm overflow-hidden">
                                 <div class="fw-bold small text-body text-truncate">{{ $user?->name }}</div>
-                                <div class="extra-small text-secondary text-capitalize">{{ $user?->role }}</div>
+                                <div class="extra-small text-secondary text-truncate">
+                                    {{ ucfirst($role ?? '') }}@if ($assignedClusterLabel) <span class="text-body-secondary">&bull;</span> <span class="{{ $user?->cluster_id ? 'text-success fw-medium' : 'text-warning fw-medium' }}">{{ $assignedClusterLabel }}</span>@endif
+                                </div>
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-shrink-0">

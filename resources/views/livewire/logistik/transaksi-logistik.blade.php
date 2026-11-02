@@ -733,7 +733,7 @@
                         @error('tool_id') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
 
-                    @if ($toolWarehouseOptions->isNotEmpty())
+                    @if ($toolWarehouseOptions->isNotEmpty() && auth()->user()->canAccessAllWarehouses())
                         <div class="col-12">
                             <label for="tool-warehouse" class="form-label fw-semibold mb-1">Gudang asal</label>
                             <div class="position-relative" @click.outside="warehousePickerOpen = false">
@@ -946,7 +946,7 @@
                                     </div>
                                     <div class="mt-2">
                                         <label for="return-warehouse-{{ $usage->id }}" class="small fw-semibold">Gudang penerima untuk unit baik/rusak</label>
-                                        <select id="return-warehouse-{{ $usage->id }}" wire:model.live="returnSelections.{{ $usage->id }}.receiving_warehouse_id" class="form-select form-select-sm">
+                                        <select id="return-warehouse-{{ $usage->id }}" wire:model.live="returnSelections.{{ $usage->id }}.receiving_warehouse_id" class="form-select form-select-sm" @disabled(!auth()->user()->canAccessAllWarehouses())>
                                             <option value="">Pilih gudang</option>
                                             @foreach($warehouses as $warehouse)
                                                 <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
@@ -1175,10 +1175,11 @@
             <button type="button" class="btn-close" aria-label="Tutup pilihan {{ $pickerUnitLabel }}" @click="housePickerOpen = false" wire:click="closeHousePicker"></button>
         </div>
         <div class="row g-2">
-            <div class="col-7">
+            <div class="{{ auth()->user()->canAccessAllClusters() ? 'col-7' : 'col-12' }}">
                 <label for="house-search" class="form-label small fw-semibold">Cari {{ $pickerUnitLabel }}</label>
                 <input id="house-search" autofocus type="search" wire:model.live.debounce.250ms="houseSearch" class="form-control" placeholder="{{ $isPublicWorkPicker ? 'Nama atau kode pekerjaan umum' : 'Nama, kode, atau tipe rumah' }}" />
             </div>
+            @if (auth()->user()->canAccessAllClusters())
             <div class="col-5">
                 <label for="house-cluster" class="form-label small fw-semibold">Cluster</label>
                 <select id="house-cluster" wire:model.live="houseCluster" class="form-select">
@@ -1188,6 +1189,7 @@
                     @endforeach
                 </select>
             </div>
+            @endif
         </div>
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2">
             <label class="d-flex align-items-center gap-2 small house-filter-toggle">
@@ -1221,7 +1223,10 @@
         @empty
             <div class="text-center p-4">
                 <p class="fw-semibold mb-1">{{ $selectedHousesOnly ? "Tidak ada {$pickerUnitLabel} dipilih yang cocok" : "Tidak ada {$pickerUnitLabel} yang cocok" }}</p>
-                <p class="small text-secondary mb-0">{{ $activeTab === 'return' ? "Coba kata kunci lain. Hanya {$pickerUnitLabel} dengan peminjaman aktif yang ditampilkan." : (in_array($activeTab, ['allocation', 'material', 'tool', 'spreadsheet'], true) ? "Coba kata kunci atau cluster lain. " . ucfirst($pickerUnitLabel) . " selesai hanya ditampilkan selama masa garansi." : ($activeTab === 'vendor-service' ? 'Coba kata kunci atau cluster lain.' : "Coba kata kunci atau cluster lain. " . ucfirst($pickerUnitLabel) . " yang sudah selesai tidak ditampilkan.")) }}</p>
+                @php
+                    $emptySearchHint = auth()->user()->canAccessAllClusters() ? 'Coba kata kunci atau cluster lain.' : 'Coba kata kunci lain.';
+                @endphp
+                <p class="small text-secondary mb-0">{{ $activeTab === 'return' ? "Coba kata kunci lain. Hanya {$pickerUnitLabel} dengan peminjaman aktif yang ditampilkan." : (in_array($activeTab, ['allocation', 'material', 'tool', 'spreadsheet'], true) ? "{$emptySearchHint} " . ucfirst($pickerUnitLabel) . " selesai hanya ditampilkan selama masa garansi." : ($activeTab === 'vendor-service' ? $emptySearchHint : "{$emptySearchHint} " . ucfirst($pickerUnitLabel) . " yang sudah selesai tidak ditampilkan.")) }}</p>
             </div>
         @endforelse
     </div>

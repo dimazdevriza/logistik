@@ -104,6 +104,33 @@ class Dispatches extends Component
 
     public string $resolutionNotes = '';
 
+    public bool $showConfirmation = false;
+    public string $confirmingAction = '';
+    public ?int $confirmingId = null;
+    public string $confirmTitle = '';
+    public string $confirmMessage = '';
+
+    public function confirm(string $action, ?int $id = null, string $title = '', string $message = ''): void
+    {
+        $this->confirmingAction = $action;
+        $this->confirmingId = $id;
+        $this->confirmTitle = $title;
+        $this->confirmMessage = $message;
+        $this->showConfirmation = true;
+    }
+
+    public function executeConfirmedAction(): void
+    {
+        match ($this->confirmingAction) {
+            'receiveRejectedReturn' => $this->receiveRejectedReturn((int) $this->confirmingId),
+            default => null,
+        };
+
+        $this->showConfirmation = false;
+        $this->confirmingAction = '';
+        $this->confirmingId = null;
+    }
+
     public string $resolutionSubmissionKey = '';
 
     protected function sortableColumns(): array
