@@ -276,8 +276,8 @@ class RemainingTasksTest extends TestCase
             ->assertSee('Transfer gudang')
             ->assertSee('Asal: Gudang Utama; tujuan: TEST Gudang Transfer');
         Livewire::test(InventoryTransfers::class)
-            ->assertDontSee('Riwayat transfer gudang')
-            ->assertDontSee($transfers[0]->transfer_code);
+            ->assertSee('Riwayat transfer antargudang')
+            ->assertSee($transfers[0]->transfer_code);
         $transferLog = collect((new MaterialLogExport(filterType: 'masuk'))->collection())
             ->firstWhere('type', 'transfer_masuk');
         $this->assertSame('Transfer Gudang', (new MaterialLogExport(filterType: 'masuk'))->map($transferLog)[2]);
@@ -337,8 +337,8 @@ class RemainingTasksTest extends TestCase
             ->assertSee('Transfer')
             ->assertSee('Asal: Gudang Utama; tujuan: TEST Gudang Alat Tujuan');
         Livewire::test(InventoryTransfers::class)
-            ->assertDontSee('Riwayat transfer gudang')
-            ->assertDontSee($transfer->transfer_code);
+            ->assertSee('Riwayat transfer antargudang')
+            ->assertSee($transfer->transfer_code);
     }
 
     public function test_house_completion_requires_full_mixed_tool_accounting_and_records_receiver(): void

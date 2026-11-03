@@ -69,7 +69,7 @@ final class SpreadsheetBatchRecorder
                         ->whereKey($line['batch_id'])
                         ->where('material_id', $material->id)
                         ->whereNotNull('warehouse_id')
-                        ->when($actor?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
+                        ->when($actor?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', $actor->scopedWarehouseIds()))
                         ->lockForUpdate()
                         ->first();
 
@@ -98,7 +98,7 @@ final class SpreadsheetBatchRecorder
                 foreach ($row['tools'] ?? [] as $lineIndex => $line) {
                     $tool = Tool::whereKey($line['tool_id'])->lockForUpdate()->firstOrFail();
                     $warehouseId = (int) $line['warehouse_id'];
-                    if (($wId = $actor?->assignedWarehouseId()) && $warehouseId !== $wId) {
+                    if ($actor?->canAccessWarehouse($warehouseId) === false) {
                         throw ValidationException::withMessages([
                             "spreadsheetRows.$rowIndex.tools.$lineIndex.warehouse_id" => 'Pilih gudang tugas akun Anda.',
                         ]);
@@ -160,7 +160,7 @@ final class SpreadsheetBatchRecorder
                             "spreadsheetRows.$rowIndex.returns.$lineIndex.receiving_warehouse_id" => 'Pilih gudang penerima untuk alat yang kembali.',
                         ]);
                     }
-                    if (((int) $line['qty_normal'] + (int) $line['qty_broken']) > 0 && ($wId = $actor?->assignedWarehouseId()) && (int) $line['receiving_warehouse_id'] !== $wId) {
+                    if (((int) $line['qty_normal'] + (int) $line['qty_broken']) > 0 && $actor?->canAccessWarehouse((int) $line['receiving_warehouse_id']) === false) {
                         throw ValidationException::withMessages([
                             "spreadsheetRows.$rowIndex.returns.$lineIndex.receiving_warehouse_id" => 'Alat harus dikembalikan ke gudang tugas akun Anda.',
                         ]);

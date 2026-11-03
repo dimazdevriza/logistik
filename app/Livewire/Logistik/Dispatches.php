@@ -1013,7 +1013,7 @@ class Dispatches extends Component
         return view('livewire.logistik.dispatches', [
             'requests' => $requests,
             'queueCounts' => $queueCounts,
-            'clusterAssignmentMissing' => in_array(auth()->user()->role, ['logistik', 'pengawas'], true) && ! auth()->user()->cluster_id,
+            'clusterAssignmentMissing' => in_array(auth()->user()->role, ['logistik', 'pengawas'], true) && ! auth()->user()->assignedClusterIds(),
             'selectedRequest' => $selectedRequest,
             'availableDispatchSources' => $availableDispatchSources,
         ])

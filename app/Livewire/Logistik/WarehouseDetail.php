@@ -28,7 +28,7 @@ class WarehouseDetail extends Component
 
     public function mount(Warehouse $warehouse): void
     {
-        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $warehouse->id !== $wId) {
+        if (auth()->user()?->canAccessWarehouse((int) $warehouse->id) === false) {
             abort(403);
         }
         $this->warehouse = $warehouse;
@@ -36,7 +36,7 @@ class WarehouseDetail extends Component
 
     public function openEditModal(): void
     {
-        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->warehouse->id !== $wId) {
+        if (auth()->user()?->canAccessWarehouse((int) $this->warehouse->id) === false) {
             abort(403);
         }
         $this->name = $this->warehouse->name;
@@ -47,7 +47,7 @@ class WarehouseDetail extends Component
 
     public function saveWarehouse(): void
     {
-        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->warehouse->id !== $wId) {
+        if (auth()->user()?->canAccessWarehouse((int) $this->warehouse->id) === false) {
             abort(403);
         }
         $data = $this->validate([
@@ -104,7 +104,7 @@ class WarehouseDetail extends Component
 
     public function exportExcel()
     {
-        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->warehouse->id !== $wId) {
+        if (auth()->user()?->canAccessWarehouse((int) $this->warehouse->id) === false) {
             abort(403);
         }
         $export = new WarehouseExport($this->warehouse->id);

@@ -99,7 +99,7 @@ class Materials extends Component
         $this->resetValidation('delete');
         if ($action === 'delete') {
             $material = Material::findOrFail($id);
-            if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $material->warehouse_id !== $wId) {
+            if (auth()->user()?->canAccessWarehouse((int) $material->warehouse_id) === false) {
                 abort(403);
             }
             if ($material->hasTransactionHistory()) {
@@ -267,7 +267,7 @@ class Materials extends Component
         }
 
         $material = Material::with(['supplier', 'category'])
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', auth()->user()->scopedWarehouseIds()))
             ->findOrFail($id);
         $this->existingMaterialId = (string) $material->id;
         $this->name = $material->name;
@@ -303,7 +303,7 @@ class Materials extends Component
     public function edit($id)
     {
         $material = Material::findOrFail($id);
-        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $material->warehouse_id !== $wId) {
+        if (auth()->user()?->canAccessWarehouse((int) $material->warehouse_id) === false) {
             abort(403);
         }
         $this->materialId = $material->id;
@@ -317,7 +317,7 @@ class Materials extends Component
         $this->stock = $material->stock;
         $this->receiptReceivedAt = '';
         $this->stockAdjustmentReason = '';
-        $this->warehouse_id = (string) ($wId ?? $material->warehouse_id ?? '');
+        $this->warehouse_id = (string) ($material->warehouse_id ?? '');
         $this->image = null;
         $this->existingImage = $material->image;
         $this->saveSuccess = '';
@@ -330,6 +330,7 @@ class Materials extends Component
         if ($wId = auth()->user()?->assignedWarehouseId()) {
             $this->warehouse_id = (string) $wId;
         }
+        abort_if($this->warehouse_id !== '' && auth()->user()?->canAccessWarehouse($this->warehouse_id) === false, 403);
         if (! $this->editMode && $this->createMode === 'existing') {
             $this->validate([
                 'existingMaterialId' => 'required|exists:materials,id',
@@ -361,7 +362,7 @@ class Materials extends Component
         }
         $this->validate();
         $existing = $this->editMode ? Material::findOrFail($this->materialId) : null;
-        if ($existing && ($wId = auth()->user()?->assignedWarehouseId()) && (int) $existing->warehouse_id !== $wId) {
+        if ($existing && auth()->user()?->canAccessWarehouse((int) $existing->warehouse_id) === false) {
             abort(403);
         }
         $stockChanged = $existing && abs((float) $existing->stock - (float) $this->stock) > 0.0001;
@@ -507,7 +508,7 @@ class Materials extends Component
         $this->resetValidation('delete');
         DB::transaction(function () use ($id) {
             $material = Material::lockForUpdate()->findOrFail($id);
-            if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $material->warehouse_id !== $wId) {
+            if (auth()->user()?->canAccessWarehouse((int) $material->warehouse_id) === false) {
                 abort(403);
             }
             if ($material->hasTransactionHistory()) {
@@ -534,7 +535,7 @@ class Materials extends Component
         $this->receiptSubmissionKey = (string) Str::uuid();
         $this->saveSuccess = '';
         $this->stockAdjustmentReason = '';
-        $this->warehouse_id = (string) (auth()->user()?->assignedWarehouseId() ?? Warehouse::orderBy('id')->value('id') ?? '');
+        $this->warehouse_id = (string) (auth()->user()?->assignedWarehouseId() ?? Warehouse::when(auth()->user()?->canAccessAllWarehouses() === false, fn ($q) => $q->whereKey(auth()->user()->scopedWarehouseIds()))->orderBy('id')->value('id') ?? '');
         $this->image = null;
         $this->existingImage = null;
         $this->resetValidation();
@@ -568,6 +569,7 @@ class Materials extends Component
         if ($wId = auth()->user()?->assignedWarehouseId()) {
             $this->warehouse_id = (string) $wId;
         }
+        abort_if($this->warehouse_id !== '' && auth()->user()?->canAccessWarehouse($this->warehouse_id) === false, 403);
         $this->validate([
             'restockMaterialId' => 'required|exists:materials,id',
             'warehouse_id' => 'required|exists:warehouses,id',
@@ -592,7 +594,7 @@ class Materials extends Component
                 }
 
                 $sourceMaterial = Material::lockForUpdate()->findOrFail($this->restockMaterialId);
-                if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $sourceMaterial->warehouse_id !== $wId) {
+                if (auth()->user()?->canAccessWarehouse((int) $sourceMaterial->warehouse_id) === false) {
                     abort(403);
                 }
 
@@ -733,8 +735,9 @@ class Materials extends Component
     {
         if (!in_array(auth()->user()->role, ['admin', 'logistik', 'keuangan', 'pengawas'], true)) return;
 
-        if ($wId = auth()->user()?->assignedWarehouseId()) {
-            $this->filterWarehouse = (string) $wId;
+        $user = auth()->user();
+        if ($user?->canAccessAllWarehouses() === false && ! $user->canAccessWarehouse($this->filterWarehouse)) {
+            $this->filterWarehouse = (string) ($user->assignedWarehouseId() ?? '');
         }
 
         $export = new MaterialInventoryExport(
@@ -742,7 +745,8 @@ class Materials extends Component
             $this->filterCategory,
             $this->filterWarehouse,
             $this->filterSupplier,
-            $this->filterStock
+            $this->filterStock,
+            $user?->canAccessAllWarehouses() === false ? $user->scopedWarehouseIds() : null
         );
         $filename = 'material-inventory-' . now()->format('Ymd') . '.xlsx';
 
@@ -753,10 +757,12 @@ class Materials extends Component
 
     public function render()
     {
-        $assignedWarehouseId = auth()->user()?->assignedWarehouseId();
-        if ($assignedWarehouseId) {
-            $this->filterWarehouse = (string) $assignedWarehouseId;
+        $user = auth()->user();
+        $restricted = $user?->canAccessAllWarehouses() === false;
+        if ($restricted && ! $user->canAccessWarehouse($this->filterWarehouse)) {
+            $this->filterWarehouse = (string) ($user->assignedWarehouseId() ?? '');
         }
+        $warehouseScope = $this->filterWarehouse ? [(int) $this->filterWarehouse] : ($restricted ? $user->scopedWarehouseIds() : null);
 
         $materialBatches = StockIn::query()
             ->join('materials', 'materials.id', '=', 'stock_ins.material_id')
@@ -772,10 +778,10 @@ class Materials extends Component
                 ->where('stock_ins.supplier_id', $this->filterSupplier)
                 ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.supplier_id')
                     ->whereHas('material', fn ($material) => $material->where('supplier_id', $this->filterSupplier)))))
-            ->when($this->filterWarehouse, fn ($q) => $q->where(fn ($sub) => $sub
-                ->where('stock_ins.warehouse_id', $this->filterWarehouse)
+            ->when($warehouseScope, fn ($q) => $q->where(fn ($sub) => $sub
+                ->whereIn('stock_ins.warehouse_id', $warehouseScope)
                 ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.warehouse_id')
-                    ->whereHas('material', fn ($material) => $material->where('warehouse_id', $this->filterWarehouse)))))
+                    ->whereHas('material', fn ($material) => $material->whereIn('warehouse_id', $warehouseScope)))))
             ->when($this->filterPhoto === 'has_photo', fn ($q) => $q->whereHas('material', fn ($material) => $material->whereNotNull('image')->where('image', '!=', '')))
             ->when($this->filterPhoto === 'no_photo', fn ($q) => $q->whereHas('material', fn ($material) => $material->where(fn ($sub) => $sub->whereNull('image')->orWhere('image', ''))))
             ->when($this->filterStock, function ($q) {
@@ -794,9 +800,9 @@ class Materials extends Component
 
         $suppliers = Supplier::select('id', 'name')->orderBy('name')->get()->unique('name');
         $categories = Category::where('type', 'material')->orderBy('name')->get()->unique('name');
-        $warehouses = Warehouse::when($assignedWarehouseId, fn ($q, $wId) => $q->whereKey($wId))->orderBy('name')->get();
+        $warehouses = Warehouse::when($restricted, fn ($q) => $q->whereKey($user->scopedWarehouseIds()))->orderBy('name')->get();
         $materialChoices = $this->showModal && ! $this->editMode && $this->createMode === 'existing'
-            ? Material::with('warehouse')->when($assignedWarehouseId, fn ($q, $wId) => $q->where('warehouse_id', $wId))->orderBy('name')->orderBy('code')->get(['id', 'name', 'code', 'warehouse_id'])
+            ? Material::with('warehouse')->when($restricted, fn ($q) => $q->whereIn('warehouse_id', $user->scopedWarehouseIds()))->orderBy('name')->orderBy('code')->get(['id', 'name', 'code', 'warehouse_id'])
             : collect();
 
         $selectedWarehouse = $this->filterWarehouse
@@ -806,15 +812,15 @@ class Materials extends Component
         // Summary stats
         $activeBatchScope = StockIn::query()
             ->where('remaining_quantity', '>', 0)
-            ->when($this->filterWarehouse, fn ($q) => $q->where(fn ($sub) => $sub
-                ->where('stock_ins.warehouse_id', $this->filterWarehouse)
+            ->when($warehouseScope, fn ($q) => $q->where(fn ($sub) => $sub
+                ->whereIn('stock_ins.warehouse_id', $warehouseScope)
                 ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.warehouse_id')
-                    ->whereHas('material', fn ($material) => $material->where('warehouse_id', $this->filterWarehouse)))));
+                    ->whereHas('material', fn ($material) => $material->whereIn('warehouse_id', $warehouseScope)))));
 
         $totalValue = (float) ((clone $activeBatchScope)
             ->selectRaw('SUM(unit_price * remaining_quantity) as total')
             ->value('total') ?? 0);
-        $totalItems = $this->filterWarehouse
+        $totalItems = $warehouseScope
             ? (clone $activeBatchScope)->distinct('material_id')->count('material_id')
             : Material::where('stock', '>', 0)->count();
 

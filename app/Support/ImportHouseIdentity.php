@@ -25,16 +25,17 @@ final class ImportHouseIdentity
                 throw new RuntimeException("Baris {$rowNumber} ({$item}): Pengguna belum ditugaskan ke cluster.");
             }
 
-            if ($clusterId && (int) $clusterId !== (int) $user->cluster_id) {
+            if ($clusterId && ! $user->canAccessCluster($clusterId)) {
                 throw new RuntimeException("Baris {$rowNumber} ({$item}): Rumah berada di luar cluster tugas Anda.");
             }
 
-            $clusterId = (int) $user->cluster_id;
+            $clusterId ??= $user->soleClusterId();
         }
 
         $matches = House::query()
             ->where(fn ($query) => $query->where('house_code', $reference)->orWhere('name', $reference))
             ->when($clusterId, fn ($query) => $query->where('cluster_id', $clusterId))
+            ->when(! $clusterId && $user && ! $user->canAccessAllClusters(), fn ($query) => $query->whereIn('cluster_id', $user->scopedClusterIds()))
             ->limit(2)
             ->get();
 

@@ -51,13 +51,9 @@
                         @foreach ($spreadsheetRows as $rowIndex => $row)
                             @php
                                 $houseId = (int) ($row['house_id'] ?? 0);
-                                $materialLines = $row['materials'] ?: [['material_id' => '', 'batch_id' => '', 'quantity' => 1, 'notes' => '']];
-                                $toolLines = $row['tools'] ?: [['tool_id' => '', 'warehouse_id' => '', 'quantity' => 1, 'notes' => '']];
-                                $returnLines = $row['returns'] ?: [['usage_id' => '', 'qty_normal' => 0, 'qty_broken' => 0, 'qty_lost' => 0, 'receiving_warehouse_id' => '', 'notes' => '']];
-                                $lineCount = $houseId ? max(count($materialLines), count($toolLines), count($returnLines)) : 1;
-                                $materialLines = array_pad($materialLines, $lineCount, ['material_id' => '', 'batch_id' => '', 'quantity' => 1, 'notes' => '']);
-                                $toolLines = array_pad($toolLines, $lineCount, ['tool_id' => '', 'warehouse_id' => '', 'quantity' => 1, 'notes' => '']);
-                                $returnLines = array_pad($returnLines, $lineCount, ['usage_id' => '', 'qty_normal' => 0, 'qty_broken' => 0, 'qty_lost' => 0, 'receiving_warehouse_id' => '', 'notes' => '']);
+                                $materialLines = ! empty($row['materials']) ? $row['materials'] : [['material_id' => '', 'batch_id' => '', 'quantity' => 1, 'notes' => '']];
+                                $toolLines = ! empty($row['tools']) ? $row['tools'] : [['tool_id' => '', 'warehouse_id' => '', 'quantity' => 1, 'notes' => '']];
+                                $returnLines = ! empty($row['returns']) ? $row['returns'] : [['usage_id' => '', 'qty_normal' => 0, 'qty_broken' => 0, 'qty_lost' => 0, 'receiving_warehouse_id' => '', 'notes' => '']];
                                 $houseUsages = $spreadsheetUsages->get($houseId, collect());
                                 $pricedMaterialLines = collect($row['materials'] ?? [])->filter(fn ($line) => ! empty($line['batch_id']));
                                 $houseMaterialTotal = $pricedMaterialLines->sum(function ($line) use ($spreadsheetBatches) {
@@ -66,9 +62,6 @@
 
                                     return (float) ($line['quantity'] ?? 0) * (float) ($batch?->unit_price ?? 0);
                                 });
-                            @endphp
-                            @for ($lineIndex = 0; $lineIndex < $lineCount; $lineIndex++)
-                            @php
                                 $selectedHouseIdsElsewhere = collect($spreadsheetRows)
                                     ->reject(fn ($candidateRow, $candidateIndex) => (int) $candidateIndex === (int) $rowIndex)
                                     ->pluck('house_id')
@@ -82,31 +75,12 @@
                                         'label' => $house->name,
                                         'meta' => $house->isPublicWork() ? $house->house_code.' · Pekerjaan Umum' : $house->house_code,
                                     ])->values()->all();
-                                $selectedReturnUsageIds = collect($returnLines)
-                                    ->reject(fn ($returnLine, $returnIndex) => (int) $returnIndex === $lineIndex)
-                                    ->pluck('usage_id')
-                                    ->filter()
-                                    ->map(fn ($usageId) => (int) $usageId)
-                                    ->all();
-                                $selectedReturnToolIds = $houseUsages
-                                    ->whereIn('id', $selectedReturnUsageIds)
-                                    ->pluck('tool_id')
-                                    ->map(fn ($toolId) => (int) $toolId)
-                                    ->all();
-                                $returnOptions = $houseUsages
-                                    ->reject(fn ($usage) => in_array((int) $usage->tool_id, $selectedReturnToolIds, true))
-                                    ->map(fn ($usage) => [
-                                        'id' => (string) $usage->id,
-                                        'label' => $usage->tool->name,
-                                        'meta' => $usage->quantity.' unit di rumah · '.$usage->tool->code,
-                                    ])->values()->all();
-                                $returnEmptyMessage = $houseUsages->isNotEmpty()
-                                    ? 'Semua peminjaman aktif sudah dipilih.'
-                                    : 'Tidak ada peminjaman aktif di unit ini.';
+                                $materialCount = collect($row['materials'] ?? [])->filter(fn ($l) => ! empty($l['material_id']))->count();
+                                $toolCount = collect($row['tools'] ?? [])->filter(fn ($l) => ! empty($l['tool_id']))->count();
+                                $returnCount = collect($row['returns'] ?? [])->filter(fn ($l) => ! empty($l['usage_id']))->count();
                             @endphp
-                            <tr wire:key="spreadsheet-house-{{ $rowIndex }}-{{ $houseId }}-line-{{ $lineIndex }}" class="{{ $lineIndex === 0 ? 'spreadsheet-group-start' : '' }}">
-                                @if ($lineIndex === 0)
-                                <th scope="row" rowspan="{{ $houseId ? $lineCount : 1 }}" class="spreadsheet-house-cell">
+                            <tr wire:key="spreadsheet-house-row-{{ $rowIndex }}-{{ $houseId }}" class="spreadsheet-house-row">
+                                <th scope="row" class="spreadsheet-house-cell align-top">
                                     @include('livewire.logistik.partials.spreadsheet-picker', [
                                         'pickerId' => 'spreadsheet-house-'.$rowIndex,
                                         'pickerItems' => $spreadsheetHouseOptions,
@@ -117,103 +91,130 @@
                                         'pickerTarget' => null,
                                         'pickerModel' => "spreadsheetRows.{$rowIndex}.house_id",
                                     ])
+                                    @if ($houseId && ($materialCount > 0 || $toolCount > 0 || $returnCount > 0))
+                                        <div class="spreadsheet-house-meta-tags mt-2 d-flex flex-wrap gap-1">
+                                            @if ($materialCount > 0)
+                                                <span class="spreadsheet-tag">{{ $materialCount }} material</span>
+                                            @endif
+                                            @if ($toolCount > 0)
+                                                <span class="spreadsheet-tag">{{ $toolCount }} alat</span>
+                                            @endif
+                                            @if ($returnCount > 0)
+                                                <span class="spreadsheet-tag">{{ $returnCount }} kembali</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </th>
-                                @endif
                                 @if (empty($row['house_id']))
-                                    <td colspan="3" class="small text-secondary align-middle">Pilih rumah atau pekerjaan umum untuk menambahkan material, alat, atau pengembalian.</td>
+                                    <td colspan="3" class="spreadsheet-empty-cell align-middle">
+                                        <div class="spreadsheet-empty-pill">
+                                            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="opacity-50 flex-shrink-0" aria-hidden="true">
+                                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                                <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                                            </svg>
+                                            <span>Pilih rumah atau pekerjaan umum pada kolom kiri untuk mulai mengisi alokasi.</span>
+                                        </div>
+                                    </td>
                                 @else
-                                    <td class="spreadsheet-action-cell">
-                                        @if (isset($materialLines[$lineIndex]))
-                                            <?php $line = $materialLines[$lineIndex]; ?>
-                                                <?php
-                                                    $selectedMaterial = $materials->firstWhere('id', (int) ($line['material_id'] ?? 0));
-                                                    $availableBatches = $spreadsheetBatches->get((int) ($line['material_id'] ?? 0), collect());
-                                                    $selectedBatchId = (int) ($line['batch_id'] ?? 0);
-                                                    $batchOptions = $availableBatches->map(function ($batch) use ($line, $selectedBatchId, $spreadsheetBatchUsage) {
-                                                        $ownQuantity = $selectedBatchId === (int) $batch->id ? (float) ($line['quantity'] ?? 0) : 0;
-                                                        $reservedElsewhere = max(0, (float) $spreadsheetBatchUsage->get((int) $batch->id, 0) - $ownQuantity);
-                                                        $availableQuantity = max(0, round((float) $batch->available_quantity - $reservedElsewhere, 2));
+                                    <td class="spreadsheet-action-cell spreadsheet-material-column align-top">
+                                        @foreach ($materialLines as $lineIndex => $line)
+                                            @php
+                                                $selectedMaterial = $materials->firstWhere('id', (int) ($line['material_id'] ?? 0));
+                                                $availableBatches = $spreadsheetBatches->get((int) ($line['material_id'] ?? 0), collect());
+                                                $selectedBatchId = (int) ($line['batch_id'] ?? 0);
+                                                $batchOptions = $availableBatches->map(function ($batch) use ($line, $selectedBatchId, $spreadsheetBatchUsage) {
+                                                    $ownQuantity = $selectedBatchId === (int) $batch->id ? (float) ($line['quantity'] ?? 0) : 0;
+                                                    $reservedElsewhere = max(0, (float) $spreadsheetBatchUsage->get((int) $batch->id, 0) - $ownQuantity);
+                                                    $availableQuantity = max(0, round((float) $batch->available_quantity - $reservedElsewhere, 2));
 
-                                                        return [
-                                                            'id' => (string) $batch->id,
-                                                            'label' => 'Sisa '.number_format($availableQuantity, 2, ',', '.').' · Rp '.number_format((float) $batch->unit_price, 0, ',', '.'),
-                                                            'meta' => ($batch->warehouse?->name ?? 'Gudang tidak diketahui').' · '.$batch->entry_code,
-                                                            'available_quantity' => $availableQuantity,
-                                                        ];
-                                                    })->filter(fn ($option) => $option['available_quantity'] >= 0.01 || (int) $option['id'] === $selectedBatchId)->values()->all();
-                                                    $selectedBatch = $availableBatches->firstWhere('id', $selectedBatchId);
-                                                    $selectedBatchAvailableQuantity = (float) (collect($batchOptions)->firstWhere('id', (string) $selectedBatchId)['available_quantity'] ?? 0);
-                                                ?>
-                                                <div class="spreadsheet-entry" wire:key="spreadsheet-material-{{ $rowIndex }}-{{ $lineIndex }}-entry">
-                                                    @include('livewire.logistik.partials.spreadsheet-picker', [
-                                                        'pickerId' => 'spreadsheet-material-'.$rowIndex.'-'.$lineIndex,
-                                                        'pickerItems' => $spreadsheetMaterialOptions,
-                                                        'pickerValue' => $line['material_id'] ?? '',
-                                                        'pickerPlaceholder' => 'Pilih material',
-                                                        'pickerEmptyMessage' => 'Tidak ada material dengan stok tersedia.',
-                                                        'pickerError' => "spreadsheetRows.$rowIndex.materials.$lineIndex.material_id",
-                                                        'pickerTarget' => ['row' => $rowIndex, 'type' => 'materials', 'line' => $lineIndex],
-                                                        'pickerModel' => null,
-                                                    ])
-                                                    @if ($selectedMaterial)
-                                                        <div class="spreadsheet-entry-fields">
-                                                            @include('livewire.logistik.partials.spreadsheet-picker', [
-                                                                'pickerId' => 'spreadsheet-batch-'.$rowIndex.'-'.$lineIndex.'-'.($line['material_id'] ?? 'new'),
-                                                                'pickerItems' => $batchOptions,
-                                                                'pickerValue' => $line['batch_id'] ?? '',
-                                                                'pickerPlaceholder' => 'Pilih batch',
-                                                                'pickerEmptyMessage' => 'Batch ini tidak memiliki sisa stok.',
-                                                                'pickerError' => "spreadsheetRows.$rowIndex.materials.$lineIndex.batch_id",
-                                                                'pickerTwoLine' => true,
-                                                                'pickerTarget' => null,
-                                                                'pickerModel' => "spreadsheetRows.{$rowIndex}.materials.{$lineIndex}.batch_id",
-                                                            ])
-                                                            @if ($selectedBatch)
-                                                                <div class="spreadsheet-material-cost" aria-live="polite">
-                                                                    <div class="spreadsheet-material-cost-line">
-                                                                        <span>Harga</span>
-                                                                        <strong><span class="font-mono">Rp {{ number_format((float) $selectedBatch->unit_price, 0, ',', '.') }}</span> <small>/ {{ $selectedMaterial->unit }}</small></strong>
-                                                                    </div>
-                                                                    <div class="spreadsheet-material-cost-line">
-                                                                        <span>Subtotal</span>
-                                                                        <strong class="font-mono">Rp {{ number_format((float) $selectedBatch->unit_price * (float) ($line['quantity'] ?? 0), 0, ',', '.') }}</strong>
-                                                                    </div>
+                                                    return [
+                                                        'id' => (string) $batch->id,
+                                                        'label' => 'Sisa '.number_format($availableQuantity, 2, ',', '.').' · Rp '.number_format((float) $batch->unit_price, 0, ',', '.'),
+                                                        'meta' => ($batch->warehouse?->name ?? 'Gudang tidak diketahui').' · '.$batch->entry_code,
+                                                        'available_quantity' => $availableQuantity,
+                                                    ];
+                                                })->filter(fn ($option) => $option['available_quantity'] >= 0.01 || (int) $option['id'] === $selectedBatchId)->values()->all();
+                                                $selectedBatch = $availableBatches->firstWhere('id', $selectedBatchId);
+                                                $selectedBatchAvailableQuantity = (float) (collect($batchOptions)->firstWhere('id', (string) $selectedBatchId)['available_quantity'] ?? 0);
+                                            @endphp
+                                            <div class="spreadsheet-entry" wire:key="spreadsheet-material-{{ $rowIndex }}-{{ $lineIndex }}-entry">
+                                                @include('livewire.logistik.partials.spreadsheet-picker', [
+                                                    'pickerId' => 'spreadsheet-material-'.$rowIndex.'-'.$lineIndex,
+                                                    'pickerItems' => $spreadsheetMaterialOptions,
+                                                    'pickerValue' => $line['material_id'] ?? '',
+                                                    'pickerPlaceholder' => 'Pilih material',
+                                                    'pickerEmptyMessage' => 'Tidak ada material dengan stok tersedia.',
+                                                    'pickerError' => "spreadsheetRows.$rowIndex.materials.$lineIndex.material_id",
+                                                    'pickerTarget' => ['row' => $rowIndex, 'type' => 'materials', 'line' => $lineIndex],
+                                                    'pickerModel' => null,
+                                                ])
+                                                @if ($selectedMaterial)
+                                                    <div class="spreadsheet-entry-fields">
+                                                        @include('livewire.logistik.partials.spreadsheet-picker', [
+                                                            'pickerId' => 'spreadsheet-batch-'.$rowIndex.'-'.$lineIndex.'-'.($line['material_id'] ?? 'new'),
+                                                            'pickerItems' => $batchOptions,
+                                                            'pickerValue' => $line['batch_id'] ?? '',
+                                                            'pickerPlaceholder' => 'Pilih batch',
+                                                            'pickerEmptyMessage' => 'Batch ini tidak memiliki sisa stok.',
+                                                            'pickerError' => "spreadsheetRows.$rowIndex.materials.$lineIndex.batch_id",
+                                                            'pickerTwoLine' => true,
+                                                            'pickerTarget' => null,
+                                                            'pickerModel' => "spreadsheetRows.{$rowIndex}.materials.{$lineIndex}.batch_id",
+                                                        ])
+                                                        @if ($selectedBatch)
+                                                            <div class="spreadsheet-material-cost" aria-live="polite">
+                                                                <div class="spreadsheet-material-cost-line">
+                                                                    <span>Harga</span>
+                                                                    <strong><span class="font-mono">Rp {{ number_format((float) $selectedBatch->unit_price, 0, ',', '.') }}</span> <small>/ {{ $selectedMaterial->unit }}</small></strong>
                                                                 </div>
-                                                            @endif
-                                                            <label class="visually-hidden" for="spreadsheet-material-quantity-{{ $rowIndex }}-{{ $lineIndex }}">Jumlah material</label>
-                                                            <input id="spreadsheet-material-quantity-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="0.01" max="{{ $selectedBatchId > 0 ? number_format($selectedBatchAvailableQuantity, 2, '.', '') : '' }}" step="0.01" x-on:input="$el.max !== '' && $el.value !== '' && Number($el.value) > Number($el.max) && ($el.value = $el.max)" @disabled($selectedBatchId > 0 && $selectedBatchAvailableQuantity < 0.01) wire:model.live="spreadsheetRows.{{ $rowIndex }}.materials.{{ $lineIndex }}.quantity" class="form-control form-control-sm font-mono" aria-label="Jumlah {{ $selectedMaterial->unit }}" placeholder="Jumlah ({{ $selectedMaterial->unit }})">
-                                                            @if ($selectedBatchId > 0 && $selectedBatchAvailableQuantity < 0.01)
-                                                                <span class="text-danger small" role="alert">Sisa batch sudah dipakai di baris lain. Ubah batch atau hapus alokasi lain.</span>
-                                                            @endif
-                                                            @error("spreadsheetRows.$rowIndex.materials.$lineIndex.quantity") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
-                                                            @include('livewire.logistik.partials.spreadsheet-purpose-picker', [
-                                                                'purposeId' => 'spreadsheet-material-notes-'.$rowIndex.'-'.$lineIndex,
-                                                                'purposeValue' => $line['notes'] ?? '',
-                                                                'purposeModel' => "spreadsheetRows.{$rowIndex}.materials.{$lineIndex}.notes",
-                                                                'purposeLabel' => 'Peruntukan material',
-                                                            ])
-                                                            @error("spreadsheetRows.$rowIndex.materials.$lineIndex.notes") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
-                                                            @include('livewire.logistik.partials.spreadsheet-purpose-picker', [
-                                                                'purposeId' => 'spreadsheet-material-taker-'.$rowIndex.'-'.$lineIndex,
-                                                                'purposeValue' => $line['taken_by'] ?? '',
-                                                                'purposeModel' => "spreadsheetRows.{$rowIndex}.materials.{$lineIndex}.taken_by",
-                                                                'purposeLabel' => 'Pengambil',
-                                                                'noteOptions' => $pengambilOptions,
-                                                                'purposePlaceholder' => 'Pilih atau ketik pengambil',
-                                                                'purposeToggleLabel' => 'Tampilkan pilihan pengambil',
-                                                                'purposeOptionsLabel' => 'Pilihan pengambil',
-                                                                'purposeNewOptionMessage' => 'Gunakan sebagai pengambil baru.',
-                                                                'purposeEmptyMessage' => 'Belum ada riwayat nama pengambil. Ketik nama di kolom ini untuk mengisi.',
-                                                                'purposeMaxlength' => 120,
-                                                            ])
-                                                            @error("spreadsheetRows.$rowIndex.materials.$lineIndex.taken_by") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                                                                <div class="spreadsheet-material-cost-line">
+                                                                    <span>Subtotal</span>
+                                                                    <strong class="font-mono">Rp {{ number_format((float) $selectedBatch->unit_price * (float) ($line['quantity'] ?? 0), 0, ',', '.') }}</strong>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                        <label class="visually-hidden" for="spreadsheet-material-quantity-{{ $rowIndex }}-{{ $lineIndex }}">Jumlah material</label>
+                                                        <div class="input-group input-group-sm spreadsheet-quantity-group">
+                                                            <span class="input-group-text spreadsheet-input-addon">Jumlah</span>
+                                                            <input id="spreadsheet-material-quantity-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="0.01" max="{{ $selectedBatchId > 0 ? number_format($selectedBatchAvailableQuantity, 2, '.', '') : '' }}" step="0.01" x-on:input="$el.max !== '' && $el.value !== '' && Number($el.value) > Number($el.max) && ($el.value = $el.max)" @disabled($selectedBatchId > 0 && $selectedBatchAvailableQuantity < 0.01) wire:model.live="spreadsheetRows.{{ $rowIndex }}.materials.{{ $lineIndex }}.quantity" class="form-control form-control-sm font-mono fw-semibold text-end" aria-label="Jumlah {{ $selectedMaterial->unit }}" placeholder="0.00">
+                                                            <span class="input-group-text spreadsheet-input-addon font-mono">{{ $selectedMaterial->unit }}</span>
                                                         </div>
-                                                    @elseif (! empty($line['material_id']))
-                                                        <span class="text-danger small" role="alert">Material sudah tidak tersedia. Pilih material lain.</span>
-                                                    @endif
-                                                </div>
-                                        @endif
-                                        @if ($lineIndex === $lineCount - 1 && $pricedMaterialLines->isNotEmpty())
+                                                        @if ($selectedBatchId > 0 && $selectedBatchAvailableQuantity < 0.01)
+                                                            <span class="text-danger small" role="alert">Sisa batch sudah dipakai di baris lain. Ubah batch atau hapus alokasi lain.</span>
+                                                        @endif
+                                                        @error("spreadsheetRows.$rowIndex.materials.$lineIndex.quantity") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                                                        @include('livewire.logistik.partials.spreadsheet-purpose-picker', [
+                                                            'purposeId' => 'spreadsheet-material-notes-'.$rowIndex.'-'.$lineIndex,
+                                                            'purposeValue' => $line['notes'] ?? '',
+                                                            'purposeModel' => "spreadsheetRows.{$rowIndex}.materials.{$lineIndex}.notes",
+                                                            'purposeLabel' => 'Peruntukan material',
+                                                            'purposePlaceholder' => 'Pilih / ketik peruntukan',
+                                                        ])
+                                                        @error("spreadsheetRows.$rowIndex.materials.$lineIndex.notes") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                                                        @include('livewire.logistik.partials.spreadsheet-purpose-picker', [
+                                                            'purposeId' => 'spreadsheet-material-taker-'.$rowIndex.'-'.$lineIndex,
+                                                            'purposeValue' => $line['taken_by'] ?? '',
+                                                            'purposeModel' => "spreadsheetRows.{$rowIndex}.materials.{$lineIndex}.taken_by",
+                                                            'purposeLabel' => 'Pengambil',
+                                                            'noteOptions' => $pengambilOptions,
+                                                            'purposePlaceholder' => 'Pilih atau ketik pengambil',
+                                                            'purposeToggleLabel' => 'Tampilkan pilihan pengambil',
+                                                            'purposeOptionsLabel' => 'Pilihan pengambil',
+                                                            'purposeNewOptionMessage' => 'Gunakan sebagai pengambil baru.',
+                                                            'purposeEmptyMessage' => 'Belum ada riwayat nama pengambil. Ketik nama di kolom ini untuk mengisi.',
+                                                            'purposeMaxlength' => 120,
+                                                        ])
+                                                        @error("spreadsheetRows.$rowIndex.materials.$lineIndex.taken_by") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                                                        <div class="d-flex justify-content-end pt-1">
+                                                            <button type="button" wire:click="removeSpreadsheetLine({{ $rowIndex }}, 'materials', {{ $lineIndex }})" class="spreadsheet-remove-line">Hapus material</button>
+                                                        </div>
+                                                    </div>
+                                                @elseif (! empty($line['material_id']))
+                                                    <span class="text-danger small" role="alert">Material sudah tidak tersedia. Pilih material lain.</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                        @if ($pricedMaterialLines->isNotEmpty())
                                             <div class="spreadsheet-entry-actions">
                                                 <div class="spreadsheet-house-material-total">
                                                     <span>Total material</span>
@@ -222,82 +223,116 @@
                                             </div>
                                         @endif
                                     </td>
-                                    <td class="spreadsheet-action-cell">
-                                        @if (isset($toolLines[$lineIndex]))
-                                            <?php $line = $toolLines[$lineIndex]; ?>
-                                                <?php
-                                                    $selectedTool = $tools->firstWhere('id', (int) ($line['tool_id'] ?? 0));
-                                                ?>
-                                                <div class="spreadsheet-entry" wire:key="spreadsheet-tool-{{ $rowIndex }}-{{ $lineIndex }}-entry">
-                                                    @include('livewire.logistik.partials.spreadsheet-picker', [
-                                                        'pickerId' => 'spreadsheet-tool-'.$rowIndex.'-'.$lineIndex,
-                                                        'pickerItems' => $spreadsheetToolOptions,
-                                                        'pickerValue' => $line['tool_id'] ?? '',
-                                                        'pickerPlaceholder' => 'Pilih alat',
-                                                        'pickerEmptyMessage' => 'Tidak ada alat dengan stok tersedia.',
-                                                        'pickerError' => "spreadsheetRows.$rowIndex.tools.$lineIndex.tool_id",
-                                                        'pickerTarget' => ['row' => $rowIndex, 'type' => 'tools', 'line' => $lineIndex],
-                                                        'pickerModel' => null,
-                                                    ])
-                                                    @if ($selectedTool)
-                                                        <?php
-                                                            $toolWarehouseOptionsForLine = $selectedTool->warehouseBalances->map(fn ($balance) => ['id' => (string) $balance->warehouse_id, 'label' => $balance->warehouse?->name ?? 'Gudang tidak tersedia', 'meta' => $balance->allocation_available_qty.' unit tersedia'])->values()->all();
-                                                        ?>
-                                                        <div class="spreadsheet-entry-fields">
-                                                            @include('livewire.logistik.partials.spreadsheet-picker', [
-                                                                'pickerId' => 'spreadsheet-tool-warehouse-'.$rowIndex.'-'.$lineIndex.'-'.($line['tool_id'] ?? 'new'),
-                                                                'pickerItems' => $toolWarehouseOptionsForLine,
-                                                                'pickerValue' => $line['warehouse_id'] ?? '',
-                                                                'pickerPlaceholder' => 'Pilih gudang asal',
-                                                                'pickerEmptyMessage' => 'Tidak ada gudang dengan alat tersedia.',
-                                                                'pickerError' => "spreadsheetRows.$rowIndex.tools.$lineIndex.warehouse_id",
-                                                                'pickerTwoLine' => true,
-                                                                'pickerTarget' => null,
-                                                                'pickerModel' => "spreadsheetRows.{$rowIndex}.tools.{$lineIndex}.warehouse_id",
-                                                            ])
-                                                            <label class="visually-hidden" for="spreadsheet-tool-quantity-{{ $rowIndex }}-{{ $lineIndex }}">Jumlah alat</label>
-                                                            <input id="spreadsheet-tool-quantity-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="1" max="{{ $selectedTool->available_qty }}" step="1" wire:model.live="spreadsheetRows.{{ $rowIndex }}.tools.{{ $lineIndex }}.quantity" class="form-control form-control-sm font-mono" aria-label="Jumlah alat" placeholder="Jumlah (unit)">
-                                                            @error("spreadsheetRows.$rowIndex.tools.$lineIndex.quantity") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
-                                                            @include('livewire.logistik.partials.spreadsheet-purpose-picker', [
-                                                                'purposeId' => 'spreadsheet-tool-notes-'.$rowIndex.'-'.$lineIndex,
-                                                                'purposeValue' => $line['notes'] ?? '',
-                                                                'purposeModel' => "spreadsheetRows.{$rowIndex}.tools.{$lineIndex}.notes",
-                                                                'purposeLabel' => 'Peruntukan alat',
-                                                            ])
-                                                            @error("spreadsheetRows.$rowIndex.tools.$lineIndex.notes") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                                    <td class="spreadsheet-action-cell spreadsheet-tool-column align-top">
+                                        @foreach ($toolLines as $lineIndex => $line)
+                                            @php
+                                                $selectedTool = $tools->firstWhere('id', (int) ($line['tool_id'] ?? 0));
+                                            @endphp
+                                            <div class="spreadsheet-entry" wire:key="spreadsheet-tool-{{ $rowIndex }}-{{ $lineIndex }}-entry">
+                                                @include('livewire.logistik.partials.spreadsheet-picker', [
+                                                    'pickerId' => 'spreadsheet-tool-'.$rowIndex.'-'.$lineIndex,
+                                                    'pickerItems' => $spreadsheetToolOptions,
+                                                    'pickerValue' => $line['tool_id'] ?? '',
+                                                    'pickerPlaceholder' => 'Pilih alat',
+                                                    'pickerEmptyMessage' => 'Tidak ada alat dengan stok tersedia.',
+                                                    'pickerError' => "spreadsheetRows.$rowIndex.tools.$lineIndex.tool_id",
+                                                    'pickerTarget' => ['row' => $rowIndex, 'type' => 'tools', 'line' => $lineIndex],
+                                                    'pickerModel' => null,
+                                                ])
+                                                @if ($selectedTool)
+                                                    @php
+                                                        $toolWarehouseOptionsForLine = $selectedTool->warehouseBalances->map(fn ($balance) => ['id' => (string) $balance->warehouse_id, 'label' => $balance->warehouse?->name ?? 'Gudang tidak tersedia', 'meta' => $balance->allocation_available_qty.' unit tersedia'])->values()->all();
+                                                    @endphp
+                                                    <div class="spreadsheet-entry-fields">
+                                                        @include('livewire.logistik.partials.spreadsheet-picker', [
+                                                            'pickerId' => 'spreadsheet-tool-warehouse-'.$rowIndex.'-'.$lineIndex.'-'.($line['tool_id'] ?? 'new'),
+                                                            'pickerItems' => $toolWarehouseOptionsForLine,
+                                                            'pickerValue' => $line['warehouse_id'] ?? '',
+                                                            'pickerPlaceholder' => 'Pilih gudang asal',
+                                                            'pickerEmptyMessage' => 'Tidak ada gudang dengan alat tersedia.',
+                                                            'pickerError' => "spreadsheetRows.$rowIndex.tools.$lineIndex.warehouse_id",
+                                                            'pickerTwoLine' => true,
+                                                            'pickerTarget' => null,
+                                                            'pickerModel' => "spreadsheetRows.{$rowIndex}.tools.{$lineIndex}.warehouse_id",
+                                                        ])
+                                                        <label class="visually-hidden" for="spreadsheet-tool-quantity-{{ $rowIndex }}-{{ $lineIndex }}">Jumlah alat</label>
+                                                        <div class="input-group input-group-sm spreadsheet-quantity-group">
+                                                            <span class="input-group-text spreadsheet-input-addon">Jumlah</span>
+                                                            <input id="spreadsheet-tool-quantity-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="1" max="{{ $selectedTool->available_qty }}" step="1" wire:model.live="spreadsheetRows.{{ $rowIndex }}.tools.{{ $lineIndex }}.quantity" class="form-control form-control-sm font-mono fw-semibold text-end" aria-label="Jumlah alat" placeholder="1">
+                                                            <span class="input-group-text spreadsheet-input-addon font-mono">unit</span>
                                                         </div>
-                                                    @elseif (! empty($line['tool_id']))
-                                                        <span class="text-danger small" role="alert">Alat sudah tidak tersedia. Pilih alat lain.</span>
-                                                    @endif
-                                                </div>
-                                        @endif
+                                                        @error("spreadsheetRows.$rowIndex.tools.$lineIndex.quantity") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                                                        @include('livewire.logistik.partials.spreadsheet-purpose-picker', [
+                                                            'purposeId' => 'spreadsheet-tool-notes-'.$rowIndex.'-'.$lineIndex,
+                                                            'purposeValue' => $line['notes'] ?? '',
+                                                            'purposeModel' => "spreadsheetRows.{$rowIndex}.tools.{$lineIndex}.notes",
+                                                            'purposeLabel' => 'Peruntukan alat',
+                                                            'purposePlaceholder' => 'Pilih / ketik peruntukan',
+                                                        ])
+                                                        @error("spreadsheetRows.$rowIndex.tools.$lineIndex.notes") <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                                                        <div class="d-flex justify-content-end pt-1">
+                                                            <button type="button" wire:click="removeSpreadsheetLine({{ $rowIndex }}, 'tools', {{ $lineIndex }})" class="spreadsheet-remove-line">Hapus alat</button>
+                                                        </div>
+                                                    </div>
+                                                @elseif (! empty($line['tool_id']))
+                                                    <span class="text-danger small" role="alert">Alat sudah tidak tersedia. Pilih alat lain.</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
                                     </td>
-                                    <td class="spreadsheet-action-cell">
-                                        @if (isset($returnLines[$lineIndex]))
-                                            <?php $line = $returnLines[$lineIndex]; ?>
-                                                <?php
-                                                    $selectedUsage = $houseUsages->firstWhere('id', (int) ($line['usage_id'] ?? 0));
-                                                ?>
-                                                <div class="spreadsheet-entry" wire:key="spreadsheet-return-{{ $rowIndex }}-{{ $lineIndex }}">
-                                                    @include('livewire.logistik.partials.spreadsheet-picker', [
-                                                        'pickerId' => 'spreadsheet-return-'.$rowIndex.'-'.$houseId.'-'.$lineIndex,
-                                                        'pickerItems' => $returnOptions,
-                                                        'pickerValue' => $line['usage_id'] ?? '',
-                                                        'pickerPlaceholder' => 'Pilih alat untuk dikembalikan',
-                                                        'pickerEmptyMessage' => $returnEmptyMessage,
-                                                        'pickerError' => "spreadsheetRows.$rowIndex.returns.$lineIndex.usage_id",
-                                                        'pickerTwoLine' => true,
-                                                        'pickerTarget' => ['row' => $rowIndex, 'type' => 'returns', 'line' => $lineIndex],
-                                                        'pickerModel' => null,
-                                                    ])
-                                                    @if ($selectedUsage)
+                                    <td class="spreadsheet-action-cell spreadsheet-return-column align-top">
+                                        @foreach ($returnLines as $lineIndex => $line)
+                                            @php
+                                                $selectedUsage = $houseUsages->firstWhere('id', (int) ($line['usage_id'] ?? 0));
+                                                $selectedReturnUsageIds = collect($returnLines)
+                                                    ->reject(fn ($returnLine, $returnIndex) => (int) $returnIndex === $lineIndex)
+                                                    ->pluck('usage_id')
+                                                    ->filter()
+                                                    ->map(fn ($usageId) => (int) $usageId)
+                                                    ->all();
+                                                $selectedReturnToolIds = $houseUsages
+                                                    ->whereIn('id', $selectedReturnUsageIds)
+                                                    ->pluck('tool_id')
+                                                    ->map(fn ($toolId) => (int) $toolId)
+                                                    ->all();
+                                                $returnOptions = $houseUsages
+                                                    ->reject(fn ($usage) => in_array((int) $usage->tool_id, $selectedReturnToolIds, true))
+                                                    ->map(fn ($usage) => [
+                                                        'id' => (string) $usage->id,
+                                                        'label' => $usage->tool->name,
+                                                        'meta' => $usage->quantity.' unit di rumah · '.$usage->tool->code,
+                                                    ])->values()->all();
+                                                $returnEmptyMessage = $houseUsages->isNotEmpty()
+                                                    ? 'Semua peminjaman aktif sudah dipilih.'
+                                                    : 'Tidak ada peminjaman aktif di unit ini.';
+                                            @endphp
+                                            <div class="spreadsheet-entry" wire:key="spreadsheet-return-{{ $rowIndex }}-{{ $lineIndex }}">
+                                                @include('livewire.logistik.partials.spreadsheet-picker', [
+                                                    'pickerId' => 'spreadsheet-return-'.$rowIndex.'-'.$houseId.'-'.$lineIndex,
+                                                    'pickerItems' => $returnOptions,
+                                                    'pickerValue' => $line['usage_id'] ?? '',
+                                                    'pickerPlaceholder' => 'Pilih alat kembali',
+                                                    'pickerEmptyMessage' => $returnEmptyMessage,
+                                                    'pickerError' => "spreadsheetRows.$rowIndex.returns.$lineIndex.usage_id",
+                                                    'pickerTwoLine' => true,
+                                                    'pickerTarget' => ['row' => $rowIndex, 'type' => 'returns', 'line' => $lineIndex],
+                                                    'pickerModel' => null,
+                                                ])
+                                                @if ($selectedUsage)
+                                                    <div class="spreadsheet-entry-fields">
                                                         <div class="spreadsheet-return-quantity">
-                                                            <label class="spreadsheet-field-label" for="spreadsheet-return-normal-{{ $rowIndex }}-{{ $lineIndex }}">Baik</label>
-                                                            <input id="spreadsheet-return-normal-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="0" max="{{ $selectedUsage->quantity }}" step="1" wire:model.live="spreadsheetRows.{{ $rowIndex }}.returns.{{ $lineIndex }}.qty_normal" class="form-control form-control-sm font-mono">
-                                                            <label class="spreadsheet-field-label" for="spreadsheet-return-broken-{{ $rowIndex }}-{{ $lineIndex }}">Rusak</label>
-                                                            <input id="spreadsheet-return-broken-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="0" max="{{ $selectedUsage->quantity }}" step="1" wire:model.live="spreadsheetRows.{{ $rowIndex }}.returns.{{ $lineIndex }}.qty_broken" class="form-control form-control-sm font-mono">
-                                                            <label class="spreadsheet-field-label" for="spreadsheet-return-lost-{{ $rowIndex }}-{{ $lineIndex }}">Hilang</label>
-                                                            <input id="spreadsheet-return-lost-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="0" max="{{ $selectedUsage->quantity }}" step="1" wire:model.live="spreadsheetRows.{{ $rowIndex }}.returns.{{ $lineIndex }}.qty_lost" class="form-control form-control-sm font-mono">
+                                                            <div class="spreadsheet-return-pill is-good">
+                                                                <label class="spreadsheet-field-label" for="spreadsheet-return-normal-{{ $rowIndex }}-{{ $lineIndex }}">Baik</label>
+                                                                <input id="spreadsheet-return-normal-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="0" max="{{ $selectedUsage->quantity }}" step="1" wire:model.live="spreadsheetRows.{{ $rowIndex }}.returns.{{ $lineIndex }}.qty_normal" class="form-control form-control-sm font-mono text-end" placeholder="0">
+                                                            </div>
+                                                            <div class="spreadsheet-return-pill is-broken">
+                                                                <label class="spreadsheet-field-label" for="spreadsheet-return-broken-{{ $rowIndex }}-{{ $lineIndex }}">Rusak</label>
+                                                                <input id="spreadsheet-return-broken-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="0" max="{{ $selectedUsage->quantity }}" step="1" wire:model.live="spreadsheetRows.{{ $rowIndex }}.returns.{{ $lineIndex }}.qty_broken" class="form-control form-control-sm font-mono text-end" placeholder="0">
+                                                            </div>
+                                                            <div class="spreadsheet-return-pill is-lost">
+                                                                <label class="spreadsheet-field-label" for="spreadsheet-return-lost-{{ $rowIndex }}-{{ $lineIndex }}">Hilang</label>
+                                                                <input id="spreadsheet-return-lost-{{ $rowIndex }}-{{ $lineIndex }}" type="number" min="0" max="{{ $selectedUsage->quantity }}" step="1" wire:model.live="spreadsheetRows.{{ $rowIndex }}.returns.{{ $lineIndex }}.qty_lost" class="form-control form-control-sm font-mono text-end" placeholder="0">
+                                                            </div>
                                                         </div>
                                                         @foreach (['qty_normal', 'qty_broken', 'qty_lost'] as $returnQuantityField)
                                                             @error("spreadsheetRows.$rowIndex.returns.$lineIndex.$returnQuantityField") <span class="text-danger small d-block mt-1" role="alert">{{ $message }}</span> @enderror
@@ -314,19 +349,19 @@
                                                         ])
                                                         <label class="visually-hidden" for="spreadsheet-return-notes-{{ $rowIndex }}-{{ $lineIndex }}">Catatan pengembalian</label>
                                                         <input id="spreadsheet-return-notes-{{ $rowIndex }}-{{ $lineIndex }}" type="text" maxlength="500" wire:model.live="spreadsheetRows.{{ $rowIndex }}.returns.{{ $lineIndex }}.notes" class="form-control form-control-sm" placeholder="Catatan kondisi alat">
-                                                    @endif
-                                                    @if (! empty($line['usage_id']) && ! $selectedUsage)
-                                                        <span class="text-danger small" role="alert">Peminjaman sudah berubah. Pilih alat yang masih dipinjam.</span>
-                                                    @endif
-                                                    @if (isset($row['returns'][$lineIndex]))
-                                                        <button type="button" wire:click="removeSpreadsheetLine({{ $rowIndex }}, 'returns', {{ $lineIndex }})" class="spreadsheet-remove-line">Hapus pengembalian</button>
-                                                    @endif
-                                                </div>
-                                        @endif
+                                                        <div class="d-flex justify-content-end pt-1">
+                                                            <button type="button" wire:click="removeSpreadsheetLine({{ $rowIndex }}, 'returns', {{ $lineIndex }})" class="spreadsheet-remove-line">Hapus pengembalian</button>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                                @if (! empty($line['usage_id']) && ! $selectedUsage)
+                                                    <span class="text-danger small" role="alert">Peminjaman sudah berubah. Pilih alat yang masih dipinjam.</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
                                     </td>
                                 @endif
                             </tr>
-                            @endfor
                         @endforeach
                     </tbody>
                 </table>

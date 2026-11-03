@@ -27,10 +27,12 @@
     }
 }" x-effect="$dispatch('spreadsheet-picker-open', open)" @click.outside="open = false">
     <label class="visually-hidden" for="{{ $purposeId }}">{{ $purposeLabel }}</label>
-    <input id="{{ $purposeId }}" x-ref="input" type="text" maxlength="{{ $purposeMaxlength ?? 500 }}" wire:model="{{ $purposeModel }}" class="form-control form-control-sm" placeholder="{{ $purposePlaceholder ?? 'Pilih atau ketik peruntukan' }}" role="combobox" aria-autocomplete="list" aria-controls="{{ $purposeId }}-options" :aria-expanded="open.toString()" @focus="showMenu()" @input="query = $el.value; showMenu()" @keydown.arrow-down.prevent="active = Math.min(active + 1, filtered.length - 1)" @keydown.arrow-up.prevent="active = Math.max(active - 1, 0)" @keydown.enter.prevent="if (open && filtered.length) choose(filtered[active])" @keydown.escape="open = false">
-    <button type="button" class="spreadsheet-purpose-toggle" aria-label="{{ $purposeToggleLabel ?? 'Tampilkan pilihan peruntukan' }}" @mousedown.prevent @click="open ? open = false : showMenu()">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 6 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+    <div class="spreadsheet-purpose-control">
+        <input id="{{ $purposeId }}" x-ref="input" type="text" maxlength="{{ $purposeMaxlength ?? 500 }}" wire:model="{{ $purposeModel }}" class="form-control form-control-sm" placeholder="{{ $purposePlaceholder ?? 'Pilih atau ketik peruntukan' }}" role="combobox" aria-autocomplete="list" aria-controls="{{ $purposeId }}-options" :aria-expanded="open.toString()" @focus="showMenu()" @input="query = $el.value; showMenu()" @keydown.arrow-down.prevent="active = Math.min(active + 1, filtered.length - 1)" @keydown.arrow-up.prevent="active = Math.max(active - 1, 0)" @keydown.enter.prevent="if (open && filtered.length) choose(filtered[active])" @keydown.escape="open = false">
+        <button type="button" class="spreadsheet-purpose-toggle" aria-label="{{ $purposeToggleLabel ?? 'Tampilkan pilihan peruntukan' }}" @mousedown.prevent @click="open ? open = false : showMenu()">
+            <svg viewBox="0 0 16 16" aria-hidden="true" :class="open ? 'is-open' : ''"><path d="m3 6 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+    </div>
     <div id="{{ $purposeId }}-options" x-ref="options" x-show="open" x-cloak :style="menuStyle" class="spreadsheet-item-picker-menu spreadsheet-purpose-menu" @click.stop>
         <div role="listbox" aria-label="{{ $purposeOptionsLabel ?? 'Pilihan peruntukan' }}" class="d-grid">
             <template x-for="option in filtered" :key="option">

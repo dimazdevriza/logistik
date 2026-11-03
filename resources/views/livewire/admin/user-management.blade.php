@@ -83,8 +83,34 @@
                             <td data-label="Role"><span class="management-cell-value">
                                 <span class="badge {{ $roleClasses[$user->role] ?? 'bg-secondary-subtle text-secondary' }}">{{ $user->role === 'inactive' ? 'Nonaktif' : ucfirst($user->role) }}</span>
                             </span></td>
-                            <td data-label="Cluster" class="text-secondary small"><span class="management-cell-value">{{ $user->cluster?->name ?? 'Belum ditetapkan' }}</span></td>
-                            <td data-label="Gudang" class="text-secondary small"><span class="management-cell-value">{{ $user->warehouse?->name ?? 'Belum ditetapkan' }}</span></td>
+                            <td data-label="Cluster" class="text-secondary small"><span class="management-cell-value">
+                                @php
+                                    $userClusters = $user->clusters->isNotEmpty() ? $user->clusters : ($user->cluster ? collect([$user->cluster]) : collect());
+                                @endphp
+                                @if ($userClusters->isNotEmpty())
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach ($userClusters as $c)
+                                            <span class="badge bg-light text-dark border">{{ $c->name }}</span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    Belum ditetapkan
+                                @endif
+                            </span></td>
+                            <td data-label="Gudang" class="text-secondary small"><span class="management-cell-value">
+                                @php
+                                    $userWarehouses = $user->warehouses->isNotEmpty() ? $user->warehouses : ($user->warehouse ? collect([$user->warehouse]) : collect());
+                                @endphp
+                                @if ($userWarehouses->isNotEmpty())
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach ($userWarehouses as $w)
+                                            <span class="badge bg-light text-dark border">{{ $w->name }}</span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    Belum ditetapkan
+                                @endif
+                            </span></td>
                             <td data-label="Dibuat" class="text-secondary small"><span class="management-cell-value">{{ $user->created_at->format('d/m/Y') }}</span></td>
                             <td data-label="Aksi" class="text-end"><span class="management-cell-value"><span class="btn-group btn-group-sm data-row-actions">
                                     <button type="button" wire:click="edit({{ $user->id }})" class="btn log-row-action log-row-action--edit d-inline-flex align-items-center justify-content-center" title="Edit" aria-label="Edit {{ $user->name }}">
@@ -152,25 +178,31 @@
                     @if (in_array($role, ['logistik', 'pengawas'], true))
                         <div class="mb-3">
                             <label class="form-label font-semibold">{{ $role === 'pengawas' ? 'Cluster tanggung jawab' : 'Cluster tugas' }}</label>
-                            <select wire:model="cluster_id" class="form-select">
-                                <option value="">{{ $role === 'pengawas' ? 'Pilih cluster tanggung jawab' : 'Pilih cluster tugas' }}</option>
+                            <div class="card p-2 border bg-body-tertiary" style="max-height: 160px; overflow-y: auto;">
                                 @foreach ($clusters as $cluster)
-                                    <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="user-cluster-{{ $cluster->id }}" value="{{ $cluster->id }}" wire:model.live="cluster_ids">
+                                        <label class="form-check-label small" for="user-cluster-{{ $cluster->id }}">{{ $cluster->name }}</label>
+                                    </div>
                                 @endforeach
-                            </select>
-                            <div class="form-text">{{ $role === 'pengawas' ? 'Akses Pengawas dibatasi ke cluster ini.' : 'Operasi Logistik dibatasi ke rumah di cluster ini.' }}</div>
+                            </div>
+                            <div class="form-text">{{ $role === 'pengawas' ? 'Pilih satu atau lebih cluster. Akses Pengawas dibatasi ke cluster ini.' : 'Pilih satu atau lebih cluster. Operasi Logistik dibatasi ke rumah di cluster ini.' }}</div>
                             @error('cluster_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                            @error('cluster_ids') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label font-semibold">{{ $role === 'pengawas' ? 'Gudang tanggung jawab' : 'Gudang tugas' }}</label>
-                            <select wire:model="warehouse_id" class="form-select">
-                                <option value="">{{ $role === 'pengawas' ? 'Pilih gudang tanggung jawab' : 'Pilih gudang tugas' }}</option>
+                            <div class="card p-2 border bg-body-tertiary" style="max-height: 160px; overflow-y: auto;">
                                 @foreach ($warehouses as $warehouse)
-                                    <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="user-warehouse-{{ $warehouse->id }}" value="{{ $warehouse->id }}" wire:model.live="warehouse_ids">
+                                        <label class="form-check-label small" for="user-warehouse-{{ $warehouse->id }}">{{ $warehouse->name }}</label>
+                                    </div>
                                 @endforeach
-                            </select>
-                            <div class="form-text">{{ $role === 'pengawas' ? 'Inventaris & catatan Pengawas dibatasi ke gudang ini.' : 'Inventaris, alokasi, dan transfer Logistik dibatasi ke gudang ini.' }}</div>
+                            </div>
+                            <div class="form-text">{{ $role === 'pengawas' ? 'Pilih satu atau lebih gudang. Inventaris Pengawas dibatasi ke gudang ini.' : 'Pilih satu atau lebih gudang. Inventaris, alokasi, dan transfer Logistik dibatasi ke gudang ini.' }}</div>
                             @error('warehouse_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                            @error('warehouse_ids') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                     @endif
                 </div>

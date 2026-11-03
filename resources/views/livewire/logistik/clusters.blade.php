@@ -46,7 +46,7 @@
                         <div class="cluster-cost-growth-heading">
                             <div>
                                 <h2 id="cluster-cost-growth-title" class="h5 fw-bold mb-1 font-outfit">Tren biaya cluster</h2>
-                                <p class="small text-secondary mb-0">{{ auth()->user()->role === 'pengawas' ? 'Pengeluaran cluster per bulan' : 'Pengeluaran semua cluster per bulan' }} · {{ $selectedYear }}</p>
+                                <p class="small text-secondary mb-0">{{ ! auth()->user()->canAccessAllClusters() ? 'Pengeluaran cluster per bulan' : 'Pengeluaran semua cluster per bulan' }} · {{ $selectedYear }}</p>
                             </div>
                         </div>
 

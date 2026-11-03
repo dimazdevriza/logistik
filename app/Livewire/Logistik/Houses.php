@@ -290,7 +290,15 @@ class Houses extends Component
     {
         $user = auth()->user();
 
-        return (bool) ($user && ($user->canAccessAllClusters() || ($user->role === 'logistik' && ! $user->cluster_id)));
+        return (bool) ($user && ($user->canAccessAllClusters() || ($user->role === 'logistik' && ! $user->assignedClusterIds())));
+    }
+
+    /** Admin/keuangan, unassigned logistik, and accounts holding 2+ clusters pick a cluster in the form. */
+    public function canPickCluster(): bool
+    {
+        $user = auth()->user();
+
+        return $this->canManageClusters() || ($user && count($user->assignedClusterIds()) > 1);
     }
 
     public function updatedClusterId($value): void
@@ -323,7 +331,7 @@ class Houses extends Component
     {
         $this->resetForm();
         $this->editMode = false;
-        $defaultClusterId = auth()->user()->canAccessAllClusters() ? '' : (auth()->user()->cluster_id ?? '');
+        $defaultClusterId = auth()->user()->canAccessAllClusters() ? '' : (auth()->user()->soleClusterId() ?? '');
         $this->cluster_id = $defaultClusterId;
         $this->cluster_name = $defaultClusterId ? (Cluster::find($defaultClusterId)?->name ?? '') : '';
         $this->showModal = true;
@@ -357,7 +365,7 @@ class Houses extends Component
         $this->validate();
 
         $user = auth()->user();
-        if ($user->role === 'pengawas' && ! $user->cluster_id) {
+        if ($user->role === 'pengawas' && ! $user->assignedClusterIds()) {
             $this->addError('cluster_id', 'Akun belum memiliki cluster tugas.');
 
             return;
@@ -377,8 +385,12 @@ class Houses extends Component
             return;
         }
 
-        $resolvedClusterId = $this->canManageClusters() ? $this->resolveClusterId() : $user->cluster_id;
-        if ($this->canManageClusters() && $this->cluster_name !== '' && $this->cluster_name !== null && strcasecmp(trim((string) $this->cluster_name), 'Tanpa Cluster') !== 0 && ! $resolvedClusterId) {
+        $resolvedClusterId = $this->canPickCluster() ? $this->resolveClusterId() : ($user->soleClusterId() ?? null);
+        if (! $this->canManageClusters() && ! $user->canAccessCluster($resolvedClusterId)) {
+            $this->addError('cluster_name', 'Pilih cluster tugas Anda.');
+            return;
+        }
+        if ($this->canPickCluster() && $this->cluster_name !== '' && $this->cluster_name !== null && strcasecmp(trim((string) $this->cluster_name), 'Tanpa Cluster') !== 0 && ! $resolvedClusterId) {
             $this->addError('cluster_name', 'Cluster tidak ditemukan. Pilih dari cluster yang tersedia.');
             return;
         }
@@ -386,8 +398,9 @@ class Houses extends Component
             $this->addError('cluster_name', 'Pilih cluster yang tersedia terlebih dahulu.');
             return;
         }
-        if ($user->role === 'logistik' && ! $user->cluster_id && $resolvedClusterId) {
+        if ($user->role === 'logistik' && ! $user->assignedClusterIds() && $resolvedClusterId) {
             $user->update(['cluster_id' => $resolvedClusterId]);
+            $user->clusters()->syncWithoutDetaching([$resolvedClusterId]);
         }
 
         $category = $this->isPublicWork ? House::CATEGORY_PUBLIC_WORK : House::CATEGORY_HOUSE;
@@ -472,7 +485,7 @@ class Houses extends Component
         ]);
 
         $user = auth()->user();
-        if ($user->role === 'pengawas' && ! $user->cluster_id) {
+        if ($user->role === 'pengawas' && ! $user->assignedClusterIds()) {
             $this->addError('cluster_id', 'Akun belum memiliki cluster tugas.');
 
             return;
@@ -499,13 +512,18 @@ class Houses extends Component
             return;
         }
 
-        $resolvedClusterId = $this->canManageClusters() ? $this->resolveClusterId() : $user->cluster_id;
-        if ($this->canManageClusters() && $this->cluster_name !== '' && $this->cluster_name !== null && strcasecmp(trim((string) $this->cluster_name), 'Tanpa Cluster') !== 0 && ! $resolvedClusterId) {
+        $resolvedClusterId = $this->canPickCluster() ? $this->resolveClusterId() : ($user->soleClusterId() ?? null);
+        if (! $this->canManageClusters() && ! $user->canAccessCluster($resolvedClusterId)) {
+            $this->addError('cluster_name', 'Pilih cluster tugas Anda.');
+            return;
+        }
+        if ($this->canPickCluster() && $this->cluster_name !== '' && $this->cluster_name !== null && strcasecmp(trim((string) $this->cluster_name), 'Tanpa Cluster') !== 0 && ! $resolvedClusterId) {
             $this->addError('cluster_name', 'Cluster tidak ditemukan. Pilih dari cluster yang tersedia.');
             return;
         }
-        if ($user->role === 'logistik' && ! $user->cluster_id && $resolvedClusterId) {
+        if ($user->role === 'logistik' && ! $user->assignedClusterIds() && $resolvedClusterId) {
             $user->update(['cluster_id' => $resolvedClusterId]);
+            $user->clusters()->syncWithoutDetaching([$resolvedClusterId]);
         }
 
         $budget = (in_array($user->role, ['admin', 'logistik'], true) && $this->material_budget !== '' && $this->material_budget !== null)
@@ -587,10 +605,14 @@ class Houses extends Component
         try {
             $import = ImportBatch::run('house', $this->importFile, function (string $path) {
                 $user = auth()->user();
-                if (in_array($user->role, ['logistik', 'pengawas'], true) && ! $user->cluster_id) {
+                if (in_array($user->role, ['logistik', 'pengawas'], true) && ! $user->assignedClusterIds()) {
                     throw new \RuntimeException('Akun belum memiliki cluster tugas.');
                 }
-                $import = new HouseImport($user->canAccessAllClusters() ? null : (int) $user->cluster_id);
+                // ponytail: HouseImport scopes to one cluster; accounts with 2+ clusters must import via admin until it takes a cluster set.
+                if (! $user->canAccessAllClusters() && count($user->assignedClusterIds()) > 1) {
+                    throw new \RuntimeException('Impor rumah belum mendukung akun dengan lebih dari satu cluster. Minta admin mengimpor atau gunakan input manual.');
+                }
+                $import = new HouseImport($user->canAccessAllClusters() ? null : $user->soleClusterId());
                 Excel::import($import, $path);
 
                 return $import;
@@ -626,7 +648,7 @@ class Houses extends Component
             $this->filterStatus,
             null,
             $this->filterCluster,
-            $this->canManageClusters() ? null : (int) ($user->cluster_id ?? 0),
+            $this->canManageClusters() ? null : $user->scopedClusterIds(),
             $this->isPublicWork ? 'Pekerjaan Umum ' . now()->year : null,
             $this->isPublicWork ? 'D\'ROYAL VILLAGE - LAPORAN MONITORING BIAYA PEKERJAAN UMUM PER BULAN (TAHUN ' . now()->year . ')' : null,
             $this->isPublicWork ? House::CATEGORY_PUBLIC_WORK : House::CATEGORY_HOUSE
@@ -655,10 +677,10 @@ class Houses extends Component
             ->orderBy('houses.id')
             ->paginate(10);
 
-        $clusters = Cluster::when(! $this->canManageClusters(), fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
+        $clusters = Cluster::when(! $this->canManageClusters(), fn ($query) => $query->whereKey(auth()->user()->scopedClusterIds()))
             ->orderBy('name')->get();
 
-        $clusterAssignmentMissing = auth()->user()->role === 'pengawas' && ! auth()->user()->cluster_id;
+        $clusterAssignmentMissing = auth()->user()->role === 'pengawas' && ! auth()->user()->assignedClusterIds();
 
         return view('livewire.logistik.houses', compact('houses', 'clusters', 'clusterAssignmentMissing'))
             ->layout('layouts.app', ['title' => $this->isPublicWork ? 'Pekerjaan Umum' : 'Rumah']);

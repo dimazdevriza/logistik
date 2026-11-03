@@ -54,7 +54,7 @@ class Warehouses extends Component
 
     public function edit(int $id): void
     {
-        if (($wId = auth()->user()?->assignedWarehouseId()) && $id !== $wId) {
+        if (auth()->user()?->canAccessWarehouse($id) === false) {
             abort(403);
         }
         $warehouse = Warehouse::findOrFail($id);
@@ -69,7 +69,7 @@ class Warehouses extends Component
     {
         if (! $this->editMode) {
             abort_unless(auth()->user()?->role === 'admin', 403, 'Hanya Admin yang dapat menambahkan gudang.');
-        } elseif (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->warehouseId !== $wId) {
+        } elseif (auth()->user()?->canAccessWarehouse((int) $this->warehouseId) === false) {
             abort(403);
         }
 
@@ -88,7 +88,7 @@ class Warehouses extends Component
 
     public function confirmDelete(int $id): void
     {
-        if (($wId = auth()->user()?->assignedWarehouseId()) && $id !== $wId) {
+        if (auth()->user()?->canAccessWarehouse($id) === false) {
             abort(403);
         }
         $this->resetValidation('delete');
@@ -108,7 +108,7 @@ class Warehouses extends Component
 
     public function delete(): void
     {
-        if (($wId = auth()->user()?->assignedWarehouseId()) && (int) $this->confirmingId !== $wId) {
+        if (auth()->user()?->canAccessWarehouse((int) $this->confirmingId) === false) {
             abort(403);
         }
         $warehouse = Warehouse::findOrFail($this->confirmingId);
@@ -143,7 +143,7 @@ class Warehouses extends Component
     public function render()
     {
         $warehouses = Warehouse::query()
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->whereKey($wId))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($q) => $q->whereKey(auth()->user()->scopedWarehouseIds()))
             ->withCount(['toolBalances as tools_count'])
             ->addSelect([
                 'materials_count' => StockIn::query()

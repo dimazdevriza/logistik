@@ -89,7 +89,7 @@ final class ToolLoanRecorder
             $toolId = $toolOrId instanceof Tool ? $toolOrId->id : (int) $toolOrId;
             $tool = Tool::whereKey($toolId)->lockForUpdate()->firstOrFail();
 
-            if (($wId = $actor?->assignedWarehouseId()) && $warehouseId !== $wId) {
+            if ($actor?->canAccessWarehouse($warehouseId) === false) {
                 throw ValidationException::withMessages([
                     'tool_warehouse_id' => 'Pilih gudang tugas akun Anda.',
                 ]);

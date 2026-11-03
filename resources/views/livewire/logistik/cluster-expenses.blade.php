@@ -3,10 +3,10 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-tertiary">
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
-                    @if (auth()->user()->canAccessAllClusters())
-                    <a href="{{ request('from') === 'costs' ? route('logistik.cluster-costs') : route('logistik.clusters') }}" wire:navigate class="back-link mb-3">
+                    @if (auth()->user()->canAccessAllClusters() || count(auth()->user()->assignedClusterIds()) > 1)
+                    <a href="{{ request('from') === 'costs' || ! auth()->user()->canAccessAllClusters() ? route('logistik.cluster-costs') : route('logistik.clusters') }}" wire:navigate class="back-link mb-3">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 .708.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
-                        {{ request('from') === 'costs' ? 'Kembali ke Biaya Cluster' : 'Kembali ke Cluster' }}
+                        {{ request('from') === 'costs' || ! auth()->user()->canAccessAllClusters() ? 'Kembali ke Biaya Cluster' : 'Kembali ke Cluster' }}
                     </a>
                     @endif
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">{{ $cluster->name }}</h1>
@@ -132,6 +132,7 @@
                                         <th class="text-secondary py-3">Cluster</th>
                                         <x-sortable-th field="type" :sort="$sort" class="text-secondary py-3">Tipe</x-sortable-th>
                                         <x-sortable-th field="status" :sort="$sort" class="text-secondary py-3 text-center">Status</x-sortable-th>
+                                        <x-sortable-th field="progress" :sort="$sort" class="text-secondary py-3 text-start" style="min-width: 140px;">Bobot (Fisik / Bahan)</x-sortable-th>
                                         @php
                                             $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
                                         @endphp
@@ -145,7 +146,7 @@
                                 </thead>
                                 <tbody>
                                     @if ($houses->isEmpty())
-                                        <tr><td colspan="21" class="house-cost-empty text-center py-5 text-secondary">{{ $search || $filterStatus ? 'Tidak ada rumah yang cocok dengan filter.' : 'Belum ada rumah di cluster ini.' }}</td></tr>
+                                        <tr><td colspan="22" class="house-cost-empty text-center py-5 text-secondary">{{ $search || $filterStatus ? 'Tidak ada rumah yang cocok dengan filter.' : 'Belum ada rumah di cluster ini.' }}</td></tr>
                                     @else
                                     @foreach ($houses as $house)
                                         @php
@@ -163,6 +164,36 @@
                                             <td data-label="Cluster" class="text-secondary small"><span class="house-cost-cell-value">{{ $house->cluster?->name ?? 'Tanpa Cluster' }}</span></td>
                                             <td data-label="Tipe" class="text-secondary small"><span class="house-cost-cell-value">{{ $house->type ?: '-' }}</span></td>
                                             <td data-label="Status" class="text-center"><span class="badge {{ $statusClasses[$house->status] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($house->status) }}</span></td>
+                                            <td data-label="Bobot">
+                                                @php
+                                                    $bobotRumah = $house->bobot_rumah;
+                                                    $bobotBahan = $house->bobot_bahan;
+                                                    $isOverBudget = $bobotBahan !== null && $bobotBahan > 100;
+                                                @endphp
+                                                <div class="d-flex flex-column gap-1" style="min-width: 130px;">
+                                                    <div class="d-flex justify-content-between align-items-center extra-small">
+                                                        <span class="text-secondary">Fisik:</span>
+                                                        <span class="font-mono fw-bold text-body">{{ number_format($bobotRumah, 1, ',', '.') }}%</span>
+                                                    </div>
+                                                    <div class="progress bg-body-tertiary" style="height: 4px;">
+                                                        <div class="progress-bar bg-success" style="width: {{ min(100, $bobotRumah) }}%;"></div>
+                                                    </div>
+
+                                                    <div class="d-flex justify-content-between align-items-center extra-small mt-1">
+                                                        <span class="text-secondary">Bahan:</span>
+                                                        @if ($bobotBahan !== null)
+                                                            <span class="font-mono fw-bold {{ $isOverBudget ? 'text-danger' : 'text-body' }}">{{ number_format($bobotBahan, 1, ',', '.') }}%</span>
+                                                        @else
+                                                            <span class="text-secondary">-</span>
+                                                        @endif
+                                                    </div>
+                                                    @if ($bobotBahan !== null)
+                                                    <div class="progress bg-body-tertiary" style="height: 4px;">
+                                                        <div class="progress-bar {{ $isOverBudget ? 'bg-danger' : 'bg-success' }}" style="width: {{ min(100, $bobotBahan) }}%;"></div>
+                                                    </div>
+                                                    @endif
+                                                </div>
+                                            </td>
                                             @for ($month = 1; $month <= 12; $month++)
                                                 @php
                                                     $monthCost = (float) ($house->{'month_' . $month . '_cost'} ?? 0);
@@ -181,7 +212,7 @@
                                         <tr class="align-middle">
                                             <td class="cluster-total-leading-spacer"></td>
                                             <td colspan="2" class="cluster-total-label text-end text-uppercase text-secondary small py-3">Total Biaya Rumah ({{ $selectedYear }}):</td>
-                                            <td colspan="3"></td>
+                                            <td colspan="4"></td>
                                             @php
                                                 $yearClusterTotal = 0;
                                             @endphp

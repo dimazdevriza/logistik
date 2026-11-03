@@ -70,13 +70,12 @@ class House extends Model
     {
         return $user->canAccessAllClusters()
             ? $query
-            : $query->where('cluster_id', $user->cluster_id ?? 0);
+            : $query->whereIn('cluster_id', $user->scopedClusterIds());
     }
 
     public function isAccessibleBy(User $user): bool
     {
-        return $user->canAccessAllClusters()
-            || ($user->cluster_id && (int) $this->cluster_id === (int) $user->cluster_id);
+        return $user->canAccessCluster($this->cluster_id);
     }
 
     /**

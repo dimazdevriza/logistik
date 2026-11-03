@@ -40,8 +40,8 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
         private string $filterHouse = '',
         private string $filterSupplier = '',
         private string $sort = 'date_desc',
-        private ?int $clusterScope = null,
-        private ?int $warehouseScope = null
+        private int|array|null $clusterScope = null,
+        private int|array|null $warehouseScope = null
     ) {}
 
     private function sortParts(): array
@@ -109,8 +109,8 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
             ->leftJoin('suppliers', 'materials.supplier_id', '=', 'suppliers.id')
             ->join('houses', 'material_usages.house_id', '=', 'houses.id')
             ->join('users', 'material_usages.user_id', '=', 'users.id')
-            ->when($this->clusterScope !== null, fn ($q) => $q->where('houses.cluster_id', $this->clusterScope))
-            ->when($this->warehouseScope !== null, fn ($q) => $q->whereRaw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id) = ?', [$this->warehouseScope]))
+            ->when($this->clusterScope !== null, fn ($q) => is_array($this->clusterScope) ? $q->whereIn('houses.cluster_id', $this->clusterScope) : $q->where('houses.cluster_id', $this->clusterScope))
+            ->when($this->warehouseScope !== null, fn ($q) => $q->whereIn(DB::raw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id)'), (array) $this->warehouseScope))
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('materials.name', 'like', "%{$this->search}%")
                 ->orWhere('material_usages.transaction_code', 'like', "%{$this->search}%")))
@@ -144,8 +144,8 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
             ->leftJoin('suppliers', 'stock_ins.supplier_id', '=', 'suppliers.id')
             ->leftJoin('users', 'stock_ins.user_id', '=', 'users.id')
             ->when($this->warehouseScope !== null, fn ($q) => $q->where(fn ($sub) => $sub
-                ->whereRaw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id) = ?', [$this->warehouseScope])
-                ->orWhere('inventory_transfer.source_warehouse_id', $this->warehouseScope)))
+                ->whereIn(DB::raw('COALESCE(stock_ins.warehouse_id, materials.warehouse_id)'), (array) $this->warehouseScope)
+                ->orWhereIn('inventory_transfer.source_warehouse_id', (array) $this->warehouseScope)))
             ->when($this->search, fn ($q) => $q->where(fn ($query) => $query
                 ->where('materials.name', 'like', "%{$this->search}%")
                 ->orWhere('stock_ins.entry_code', 'like', "%{$this->search}%")))

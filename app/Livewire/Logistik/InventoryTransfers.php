@@ -86,6 +86,13 @@ class InventoryTransfers extends Component
 
     public function swapWarehouses(): void
     {
+        $user = auth()->user();
+        if ($user && ! $user->canAccessAllWarehouses() && ! $user->canAccessWarehouse($this->destination_warehouse_id)) {
+            $this->addError('source_warehouse_id', 'Gudang asal harus termasuk gudang tugas akun Anda.');
+
+            return;
+        }
+
         [$this->source_warehouse_id, $this->destination_warehouse_id] = [$this->destination_warehouse_id, $this->source_warehouse_id];
         $this->item_id = '';
         $this->stock_in_id = '';
@@ -148,6 +155,10 @@ class InventoryTransfers extends Component
     public function save(): void
     {
         $data = $this->validate();
+        $user = auth()->user();
+        if ($user && ! $user->canAccessWarehouse($data['source_warehouse_id'])) {
+            throw ValidationException::withMessages(['source_warehouse_id' => 'Pilih gudang asal yang termasuk tugas akun Anda.']);
+        }
         $quantity = (float) $data['quantity'];
 
         DB::transaction(function () use ($data, $quantity) {
@@ -259,7 +270,9 @@ class InventoryTransfers extends Component
 
     public function render()
     {
+        $user = auth()->user();
         $warehouses = Warehouse::orderBy('name')->get(['id', 'name']);
+        $sourceWarehouses = Warehouse::when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->whereKey($user->scopedWarehouseIds()))->orderBy('name')->get(['id', 'name']);
         $items = $this->inventory_type === 'material'
             ? Material::with('supplier:id,name')
                 ->where('warehouse_id', $this->source_warehouse_id ?: 0)
@@ -295,6 +308,9 @@ class InventoryTransfers extends Component
                 'sourceBatch:id,entry_code,unit_price',
                 'createdBy:id,name',
             ])
+            ->when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->where(fn ($sub) => $sub
+                ->whereIn('source_warehouse_id', $user->scopedWarehouseIds())
+                ->orWhereIn('destination_warehouse_id', $user->scopedWarehouseIds())))
             ->when($this->filterType === 'material', fn ($q) => $q->whereNotNull('material_id'))
             ->when($this->filterType === 'tool', fn ($q) => $q->whereNotNull('tool_id'))
             ->when($this->search, function ($q) {
@@ -312,7 +328,7 @@ class InventoryTransfers extends Component
             ->orderByDesc('id')
             ->paginate(10);
 
-        return view('livewire.logistik.inventory-transfers', compact('warehouses', 'items', 'batches', 'transfers'))
+        return view('livewire.logistik.inventory-transfers', compact('warehouses', 'sourceWarehouses', 'items', 'batches', 'transfers'))
             ->layout('layouts.app', ['title' => 'Transfer Gudang']);
     }
 }

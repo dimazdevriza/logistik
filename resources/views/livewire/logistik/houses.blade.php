@@ -67,7 +67,7 @@
                             <option value="selesai">Selesai</option>
                         </select>
                     </div>
-                    @if ($this->canManageClusters())
+                    @if ($this->canPickCluster())
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase text-secondary">Cluster</label>
                             <select wire:model.live="filterCluster" class="form-select">
@@ -203,17 +203,17 @@
                             @error('name') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
                         </div>
                         <div class="mb-3" x-data="{ clusterPickerOpen: false, clusterSearch: '' }">
-                            <label for="house-cluster" class="form-label font-semibold">{{ $this->canManageClusters() ? 'Pilih Cluster' : 'Cluster' }}</label>
+                            <label for="house-cluster" class="form-label font-semibold">{{ $this->canPickCluster() ? 'Pilih Cluster' : 'Cluster' }}</label>
                             <div class="position-relative" @click.outside="clusterPickerOpen = false">
                                 <div class="position-relative d-flex align-items-center">
                                     <input
                                         id="house-cluster"
                                         type="text"
                                         wire:model="cluster_name"
-                                        class="form-control {{ $this->canManageClusters() ? 'pe-5' : '' }}"
+                                        class="form-control {{ $this->canPickCluster() ? 'pe-5' : '' }}"
                                         placeholder="Pilih cluster yang tersedia..."
                                         autocomplete="off"
-                                        @if ($this->canManageClusters())
+                                        @if ($this->canPickCluster())
                                             role="combobox"
                                             aria-autocomplete="list"
                                             aria-controls="house-cluster-options"
@@ -225,7 +225,7 @@
                                             disabled
                                         @endif
                                     />
-                                    @if ($this->canManageClusters())
+                                    @if ($this->canPickCluster())
                                         <button
                                             type="button"
                                             class="btn btn-link text-secondary text-decoration-none position-absolute end-0 me-2 p-1 d-flex align-items-center"
@@ -239,7 +239,7 @@
                                     @endif
                                 </div>
 
-                                @if ($this->canManageClusters())
+                                @if ($this->canPickCluster())
                                     <div x-show="clusterPickerOpen" x-cloak class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden" style="max-height: 220px; z-index: 1050;">
                                         <div id="house-cluster-options" role="listbox" class="p-1.5" style="max-height: 210px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
                                             @foreach ($clusters as $cluster)
@@ -348,10 +348,10 @@
                                     id="house-cluster"
                                     type="text"
                                     wire:model="cluster_name"
-                                    class="form-control {{ $this->canManageClusters() ? 'pe-5' : '' }}"
+                                    class="form-control {{ $this->canPickCluster() ? 'pe-5' : '' }}"
                                     placeholder="Pilih cluster yang tersedia..."
                                     autocomplete="off"
-                                    @if ($this->canManageClusters())
+                                    @if ($this->canPickCluster())
                                         role="combobox"
                                         aria-autocomplete="list"
                                         aria-controls="house-cluster-options"
@@ -363,7 +363,7 @@
                                         disabled
                                     @endif
                                 />
-                                @if ($this->canManageClusters())
+                                @if ($this->canPickCluster())
                                     <button
                                         type="button"
                                         class="btn btn-link text-secondary text-decoration-none position-absolute end-0 me-2 p-1 d-flex align-items-center"
@@ -377,7 +377,7 @@
                                 @endif
                             </div>
 
-                            @if ($this->canManageClusters())
+                            @if ($this->canPickCluster())
                                 <div x-show="clusterPickerOpen" x-cloak class="card shadow-lg border rounded-3 position-absolute w-100 mt-1 bg-body overflow-hidden" style="max-height: 220px; z-index: 1050;">
                                     <div id="house-cluster-options" role="listbox" class="p-1.5" style="max-height: 210px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
                                         <button

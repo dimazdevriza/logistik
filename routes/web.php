@@ -67,8 +67,8 @@ Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan|pengawas'])
     Route::get('warehouses/{warehouse}', WarehouseDetail::class)->name('logistik.warehouse-detail');
     Route::get('biaya-rumah', HouseCosts::class)->name('logistik.house-costs');
     Route::get('biaya-rumah/{house}', HouseCostDetail::class)->name('logistik.house-costs.detail');
-    Route::get('clusters', Clusters::class)->middleware('role:admin|keuangan|pengawas')->name('logistik.clusters');
-    Route::get('biaya-cluster', Clusters::class)->middleware('role:admin|keuangan|pengawas')->name('logistik.cluster-costs');
+    Route::get('clusters', Clusters::class)->middleware('role:admin|keuangan|pengawas|logistik')->name('logistik.clusters');
+    Route::get('biaya-cluster', Clusters::class)->middleware('role:admin|keuangan|pengawas|logistik')->name('logistik.cluster-costs');
 
     // Field operations are available to admins, logistics, and supervisors.
     Route::middleware('role:admin|logistik|pengawas')->group(function () {
@@ -96,8 +96,8 @@ Route::middleware(['auth', 'verified', 'role:admin|logistik|keuangan|pengawas'])
             (string) ($filters['house'] ?? ''),
             (string) ($filters['supplier'] ?? ''),
             $filters['sort'] ?? 'date_desc',
-            in_array($user->role, ['logistik', 'pengawas'], true) ? (int) ($user->cluster_id ?? 0) : null,
-            $user->assignedWarehouseId()
+            in_array($user->role, ['logistik', 'pengawas'], true) ? $user->scopedClusterIds() : null,
+            ! $user->canAccessAllWarehouses() ? $user->scopedWarehouseIds() : null
         );
 
         return Excel::download($export, 'catatan-material-'.now()->format('Ymd-His').'.xlsx');

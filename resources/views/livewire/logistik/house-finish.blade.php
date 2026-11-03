@@ -162,7 +162,7 @@
                                     </div>
                                 </fieldset>
 
-                                @if(auth()->user()->canAccessAllWarehouses())
+                                @if(auth()->user()->hasWarehouseChoice())
                                 <div class="house-finish-field">
                                     <label for="tool-warehouse-{{ $usage->id }}" class="form-label">Gudang penerima</label>
                                     <select id="tool-warehouse-{{ $usage->id }}" wire:model.live="toolSelections.{{ $usage->id }}.receiving_warehouse_id" class="form-select">

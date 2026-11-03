@@ -82,6 +82,7 @@
                             <th class="text-secondary py-3">Cluster</th>
                             <x-sortable-th field="type" :sort="$sort" class="text-secondary py-3">Tipe</x-sortable-th>
                             <x-sortable-th field="status" :sort="$sort" class="text-secondary py-3 text-center">Status</x-sortable-th>
+                            <x-sortable-th field="progress" :sort="$sort" class="text-secondary py-3 text-start" style="min-width: 140px;">Bobot (Fisik / Bahan)</x-sortable-th>
                             @php
                                 $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
                             @endphp
@@ -113,6 +114,36 @@
                             <td data-label="Status" class="text-center">
                                 <span class="badge {{ $statusClasses[$house->status] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($house->status) }}</span>
                             </td>
+                            <td data-label="Bobot">
+                                @php
+                                    $bobotRumah = $house->bobot_rumah;
+                                    $bobotBahan = $house->bobot_bahan;
+                                    $isOverBudget = $bobotBahan !== null && $bobotBahan > 100;
+                                @endphp
+                                <div class="d-flex flex-column gap-1" style="min-width: 130px;">
+                                    <div class="d-flex justify-content-between align-items-center extra-small">
+                                        <span class="text-secondary">Fisik:</span>
+                                        <span class="font-mono fw-bold text-body">{{ number_format($bobotRumah, 1, ',', '.') }}%</span>
+                                    </div>
+                                    <div class="progress bg-body-tertiary" style="height: 4px;">
+                                        <div class="progress-bar bg-success" style="width: {{ min(100, $bobotRumah) }}%;"></div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center extra-small mt-1">
+                                        <span class="text-secondary">Bahan:</span>
+                                        @if ($bobotBahan !== null)
+                                            <span class="font-mono fw-bold {{ $isOverBudget ? 'text-danger' : 'text-body' }}">{{ number_format($bobotBahan, 1, ',', '.') }}%</span>
+                                        @else
+                                            <span class="text-secondary">-</span>
+                                        @endif
+                                    </div>
+                                    @if ($bobotBahan !== null)
+                                    <div class="progress bg-body-tertiary" style="height: 4px;">
+                                        <div class="progress-bar {{ $isOverBudget ? 'bg-danger' : 'bg-success' }}" style="width: {{ min(100, $bobotBahan) }}%;"></div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </td>
                             
                             @for ($m = 1; $m <= 12; $m++)
                                 @php
@@ -135,7 +166,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="21" class="house-cost-empty text-center py-5 text-secondary">Belum ada data rumah.</td>
+                            <td colspan="22" class="house-cost-empty text-center py-5 text-secondary">Belum ada data rumah.</td>
                         </tr>
                         @endforelse
                     </tbody>

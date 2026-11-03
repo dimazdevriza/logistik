@@ -96,6 +96,7 @@ class ClusterExpenses extends Component
             'code' => 'houses.house_code',
             'type' => 'houses.type',
             'status' => 'houses.status',
+            'progress' => 'houses.physical_progress',
             'year_total' => fn ($query, $direction) => $query->orderBy(
                 MaterialUsage::selectRaw('COALESCE(SUM(total_cost), 0)')
                     ->whereColumn('material_usages.house_id', 'houses.id')
@@ -344,7 +345,7 @@ class ClusterExpenses extends Component
         $user = auth()->user();
         abort_unless(
             $user?->canAccessAllClusters()
-                || (in_array($user?->role, ['logistik', 'pengawas'], true) && $user->cluster_id && (int) $cluster->id === (int) $user->cluster_id),
+                || (in_array($user?->role, ['logistik', 'pengawas'], true) && $user->canAccessCluster($cluster->id)),
             403,
         );
     }

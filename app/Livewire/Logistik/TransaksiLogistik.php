@@ -275,11 +275,11 @@ class TransaksiLogistik extends Component
         }
 
         if ($type === 'materials') {
-            $wId = auth()->user()?->assignedWarehouseId();
+            $user = auth()->user();
             $available = Material::whereKey($itemId)->where('stock', '>', 0)
-                ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
+                ->when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', $user->scopedWarehouseIds()))
                 ->whereHas('stockIns', fn ($query) => $query->whereNotNull('warehouse_id')
-                    ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
+                    ->when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', $user->scopedWarehouseIds()))
                     ->whereAvailableQuantity())
                 ->exists();
             if (! $available) {
@@ -749,7 +749,7 @@ class TransaksiLogistik extends Component
         }
 
         $cluster = Cluster::query()
-            ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereKey($user->cluster_id ?? 0))
+            ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereKey($user->scopedClusterIds()))
             ->find($validated['vendor_service_cluster_id']);
         if (! $cluster) {
             throw ValidationException::withMessages(['vendor_service_cluster_id' => 'Pilih cluster yang dapat Anda akses.']);
@@ -864,7 +864,7 @@ class TransaksiLogistik extends Component
         $houseIds = array_map('intval', $validated['house_ids']);
 
         $material = Material::with('supplier:id,name')
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', auth()->user()->scopedWarehouseIds()))
             ->findOrFail($validated['material_id']);
         $totalQuantity = (float) $validated['material_quantity'] * count($houseIds);
         $batch = StockIn::with(['warehouse:id,name', 'supplier:id,name'])
@@ -872,7 +872,7 @@ class TransaksiLogistik extends Component
             ->whereKey($validated['material_batch_id'])
             ->where('material_id', $material->id)
             ->whereNotNull('warehouse_id')
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', auth()->user()->scopedWarehouseIds()))
             ->first();
         if (! $batch) {
             $this->addError('material_batch_id', 'Pilih batch masuk untuk material ini.');
@@ -1098,7 +1098,7 @@ class TransaksiLogistik extends Component
     {
         $material = Material::query()
             ->where('stock', '>', 0)
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', auth()->user()->scopedWarehouseIds()))
             ->findOrFail($materialId);
         $this->material_id = (string) $material->id;
         $this->material_batch_id = '';
@@ -1475,13 +1475,13 @@ class TransaksiLogistik extends Component
 
     public function getMaterials()
     {
-        $wId = auth()->user()?->assignedWarehouseId();
+        $user = auth()->user();
 
         return Material::with(['warehouse:id,name', 'supplier:id,name'])
             ->where('stock', '>', 0)
-            ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
+            ->when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', $user->scopedWarehouseIds()))
             ->whereHas('stockIns', fn ($query) => $query->whereNotNull('warehouse_id')
-                ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
+                ->when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', $user->scopedWarehouseIds()))
                 ->whereAvailableQuantity())
             ->orderBy('name')
             ->orderBy('unit_price')
@@ -1491,14 +1491,14 @@ class TransaksiLogistik extends Component
 
     public function getMaterialBatches()
     {
-        $wId = auth()->user()?->assignedWarehouseId();
+        $user = auth()->user();
 
         return $this->material_id
             ? StockIn::with(['warehouse:id,name', 'supplier:id,name', 'material:id,unit'])
                 ->withReservedQuantity()
                 ->where('material_id', $this->material_id)
                 ->whereNotNull('warehouse_id')
-                ->when($wId, fn ($q) => $q->where('warehouse_id', $wId))
+                ->when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', $user->scopedWarehouseIds()))
                 ->whereAvailableQuantity()
                 ->orderBy('unit_price')
                 ->orderBy('id')
@@ -1555,7 +1555,7 @@ class TransaksiLogistik extends Component
     {
         $balances = ToolWarehouseBalance::with('warehouse:id,name')
             ->where('tool_id', $toolId)
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($q, $wId) => $q->where('warehouse_id', $wId))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', auth()->user()->scopedWarehouseIds()))
             ->where('available_qty', '>', 0)
             ->orderBy('warehouse_id')
             ->get();
@@ -1634,14 +1634,14 @@ class TransaksiLogistik extends Component
         $spreadsheetMaterialIds = collect($this->spreadsheetRows)
             ->flatMap(fn ($row) => collect($row['materials'] ?? [])->pluck('material_id'))
             ->filter()->map(fn ($id) => (int) $id)->unique()->values();
-        $assignedWarehouseId = auth()->user()?->assignedWarehouseId();
+        $user = auth()->user();
         $spreadsheetBatches = $spreadsheetMaterialIds->isEmpty()
             ? collect()
             : StockIn::with(['warehouse:id,name', 'supplier:id,name'])
                 ->withReservedQuantity()
                 ->whereIn('material_id', $spreadsheetMaterialIds)
                 ->whereNotNull('warehouse_id')
-                ->when($assignedWarehouseId, fn ($q, $wId) => $q->where('warehouse_id', $wId))
+                ->when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->whereIn('warehouse_id', $user->scopedWarehouseIds()))
                 ->whereAvailableQuantity()->orderBy('id')->get()->groupBy('material_id');
         $spreadsheetHouseIds = collect($this->spreadsheetRows)->pluck('house_id')->filter()->map(fn ($id) => (int) $id)->unique()->values();
         $spreadsheetUsages = $this->activeTab !== 'spreadsheet' || $spreadsheetHouseIds->isEmpty()
@@ -1649,19 +1649,19 @@ class TransaksiLogistik extends Component
             : ToolUsageModel::with(['tool:id,name,code', 'warehouse:id,name'])
                 ->whereIn('house_id', $spreadsheetHouseIds)
                 ->whereNull('return_date')->whereNull('voided_at')
-                ->whereHas('house', fn ($query) => $query->forUser(auth()->user()))
+                ->whereHas('house', fn ($query) => $query->forUser($user))
                 ->orderBy('checkout_date')->get()->groupBy('house_id');
         $supplierNames = Supplier::orderBy('name')->pluck('name')->unique()->values()->all();
         $clusters = Cluster::query()
-            ->when(! auth()->user()->canAccessAllClusters(), fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
+            ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereKey($user->scopedClusterIds()))
             ->orderBy('name')->get(['id', 'name']);
 
         return view('livewire.logistik.transaksi-logistik', array_merge(
             compact('houses', 'materials', 'tools', 'activeUsages', 'peruntukkanOptions', 'pengambilOptions', 'toolWarehouseOptions', 'supplierNames', 'clusters', 'spreadsheetBatches', 'spreadsheetUsages'),
             $this->housePickerData($houses),
             [
-                'warehouses' => Warehouse::when($assignedWarehouseId, fn ($q, $wId) => $q->whereKey($wId))->orderBy('name')->get(['id', 'name']),
-                'clusterAssignmentMissing' => in_array(auth()->user()->role, ['logistik', 'pengawas'], true) && ! auth()->user()->cluster_id,
+                'warehouses' => Warehouse::when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->whereKey($user->scopedWarehouseIds()))->orderBy('name')->get(['id', 'name']),
+                'clusterAssignmentMissing' => in_array($user->role, ['logistik', 'pengawas'], true) && ! $user->assignedClusterIds(),
             ],
         ))
             ->layout('layouts.app', ['title' => 'Alokasi Material & Alat']);

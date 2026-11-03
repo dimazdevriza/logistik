@@ -34,7 +34,8 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
         private string $filterCategory = '',
         private string $filterWarehouse = '',
         private string $filterSupplier = '',
-        private string $filterStock = ''
+        private string $filterStock = '',
+        private ?array $warehouseScope = null
     ) {}
 
     public function query()
@@ -53,10 +54,10 @@ class MaterialInventoryExport implements FromQuery, WithHeadings, WithMapping, W
                 ->where('stock_ins.supplier_id', $this->filterSupplier)
                 ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.supplier_id')
                     ->whereHas('material', fn ($material) => $material->where('supplier_id', $this->filterSupplier)))))
-            ->when($this->filterWarehouse, fn ($q) => $q->where(fn ($sub) => $sub
-                ->where('stock_ins.warehouse_id', $this->filterWarehouse)
+            ->when($this->filterWarehouse ? [(int) $this->filterWarehouse] : $this->warehouseScope, fn ($q, $ids) => $q->where(fn ($sub) => $sub
+                ->whereIn('stock_ins.warehouse_id', $ids)
                 ->orWhere(fn ($fallback) => $fallback->whereNull('stock_ins.warehouse_id')
-                    ->whereHas('material', fn ($material) => $material->where('warehouse_id', $this->filterWarehouse)))))
+                    ->whereHas('material', fn ($material) => $material->whereIn('warehouse_id', $ids)))))
             ->when($this->filterStock, function ($q) {
                 if ($this->filterStock === 'low') {
                     $q->where('stock_ins.remaining_quantity', '<=', 10)->where('stock_ins.remaining_quantity', '>', 0);

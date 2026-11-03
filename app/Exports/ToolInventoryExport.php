@@ -30,7 +30,8 @@ class ToolInventoryExport implements FromQuery, WithHeadings, WithMapping, WithS
         private string $search = '',
         private string $filterCategory = '',
         private string $filterCondition = '',
-        private string $filterWarehouse = ''
+        private string $filterWarehouse = '',
+        private ?array $warehouseScope = null
     ) {}
 
     public function query()
@@ -40,7 +41,7 @@ class ToolInventoryExport implements FromQuery, WithHeadings, WithMapping, WithS
                 ->orWhere('code', 'like', "%{$this->search}%"))
             ->when($this->filterCategory, fn ($q) => $q->where('category_id', $this->filterCategory))
             ->when($this->filterCondition, fn ($q) => $q->where('condition', $this->filterCondition))
-            ->when($this->filterWarehouse, fn ($q) => $q->whereHas('warehouseBalances', fn ($balance) => $balance->where('warehouse_id', $this->filterWarehouse)))
+            ->when($this->filterWarehouse ? [(int) $this->filterWarehouse] : $this->warehouseScope, fn ($q, $ids) => $q->whereHas('warehouseBalances', fn ($balance) => $balance->whereIn('warehouse_id', $ids)))
             ->orderBy('name');
     }
 

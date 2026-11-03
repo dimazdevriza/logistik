@@ -29,13 +29,15 @@ class Clusters extends Component
     public function mount(): void
     {
         $user = auth()->user();
-        abort_unless(in_array($user?->role, ['admin', 'keuangan', 'pengawas'], true), 403);
+        abort_unless(in_array($user?->role, ['admin', 'keuangan', 'pengawas', 'logistik'], true), 403);
 
-        if (! $user->canAccessAllClusters() && $user->cluster_id) {
-            $this->redirectRoute('clusters.expenses', ['cluster' => $user->cluster_id], navigate: true);
+        if (! $user->canAccessAllClusters() && $user->soleClusterId()) {
+            $this->redirectRoute('clusters.expenses', ['cluster' => $user->soleClusterId()], navigate: true);
+
+            return;
         }
 
-        $this->isCostPage = request()->routeIs('logistik.cluster-costs') || $user->role === 'keuangan';
+        $this->isCostPage = request()->routeIs('logistik.cluster-costs') || in_array($user->role, ['keuangan', 'logistik'], true);
         $this->filterYear = (string) now()->year;
     }
 
@@ -192,7 +194,7 @@ class Clusters extends Component
         $clusters = Cluster::query()
             ->withCount('houses')
             ->with('houses:id,cluster_id,name,house_code')
-            ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereKey($user->cluster_id ?? 0))
+            ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereKey($user->scopedClusterIds()))
             ->when($this->search, fn ($query) => $query->where(function ($search) {
                 $search->where('clusters.name', 'like', "%{$this->search}%")
                     ->orWhere('clusters.description', 'like', "%{$this->search}%")
@@ -209,13 +211,13 @@ class Clusters extends Component
                 ->join('houses as h', 'h.id', '=', 'mu.house_id')
                 ->whereNull('mu.voided_at')
                 ->whereNotNull('h.cluster_id')
-                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->where('h.cluster_id', $user->cluster_id ?? 0))
+                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereIn('h.cluster_id', $user->scopedClusterIds()))
                 ->selectRaw('h.cluster_id, SUM(mu.total_cost) as total')
                 ->groupBy('h.cluster_id')
                 ->pluck('total', 'cluster_id');
             $expenseTotals = DB::table('cluster_expenses')
                 ->whereIn('type', ['rental', 'rental_extension', 'vendor_service'])
-                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->where('cluster_id', $user->cluster_id ?? 0))
+                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereIn('cluster_id', $user->scopedClusterIds()))
                 ->selectRaw('cluster_id, SUM(amount) as total')
                 ->groupBy('cluster_id')
                 ->pluck('total', 'cluster_id');
@@ -225,7 +227,7 @@ class Clusters extends Component
                 ->whereNull('mu.voided_at')
                 ->whereNotNull('h.cluster_id')
                 ->whereYear('mu.usage_date', $selectedYear)
-                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->where('h.cluster_id', $user->cluster_id ?? 0))
+                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereIn('h.cluster_id', $user->scopedClusterIds()))
                 ->selectRaw('h.cluster_id, MONTH(mu.usage_date) as month, SUM(mu.total_cost) as total')
                 ->groupBy('h.cluster_id')
                 ->groupByRaw('MONTH(mu.usage_date)')
@@ -233,7 +235,7 @@ class Clusters extends Component
             $expenseMonths = DB::table('cluster_expenses')
                 ->whereIn('type', ['rental', 'rental_extension', 'vendor_service'])
                 ->whereRaw('YEAR(COALESCE(start_date, created_at)) = ?', [$selectedYear])
-                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->where('cluster_id', $user->cluster_id ?? 0))
+                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereIn('cluster_id', $user->scopedClusterIds()))
                 ->selectRaw('cluster_id, MONTH(COALESCE(start_date, created_at)) as month, SUM(amount) as total')
                 ->groupBy('cluster_id')
                 ->groupByRaw('MONTH(COALESCE(start_date, created_at))')
@@ -250,12 +252,12 @@ class Clusters extends Component
                 ->join('houses as h', 'h.id', '=', 'mu.house_id')
                 ->whereNull('mu.voided_at')
                 ->whereNotNull('h.cluster_id')
-                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->where('h.cluster_id', $user->cluster_id ?? 0))
+                ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereIn('h.cluster_id', $user->scopedClusterIds()))
                 ->selectRaw('DISTINCT YEAR(mu.usage_date) as yr')
                 ->pluck('yr')
                 ->merge(ClusterExpense::query()
                     ->whereIn('type', ['rental', 'rental_extension', 'vendor_service'])
-                    ->when(! $user->canAccessAllClusters(), fn ($query) => $query->where('cluster_id', $user->cluster_id ?? 0))
+                    ->when(! $user->canAccessAllClusters(), fn ($query) => $query->whereIn('cluster_id', $user->scopedClusterIds()))
                     ->selectRaw('DISTINCT YEAR(COALESCE(start_date, created_at)) as yr')
                     ->pluck('yr'))
                 ->filter()

@@ -292,7 +292,7 @@ class HouseFinish extends Component
             'totalMaterialCost' => $totalMaterialCost,
             'activeToolUsages' => $activeToolUsages,
             'completionBlocked' => $completionBlocked,
-            'warehouses' => Warehouse::when($user?->assignedWarehouseId(), fn ($q, $wId) => $q->whereKey($wId))->orderBy('name')->get(['id', 'name']),
+            'warehouses' => Warehouse::when($user?->canAccessAllWarehouses() === false, fn ($q) => $q->whereKey($user->scopedWarehouseIds()))->orderBy('name')->get(['id', 'name']),
         ])->layout('layouts.app', ['title' => 'Selesaikan Proyek: '.$this->house->name]);
     }
 }

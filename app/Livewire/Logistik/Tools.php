@@ -107,6 +107,18 @@ class Tools extends Component
     public $confirmMessage = '';
     public int $feedbackSequence = 0;
 
+    private function canAccessTool(Tool $tool): bool
+    {
+        $user = auth()->user();
+        if ($user?->canAccessAllWarehouses() !== false) {
+            return true;
+        }
+        $ids = $user->scopedWarehouseIds();
+
+        return in_array((int) $tool->warehouse_id, $ids, true)
+            || $tool->warehouseBalances()->whereIn('warehouse_id', $ids)->exists();
+    }
+
     public function mount(): void
     {
         if ($warehouseId = auth()->user()?->assignedWarehouseId()) {
@@ -273,9 +285,7 @@ class Tools extends Component
     public function edit($id)
     {
         $tool = Tool::findOrFail($id);
-        if ($wId = auth()->user()?->assignedWarehouseId()) {
-            abort_if((int) $tool->warehouse_id !== $wId && ! $tool->warehouseBalances()->where('warehouse_id', $wId)->exists(), 403);
-        }
+        abort_if(! $this->canAccessTool($tool), 403);
         $this->toolId = $tool->id;
         $this->name = $tool->name;
         $this->category_id = $tool->category_id ?? '';
@@ -286,7 +296,7 @@ class Tools extends Component
         $this->available_qty = $tool->available_qty;
         $this->qty_broken = $tool->qty_broken;
         $this->inventoryAdjustmentReason = '';
-        $this->warehouse_id = (string) ($wId ?? $tool->warehouse_id ?? '');
+        $this->warehouse_id = (string) (auth()->user()?->assignedWarehouseId() ?? $tool->warehouse_id ?? '');
         $this->receivedAt = '';
         $this->hasMultipleWarehouseBalances = $tool->warehouseBalances()->count() > 1;
         $this->existingImage = $tool->image;
@@ -301,6 +311,7 @@ class Tools extends Component
         if ($wId = auth()->user()?->assignedWarehouseId()) {
             $this->warehouse_id = (string) $wId;
         }
+        abort_if($this->warehouse_id !== '' && auth()->user()?->canAccessWarehouse($this->warehouse_id) === false, 403);
         if (! $this->editMode && $this->submissionKey && Tool::where('submission_key', $this->submissionKey)->exists()) {
             $this->resetForm();
             $this->receivedAt = now()->format('Y-m-d\\TH:i');
@@ -317,9 +328,7 @@ class Tools extends Component
     private function saveInventory(): void
     {
         $existing = $this->editMode ? Tool::lockForUpdate()->findOrFail($this->toolId) : null;
-        if ($existing && ($wId = auth()->user()?->assignedWarehouseId())) {
-            abort_if((int) $existing->warehouse_id !== $wId && ! $existing->warehouseBalances()->where('warehouse_id', $wId)->exists(), 403);
-        }
+        abort_if($existing && ! $this->canAccessTool($existing), 403);
         $balances = $existing ? $existing->warehouseBalances()->lockForUpdate()->get() : collect();
         $warehouseChanged = $existing && (int) $existing->warehouse_id !== (int) $this->warehouse_id;
         $distributionChanged = $existing && collect(['available_qty', 'qty_broken'])->contains(
@@ -450,9 +459,7 @@ class Tools extends Component
         $this->feedbackSequence++;
         DB::transaction(function () use ($id) {
             $tool = Tool::lockForUpdate()->findOrFail($id);
-            if ($wId = auth()->user()?->assignedWarehouseId()) {
-                abort_if((int) $tool->warehouse_id !== $wId && ! $tool->warehouseBalances()->where('warehouse_id', $wId)->exists(), 403);
-            }
+            abort_if(! $this->canAccessTool($tool), 403);
             if ($tool->hasTransactionHistory()) {
                 $this->addError('delete', 'Alat tidak dapat dihapus karena memiliki riwayat peminjaman, pengembalian, permintaan, atau transfer gudang. Riwayat transaksi harus tetap tersimpan.');
 
@@ -476,7 +483,7 @@ class Tools extends Component
         $this->qty_broken = 0;
         $this->inventoryAdjustmentReason = '';
         $this->hasMultipleWarehouseBalances = false;
-        $this->warehouse_id = (string) (auth()->user()?->assignedWarehouseId() ?? Warehouse::orderBy('id')->value('id') ?? '');
+        $this->warehouse_id = (string) (auth()->user()?->assignedWarehouseId() ?? Warehouse::when(auth()->user()?->canAccessAllWarehouses() === false, fn ($q) => $q->whereKey(auth()->user()->scopedWarehouseIds()))->orderBy('id')->value('id') ?? '');
         $this->receivedAt = '';
         $this->submissionKey = (string) Str::uuid();
         $this->saveSuccess = '';
@@ -540,15 +547,17 @@ class Tools extends Component
             return;
         }
 
-        if ($wId = auth()->user()?->assignedWarehouseId()) {
-            $this->filterWarehouse = (string) $wId;
+        $user = auth()->user();
+        if ($user?->canAccessAllWarehouses() === false && ! $user->canAccessWarehouse($this->filterWarehouse)) {
+            $this->filterWarehouse = (string) ($user->assignedWarehouseId() ?? '');
         }
 
         $export = new ToolInventoryExport(
             $this->search,
             $this->filterCategory,
             $this->filterCondition,
-            $this->filterWarehouse
+            $this->filterWarehouse,
+            $user?->canAccessAllWarehouses() === false ? $user->scopedWarehouseIds() : null
         );
         $filename = 'tool-inventory-'.now()->format('Ymd').'.xlsx';
 
@@ -559,10 +568,12 @@ class Tools extends Component
 
     public function render()
     {
-        $assignedWarehouseId = auth()->user()?->assignedWarehouseId();
-        if ($assignedWarehouseId) {
-            $this->filterWarehouse = (string) $assignedWarehouseId;
+        $user = auth()->user();
+        $restricted = $user?->canAccessAllWarehouses() === false;
+        if ($restricted && ! $user->canAccessWarehouse($this->filterWarehouse)) {
+            $this->filterWarehouse = (string) ($user->assignedWarehouseId() ?? '');
         }
+        $warehouseScope = $this->filterWarehouse ? [(int) $this->filterWarehouse] : ($restricted ? $user->scopedWarehouseIds() : null);
 
         $query = Tool::with(['category', 'warehouse', 'warehouseBalances.warehouse', 'recordedBy'])
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
@@ -572,7 +583,7 @@ class Tools extends Component
             }))
             ->when($this->filterCategory, fn ($q) => $q->where('category_id', $this->filterCategory))
             ->when($this->filterCondition, fn ($q) => $q->where('condition', $this->filterCondition))
-            ->when($this->filterWarehouse, fn ($q) => $q->whereHas('warehouseBalances', fn ($balance) => $balance->where('warehouse_id', $this->filterWarehouse)))
+            ->when($warehouseScope, fn ($q) => $q->whereHas('warehouseBalances', fn ($balance) => $balance->whereIn('warehouse_id', $warehouseScope)))
             ->when($this->filterStock, function ($q) {
                 match ($this->filterStock) {
                     'available' => $q->where('available_qty', '>', 0),
@@ -594,14 +605,14 @@ class Tools extends Component
         $tools = $query->paginate(10);
 
         $categories = Category::where('type', 'tool')->orderBy('name')->get()->unique('name');
-        $warehouses = Warehouse::when($assignedWarehouseId, fn ($q, $wId) => $q->whereKey($wId))->orderBy('name')->get();
+        $warehouses = Warehouse::when($restricted, fn ($q) => $q->whereKey($user->scopedWarehouseIds()))->orderBy('name')->get();
 
         // Stats
-        $totalAvailable = $this->filterWarehouse
-            ? (int) ToolWarehouseBalance::where('warehouse_id', $this->filterWarehouse)->sum('available_qty')
+        $totalAvailable = $warehouseScope
+            ? (int) ToolWarehouseBalance::whereIn('warehouse_id', $warehouseScope)->sum('available_qty')
             : (int) Tool::sum('available_qty');
-        $totalTools = $this->filterWarehouse
-            ? (int) ToolWarehouseBalance::where('warehouse_id', $this->filterWarehouse)->selectRaw('SUM(available_qty + qty_broken) as total')->value('total')
+        $totalTools = $warehouseScope
+            ? (int) ToolWarehouseBalance::whereIn('warehouse_id', $warehouseScope)->selectRaw('SUM(available_qty + qty_broken) as total')->value('total')
             : (int) Tool::sum('total_qty');
         $loanedCount = $this->showModal && $this->editMode
             ? (int) ToolUsage::where('tool_id', $this->toolId)->whereNull('return_date')->whereNull('voided_at')->sum('quantity')

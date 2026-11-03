@@ -112,7 +112,7 @@ class ToolLog extends Component
         try {
             DB::transaction(function () use ($usageId) {
                 $usage = ToolUsage::whereHas('house', fn ($query) => $query->forUser(auth()->user()))
-                    ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where('warehouse_id', $wId))
+                    ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($query) => $query->whereIn('warehouse_id', auth()->user()->scopedWarehouseIds()))
                     ->lockForUpdate()->findOrFail($usageId);
                 if (! is_null($usage->voided_at)) {
                     throw new \Exception('Peminjaman ini sudah dibatalkan sebelumnya.');
@@ -156,7 +156,7 @@ class ToolLog extends Component
 
         DB::transaction(function () use ($returnLogId, $resolution): void {
             $return = ToolReturnLog::whereHas('house', fn ($query) => $query->forUser(auth()->user()))
-                ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where('receiving_warehouse_id', $wId))
+                ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($query) => $query->whereIn('receiving_warehouse_id', auth()->user()->scopedWarehouseIds()))
                 ->lockForUpdate()->findOrFail($returnLogId);
             if ($return->report_type !== 'broken' || $return->status !== 'pending') {
                 throw ValidationException::withMessages(['resolution' => 'Catatan rusak ini sudah diproses atau tidak dapat diselesaikan.']);
@@ -250,8 +250,8 @@ class ToolLog extends Component
             ->leftJoin('stock_ins as source_stock', 'dispatch_lines.stock_in_id', '=', 'source_stock.id')
             ->leftJoin('tools as source_tool', 'dispatch_lines.tool_id', '=', 'source_tool.id')
             ->leftJoin('warehouses as source_warehouse', 'dispatch_lines.warehouse_id', '=', 'source_warehouse.id')
-            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->whereRaw('COALESCE(tool_usages.warehouse_id, tools.warehouse_id) = ?', [$wId]))
+            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->whereIn('houses.cluster_id', auth()->user()->scopedClusterIds()))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($query) => $query->whereIn(DB::raw('COALESCE(tool_usages.warehouse_id, tools.warehouse_id)'), auth()->user()->scopedWarehouseIds()))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('tool_usages.transaction_code', 'like', "%{$this->search}%")
                 ->orWhere('tool_usages.dispatch_code', 'like', "%{$this->search}%")
@@ -294,7 +294,7 @@ class ToolLog extends Component
             )
             ->leftJoin('users', 'tools.recorded_by_id', '=', 'users.id')
             ->leftJoin('warehouses', 'tools.warehouse_id', '=', 'warehouses.id')
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where('tools.warehouse_id', $wId))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($query) => $query->whereIn('tools.warehouse_id', auth()->user()->scopedWarehouseIds()))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('tools.entry_code', 'like', "%{$this->search}%")
                 ->orWhere('tools.code', 'like', "%{$this->search}%")
@@ -335,8 +335,8 @@ class ToolLog extends Component
             ->leftJoin('warehouses as receiving_warehouse', 'tool_return_logs.receiving_warehouse_id', '=', 'receiving_warehouse.id')
             ->leftJoin('users as receivers', 'tool_return_logs.received_by_id', '=', 'receivers.id')
             ->leftJoin('users as reporters', 'tool_return_logs.reported_by', '=', 'reporters.id')
-            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->where('houses.cluster_id', auth()->user()->cluster_id ?? 0))
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->whereRaw('COALESCE(tool_return_logs.receiving_warehouse_id, tool_usages.warehouse_id, tools.warehouse_id) = ?', [$wId]))
+            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->whereIn('houses.cluster_id', auth()->user()->scopedClusterIds()))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($query) => $query->whereIn(DB::raw('COALESCE(tool_return_logs.receiving_warehouse_id, tool_usages.warehouse_id, tools.warehouse_id)'), auth()->user()->scopedWarehouseIds()))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('tool_return_logs.transaction_code', 'like', "%{$this->search}%")
                 ->orWhereRaw("CONCAT('KMB-', tool_return_logs.id) like ?", ["%{$this->search}%"])
@@ -380,9 +380,9 @@ class ToolLog extends Component
             ->join('warehouses as source_warehouse', 'inventory_transfers.source_warehouse_id', '=', 'source_warehouse.id')
             ->join('warehouses as destination_warehouse', 'inventory_transfers.destination_warehouse_id', '=', 'destination_warehouse.id')
             ->leftJoin('users', 'inventory_transfers.created_by', '=', 'users.id')
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where(fn ($sub) => $sub
-                ->where('inventory_transfers.source_warehouse_id', $wId)
-                ->orWhere('inventory_transfers.destination_warehouse_id', $wId)))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($query) => $query->where(fn ($sub) => $sub
+                ->whereIn('inventory_transfers.source_warehouse_id', auth()->user()->scopedWarehouseIds())
+                ->orWhereIn('inventory_transfers.destination_warehouse_id', auth()->user()->scopedWarehouseIds())))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search
                 ->where('inventory_transfers.transfer_code', 'like', "%{$this->search}%")
                 ->orWhere('tools.code', 'like', "%{$this->search}%")
@@ -398,7 +398,7 @@ class ToolLog extends Component
             })
             ->selectRaw("cluster_expenses.type as type, cluster_expenses.id, NULL as voided_at, COALESCE(cluster_expenses.start_date, cluster_expenses.off_hire_date, DATE(cluster_expenses.created_at)) as date, NULL as received_at, CONCAT('SWA-', LPAD(cluster_expenses.id, 6, '0')) as transaction_code, NULL as dispatch_code, cluster_expenses.created_at, COALESCE(users.name, 'Tidak tercatat') as admin_name, users.role as admin_role, COALESCE(rental_houses.names, '-') as house_name, COALESCE(cluster_expenses.notes, cluster_expenses.description) as job_notes, CONCAT('SWA-', LPAD(COALESCE(cluster_expenses.parent_expense_id, cluster_expenses.id), 6, '0')) as item_code, cluster_expenses.description as item_name, cluster_expenses.quantity as volume, 'unit' as unit, IF(cluster_expenses.quantity > 0, cluster_expenses.amount / cluster_expenses.quantity, 0) as unit_price, cluster_expenses.amount as total_cost, cluster_expenses.off_hire_date as return_date, NULL as source_entry_code, NULL as source_warehouse_name, NULL as source_line_id, cluster_expenses.vendor as vendor_name, COALESCE((SELECT MAX(extension.due_date) FROM cluster_expenses extension WHERE extension.parent_expense_id = COALESCE(cluster_expenses.parent_expense_id, cluster_expenses.id) AND extension.type = 'rental_extension'), COALESCE(rental_parent.due_date, cluster_expenses.due_date)) as rental_due_date, CASE WHEN cluster_expenses.type = 'rental_return' OR cluster_expenses.status = 'returned' THEN 'Dikembalikan' WHEN EXISTS (SELECT 1 FROM cluster_expenses rental_return WHERE rental_return.parent_expense_id = cluster_expenses.id AND rental_return.type = 'rental_return') THEN 'Dikembalikan sebagian' WHEN COALESCE((SELECT MAX(extension.due_date) FROM cluster_expenses extension WHERE extension.parent_expense_id = COALESCE(cluster_expenses.parent_expense_id, cluster_expenses.id) AND extension.type = 'rental_extension'), COALESCE(rental_parent.due_date, cluster_expenses.due_date)) < CURDATE() THEN 'Terlambat' ELSE 'Aktif' END as rental_status, cluster_expenses.bill_image as rental_evidence_path, CASE WHEN cluster_expenses.parent_expense_id IS NULL THEN NULL ELSE CONCAT('SWA-', LPAD(cluster_expenses.parent_expense_id, 6, '0')) END as parent_transaction_code")
             ->whereIn('cluster_expenses.type', ['rental', 'rental_extension', 'rental_return'])
-            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->where('cluster_expenses.cluster_id', auth()->user()->cluster_id ?? 0))
+            ->when(in_array(auth()->user()->role, ['logistik', 'pengawas'], true), fn ($query) => $query->whereIn('cluster_expenses.cluster_id', auth()->user()->scopedClusterIds()))
             ->when($this->search, fn ($query) => $query->where(fn ($search) => $search->where('cluster_expenses.description', 'like', "%{$this->search}%")
                 ->orWhere('cluster_expenses.vendor', 'like', "%{$this->search}%")
                 ->orWhereRaw("CONCAT('SWA-', LPAD(cluster_expenses.id, 6, '0')) like ?", ["%{$this->search}%"])
@@ -430,7 +430,7 @@ class ToolLog extends Component
             ->where('report_type', 'broken')
             ->where('status', 'pending')
             ->whereHas('house', fn ($query) => $query->forUser(auth()->user()))
-            ->when(auth()->user()?->assignedWarehouseId(), fn ($query, $wId) => $query->where('receiving_warehouse_id', $wId))
+            ->when(auth()->user()?->canAccessAllWarehouses() === false, fn ($query) => $query->whereIn('receiving_warehouse_id', auth()->user()->scopedWarehouseIds()))
             ->oldest('received_at')
             ->get();
 

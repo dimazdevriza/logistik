@@ -27,7 +27,7 @@ final class ToolReturnRecorder
     ): ?ToolUsage {
         $actor = $actor ?? auth()->user();
         $actorId = $actor?->id ?? auth()->id();
-        if (($wId = $actor?->assignedWarehouseId()) && ($qtyNormal + $qtyBroken) > 0 && $receivingWarehouseId !== $wId) {
+        if (($qtyNormal + $qtyBroken) > 0 && $actor?->canAccessWarehouse($receivingWarehouseId) === false) {
             throw ValidationException::withMessages([
                 'returnSelections' => 'Alat harus dikembalikan ke gudang tugas akun Anda.',
             ]);

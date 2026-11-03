@@ -38,6 +38,12 @@ class UserManagement extends Component
 
     public $warehouse_id = '';
 
+    /** @var array<int|string> */
+    public array $cluster_ids = [];
+
+    /** @var array<int|string> */
+    public array $warehouse_ids = [];
+
     public bool $reactivatingLegacyUser = false;
 
     public bool $showConfirmation = false;
@@ -95,14 +101,16 @@ class UserManagement extends Component
 
     public function edit($id)
     {
-        $user = User::findOrFail($id);
+        $user = User::with(['clusters:id,name', 'warehouses:id,name'])->findOrFail($id);
         $this->userId = $user->id;
         $this->name = $user->name;
         $this->email = $user->email;
         $this->role = $user->role === 'inactive' ? 'logistik' : $user->role;
         $this->reactivatingLegacyUser = $user->role === 'inactive';
-        $this->cluster_id = $user->cluster_id ?? '';
-        $this->warehouse_id = $user->warehouse_id ?? '';
+        $this->cluster_ids = array_map('strval', $user->assignedClusterIds());
+        $this->warehouse_ids = array_map('strval', $user->assignedWarehouseIds());
+        $this->cluster_id = (string) ($user->cluster_id ?? ($this->cluster_ids[0] ?? ''));
+        $this->warehouse_id = (string) ($user->warehouse_id ?? ($this->warehouse_ids[0] ?? ''));
         $this->password = '';
         $this->editMode = true;
         $this->showModal = true;
@@ -111,15 +119,33 @@ class UserManagement extends Component
     public function save()
     {
         $this->email = strtolower(trim($this->email));
+        $isFieldRole = in_array($this->role, ['logistik', 'pengawas'], true);
+
+        if ($isFieldRole) {
+            if ($this->cluster_id !== '' && empty($this->cluster_ids)) {
+                $this->cluster_ids = [(string) $this->cluster_id];
+            } elseif (! empty($this->cluster_ids) && $this->cluster_id === '') {
+                $this->cluster_id = (string) $this->cluster_ids[0];
+            }
+
+            if ($this->warehouse_id !== '' && empty($this->warehouse_ids)) {
+                $this->warehouse_ids = [(string) $this->warehouse_id];
+            } elseif (! empty($this->warehouse_ids) && $this->warehouse_id === '') {
+                $this->warehouse_id = (string) $this->warehouse_ids[0];
+            }
+        }
+
         $this->validate();
 
-        $isFieldRole = in_array($this->role, ['logistik', 'pengawas'], true);
+        $selectedClusters = array_values(array_filter(array_unique(array_map('intval', array_merge($this->cluster_ids, $this->cluster_id ? [(int) $this->cluster_id] : [])))));
+        $selectedWarehouses = array_values(array_filter(array_unique(array_map('intval', array_merge($this->warehouse_ids, $this->warehouse_id ? [(int) $this->warehouse_id] : [])))));
+
         $data = [
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
-            'cluster_id' => $isFieldRole ? ($this->cluster_id ?: null) : null,
-            'warehouse_id' => $isFieldRole ? ($this->warehouse_id ?: null) : null,
+            'cluster_id' => $isFieldRole ? ($selectedClusters[0] ?? null) : null,
+            'warehouse_id' => $isFieldRole ? ($selectedWarehouses[0] ?? null) : null,
         ];
 
         if ($this->password) {
@@ -137,10 +163,25 @@ class UserManagement extends Component
             }
 
             $user->update($data);
+
+            if ($isFieldRole) {
+                $user->clusters()->sync($selectedClusters);
+                $user->warehouses()->sync($selectedWarehouses);
+            } else {
+                $user->clusters()->detach();
+                $user->warehouses()->detach();
+            }
+
             session()->flash('success', 'User berhasil diperbarui.');
         } else {
             $data['password'] = Hash::make($this->password);
             $user = User::create($data);
+
+            if ($isFieldRole) {
+                $user->clusters()->sync($selectedClusters);
+                $user->warehouses()->sync($selectedWarehouses);
+            }
+
             session()->flash('success', 'User berhasil ditambahkan.');
         }
 
@@ -177,6 +218,8 @@ class UserManagement extends Component
         $this->role = 'logistik';
         $this->cluster_id = '';
         $this->warehouse_id = '';
+        $this->cluster_ids = [];
+        $this->warehouse_ids = [];
         $this->reactivatingLegacyUser = false;
         $this->resetValidation();
     }
@@ -208,7 +251,7 @@ class UserManagement extends Component
 
     public function render()
     {
-        $users = User::with(['cluster:id,name', 'warehouse:id,name'])
+        $users = User::with(['cluster:id,name', 'warehouse:id,name', 'clusters:id,name', 'warehouses:id,name'])
             ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%")
                 ->orWhere('email', 'like', "%{$this->search}%"))
             ->tap(fn ($query) => $this->applyTableSort($query))

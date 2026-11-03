@@ -733,7 +733,7 @@
                         @error('tool_id') <span class="text-danger small fw-semibold">{{ $message }}</span> @enderror
                     </div>
 
-                    @if ($toolWarehouseOptions->isNotEmpty() && auth()->user()->canAccessAllWarehouses())
+                    @if ($toolWarehouseOptions->isNotEmpty() && auth()->user()->hasWarehouseChoice())
                         <div class="col-12">
                             <label for="tool-warehouse" class="form-label fw-semibold mb-1">Gudang asal</label>
                             <div class="position-relative" @click.outside="warehousePickerOpen = false">
@@ -946,7 +946,7 @@
                                     </div>
                                     <div class="mt-2">
                                         <label for="return-warehouse-{{ $usage->id }}" class="small fw-semibold">Gudang penerima untuk unit baik/rusak</label>
-                                        <select id="return-warehouse-{{ $usage->id }}" wire:model.live="returnSelections.{{ $usage->id }}.receiving_warehouse_id" class="form-select form-select-sm" @disabled(!auth()->user()->canAccessAllWarehouses())>
+                                        <select id="return-warehouse-{{ $usage->id }}" wire:model.live="returnSelections.{{ $usage->id }}.receiving_warehouse_id" class="form-select form-select-sm" @disabled(!auth()->user()->hasWarehouseChoice())>
                                             <option value="">Pilih gudang</option>
                                             @foreach($warehouses as $warehouse)
                                                 <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
@@ -1460,65 +1460,445 @@
             border: 1px solid var(--transaction-line);
             border-radius: 14px;
             background: var(--transaction-surface);
+            box-shadow: 0 8px 24px rgb(31 48 36 / 4%);
         }
         .spreadsheet-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.25rem; }
-        .spreadsheet-table-scroll { border-top: 1px solid var(--transaction-line); }
-        .spreadsheet-house-cell { min-width: 310px; vertical-align: top; }
-        .spreadsheet-house-picker { width: 100%; min-width: 0; font-weight: 400; }
-        .spreadsheet-table-scroll > .data-table.table-hover > tbody > tr:hover > .spreadsheet-house-cell { background-color: var(--transaction-surface) !important; box-shadow: none; }
-        .spreadsheet-house-picker-control { position: relative; }
-        .spreadsheet-house-picker-control .form-control { min-height: 48px; padding-right: 3rem; }
-        .spreadsheet-house-picker-control.has-selection .form-control { padding-right: 6.25rem; }
-        .spreadsheet-house-picker-actions { position: absolute; top: 50%; right: .25rem; display: flex; align-items: center; gap: .15rem; transform: translateY(-50%); }
-        .spreadsheet-house-picker-action { display: grid; width: 44px; min-height: 44px; place-items: center; padding: 0; border: 0; border-radius: 6px; color: var(--bs-secondary-color); background: transparent; }
-        .spreadsheet-house-picker-action:hover, .spreadsheet-house-picker-action:focus-visible { color: var(--bs-body-color); background: var(--transaction-surface-muted); }
-        .spreadsheet-house-picker-action:focus-visible { outline: 2px solid var(--transaction-accent); outline-offset: -2px; }
-        .spreadsheet-house-picker-action svg { width: 16px; height: 16px; }
-        .spreadsheet-house-picker-option { display: flex; width: 100%; min-height: 56px; align-items: center; justify-content: space-between; gap: .75rem; padding: .6rem .75rem; border: 0; border-bottom: 1px solid var(--transaction-line); color: var(--bs-body-color); background: transparent; text-align: left; }
-        .spreadsheet-house-picker-option:last-child { border-bottom: 0; }
-        .spreadsheet-house-picker-option:hover, .spreadsheet-house-picker-option.is-active { background: var(--transaction-surface-muted); }
-        .spreadsheet-house-picker-option[aria-selected="true"] { background: var(--transaction-accent-soft); }
-        .spreadsheet-house-picker-option:focus-visible { outline: 2px solid var(--transaction-accent); outline-offset: -2px; }
-        .spreadsheet-house-picker-option-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
-        .spreadsheet-house-picker-option-code { flex-shrink: 0; color: var(--bs-secondary-color); font-size: .82rem; font-weight: 400; }
-        .spreadsheet-house-picker-empty { padding: .9rem .75rem; color: var(--bs-secondary-color); font-size: .9rem; }
-        .spreadsheet-table-scroll td.spreadsheet-action-cell { min-width: 260px; vertical-align: top; }
-        .spreadsheet-entry { min-width: 0; }
+        .spreadsheet-table-scroll {
+            border-top: 1px solid var(--transaction-line);
+            overflow-x: auto;
+        }
+        .spreadsheet-table-scroll > .data-table {
+            width: 100%;
+            min-width: 62rem;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 0;
+        }
+        .spreadsheet-table-scroll > .data-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            padding: 0.75rem 0.95rem;
+            background: #EBF1E8 !important;
+            color: #1A241E !important;
+            font-family: var(--font-geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--transaction-line) !important;
+            border-right: 1px solid var(--transaction-line) !important;
+        }
+        [data-bs-theme="dark"] .spreadsheet-table-scroll > .data-table thead th {
+            background: #151a17 !important;
+            color: #d7e7da !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .spreadsheet-table-scroll > .data-table thead th:last-child {
+            border-right: 0 !important;
+        }
+        .spreadsheet-table-scroll > .data-table th:first-child,
+        .spreadsheet-table-scroll > .data-table td:first-child { width: 22%; min-width: 220px; }
+        .spreadsheet-table-scroll > .data-table th:nth-child(2),
+        .spreadsheet-table-scroll > .data-table td:nth-child(2) { width: 32%; min-width: 300px; }
+        .spreadsheet-table-scroll > .data-table th:nth-child(3),
+        .spreadsheet-table-scroll > .data-table td:nth-child(3) { width: 23%; min-width: 235px; }
+        .spreadsheet-table-scroll > .data-table th:nth-child(4),
+        .spreadsheet-table-scroll > .data-table td:nth-child(4) { width: 23%; min-width: 235px; }
+
+        .spreadsheet-table-scroll > .data-table tbody th,
+        .spreadsheet-table-scroll > .data-table tbody td {
+            padding: 0.85rem 0.95rem;
+            vertical-align: top;
+            border-right: 1px solid var(--transaction-line) !important;
+            border-bottom: 2px solid var(--transaction-line) !important;
+            background: var(--transaction-surface);
+        }
+        .spreadsheet-table-scroll > .data-table tbody td:last-child {
+            border-right: 0 !important;
+        }
+        .spreadsheet-house-cell {
+            vertical-align: top !important;
+            background: var(--transaction-surface) !important;
+        }
+        .spreadsheet-table-scroll > .data-table.table-hover > tbody > tr:hover > .spreadsheet-house-cell,
+        .spreadsheet-table-scroll > .data-table.table-hover > tbody > tr:hover > td {
+            background-color: var(--transaction-surface) !important;
+            box-shadow: none;
+        }
+
+        /* Standardized Spreadsheet Controls */
+        .spreadsheet-table-scroll .form-control,
+        .spreadsheet-table-scroll .form-control-sm,
+        .spreadsheet-table-scroll .form-select,
+        .spreadsheet-table-scroll .input-group-text {
+            min-height: 38px !important;
+            height: 38px;
+            font-size: 0.83rem !important;
+            border-radius: 7px;
+            border-color: var(--transaction-line);
+            color: var(--bs-body-color);
+        }
+        .spreadsheet-table-scroll .form-control:focus,
+        .spreadsheet-table-scroll .form-select:focus {
+            border-color: var(--transaction-accent) !important;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--transaction-accent) 22%, transparent) !important;
+            outline: none;
+        }
+        .spreadsheet-house-picker-control,
+        .spreadsheet-purpose-control {
+            position: relative;
+        }
+        .spreadsheet-house-picker-control .form-control {
+            padding-right: 1.85rem;
+        }
+        .spreadsheet-house-picker-control.has-selection .form-control {
+            padding-right: 3.15rem;
+        }
+        .spreadsheet-house-picker-actions {
+            position: absolute;
+            top: 50%;
+            right: 0.35rem;
+            display: flex;
+            align-items: center;
+            gap: 0.15rem;
+            transform: translateY(-50%);
+        }
+        .spreadsheet-house-picker-action,
+        .spreadsheet-purpose-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            min-height: 22px !important;
+            padding: 0;
+            border: 0;
+            border-radius: 4px;
+            color: var(--bs-secondary-color);
+            background: transparent;
+            transition: background-color 140ms ease, color 140ms ease;
+        }
+        .spreadsheet-house-picker-action:hover,
+        .spreadsheet-house-picker-action:focus-visible,
+        .spreadsheet-purpose-toggle:hover,
+        .spreadsheet-purpose-toggle:focus-visible {
+            color: var(--bs-body-color);
+            background: var(--transaction-surface-muted);
+        }
+        .spreadsheet-house-picker-action:focus-visible,
+        .spreadsheet-purpose-toggle:focus-visible {
+            outline: 2px solid var(--transaction-accent);
+            outline-offset: -2px;
+        }
+        .spreadsheet-house-picker-action svg,
+        .spreadsheet-purpose-toggle svg {
+            width: 12px;
+            height: 12px;
+            transition: transform 160ms ease;
+        }
+        .spreadsheet-house-picker-action svg.is-open,
+        .spreadsheet-purpose-toggle svg.is-open {
+            transform: rotate(180deg);
+        }
+        .spreadsheet-purpose-control .form-control {
+            padding-right: 1.85rem;
+        }
+        .spreadsheet-purpose-toggle {
+            position: absolute;
+            top: 50%;
+            right: 0.35rem;
+            transform: translateY(-50%);
+        }
+
+        /* Grouping cardlet for sub-fields */
+        .spreadsheet-entry {
+            min-width: 0;
+        }
+        .spreadsheet-entry + .spreadsheet-entry {
+            margin-top: 0.65rem;
+            padding-top: 0.65rem;
+            border-top: 1px dashed var(--transaction-line);
+        }
+        .spreadsheet-entry-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            margin-top: 0.45rem;
+            padding: 0.6rem;
+            border: 1px solid color-mix(in srgb, var(--transaction-accent) 20%, var(--transaction-line));
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--transaction-surface-muted) 45%, var(--transaction-surface));
+        }
+        [data-bs-theme="dark"] .spreadsheet-entry-fields {
+            background: #111513;
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+        .spreadsheet-tag {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            background: var(--transaction-surface-muted);
+            color: var(--bs-secondary-color);
+            border: 1px solid var(--transaction-line);
+            white-space: nowrap;
+        }
+        .spreadsheet-quantity-group {
+            display: flex;
+        }
+        .spreadsheet-input-addon {
+            background: color-mix(in srgb, var(--transaction-surface-muted) 80%, var(--transaction-surface)) !important;
+            border-color: var(--transaction-line) !important;
+            font-size: 0.78rem !important;
+            font-weight: 600;
+            color: var(--bs-secondary-color) !important;
+            padding: 0 0.6rem;
+            user-select: none;
+        }
+        .spreadsheet-quantity-group .form-control {
+            border-left: 0 !important;
+            border-right: 0 !important;
+        }
+        .spreadsheet-quantity-group .form-control:focus {
+            z-index: 3;
+            border-left: 1px solid var(--transaction-accent) !important;
+            border-right: 1px solid var(--transaction-accent) !important;
+        }
+
+        /* Batch cost micro-strip */
+        .spreadsheet-material-cost {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0.35rem 0.6rem;
+            border: 1px solid color-mix(in srgb, var(--transaction-accent) 24%, var(--transaction-line));
+            border-radius: 6px;
+            background: color-mix(in srgb, var(--transaction-accent) 8%, var(--transaction-surface));
+            font-size: 0.75rem;
+            line-height: 1.35;
+        }
+        [data-bs-theme="dark"] .spreadsheet-material-cost {
+            background: color-mix(in srgb, var(--transaction-accent) 12%, #111513);
+            border-color: color-mix(in srgb, var(--transaction-accent) 30%, rgba(255, 255, 255, 0.1));
+        }
+        .spreadsheet-material-cost-line {
+            display: flex;
+            align-items: baseline;
+            gap: 0.3rem;
+            white-space: nowrap;
+        }
+        .spreadsheet-material-cost-line span {
+            color: var(--bs-secondary-color);
+        }
+        .spreadsheet-material-cost-line strong {
+            color: var(--bs-body-color);
+        }
+        .spreadsheet-material-cost-line:last-child strong {
+            color: var(--transaction-accent);
+            font-weight: 700;
+        }
+
+        /* Return condition segmented pills */
+        .spreadsheet-return-quantity {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.35rem;
+        }
+        .spreadsheet-return-pill {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+        .spreadsheet-return-pill .spreadsheet-field-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0;
+        }
+        .spreadsheet-return-pill.is-good .spreadsheet-field-label { color: #198754; }
+        .spreadsheet-return-pill.is-broken .spreadsheet-field-label { color: #d97706; }
+        .spreadsheet-return-pill.is-lost .spreadsheet-field-label { color: #dc3545; }
+        [data-bs-theme="dark"] .spreadsheet-return-pill.is-good .spreadsheet-field-label { color: #79D58E; }
+        [data-bs-theme="dark"] .spreadsheet-return-pill.is-broken .spreadsheet-field-label { color: #fbbf24; }
+        [data-bs-theme="dark"] .spreadsheet-return-pill.is-lost .spreadsheet-field-label { color: #f87171; }
+
+        /* Dropdown options and menus */
         .spreadsheet-item-picker { min-width: 0; }
-        .spreadsheet-item-picker-selected { flex: 1 1 auto; min-width: 0; }
-        .spreadsheet-item-picker-trigger { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: space-between; gap: .6rem; padding: .65rem .8rem; border: 1px solid var(--transaction-line); border-radius: .65rem; color: var(--bs-secondary-color); background: var(--transaction-surface); text-align: left; }
-        .spreadsheet-item-picker-trigger:hover, .spreadsheet-item-picker-trigger:focus-visible, .spreadsheet-item-picker-trigger[aria-expanded="true"] { border-color: var(--transaction-accent); color: var(--bs-body-color); }
-        .spreadsheet-item-picker-trigger:focus-visible, .spreadsheet-item-picker-trigger[aria-expanded="true"] { outline: 0; box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--transaction-accent) 28%, transparent); }
-        .spreadsheet-item-picker-label { min-width: 0; overflow-wrap: anywhere; }
-        .spreadsheet-item-picker-label.is-selected { color: var(--bs-body-color); font-weight: 600; }
-        .spreadsheet-item-picker-trigger svg { width: 16px; height: 16px; flex: 0 0 auto; transition: transform 160ms ease; }
-        .spreadsheet-item-picker-trigger svg.is-open { transform: rotate(180deg); }
-        .spreadsheet-item-picker-menu { display: block; overflow-x: hidden; overflow-y: auto; }
-        .spreadsheet-item-picker-menu [role="listbox"] { display: block; flex: 1 1 auto; width: 100%; min-width: 0; min-height: 0; overflow-y: auto; }
-        .spreadsheet-item-picker-search { position: relative; z-index: 1; flex: 0 0 auto; width: calc(100% - .75rem); min-height: 44px !important; margin: .35rem; background: var(--ledger-surface-raised); }
-        .spreadsheet-item-picker-option { display: block; width: 100%; height: auto; min-width: 0; min-height: 4.75rem; margin: 0 0 .35rem; padding: .85rem .75rem; border: 0; border-bottom: 1px solid var(--transaction-line); border-radius: 0; color: var(--bs-body-color); background: transparent; line-height: 1.35; text-align: left; }
-        .spreadsheet-item-picker-option:last-child { border-bottom: 0; }
-        .spreadsheet-item-picker-option:hover, .spreadsheet-item-picker-option.is-active { background: var(--transaction-surface-muted); }
-        .spreadsheet-item-picker-option[aria-selected="true"] { background: var(--transaction-accent-soft); }
-        .spreadsheet-item-picker-option:focus-visible { outline: 2px solid var(--transaction-accent); outline-offset: -2px; }
-        .spreadsheet-item-picker-option-label, .spreadsheet-item-picker-option-meta { display: block; width: 100%; max-width: 100%; overflow-wrap: anywhere; white-space: normal; }
-        .spreadsheet-item-picker-option-label { font-weight: 700; line-height: 1.3; }
-        .spreadsheet-item-picker-option-meta { margin-top: .35rem; color: var(--bs-secondary-color); font-size: .78rem; line-height: 1.3; text-align: left; }
-        .spreadsheet-item-picker--two-line .spreadsheet-item-picker-selected { display: grid; gap: .1rem; }
-        .spreadsheet-item-picker--two-line .spreadsheet-item-picker-option-meta { white-space: normal; }
-        .spreadsheet-item-picker-empty { padding: .8rem .7rem; color: var(--bs-secondary-color); font-size: .84rem; }
-        .spreadsheet-entry-fields { display: grid; gap: .45rem; margin-top: .45rem; }
-        .spreadsheet-field-label { margin-bottom: -.3rem; color: var(--bs-secondary-color); font-size: .75rem; font-weight: 600; }
-        .spreadsheet-return-quantity { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; margin-top: .6rem; }
-        .spreadsheet-return-quantity .spreadsheet-field-label { grid-row: 1; }
-        .spreadsheet-remove-line, .spreadsheet-add-line { min-height: 44px; padding: .25rem .4rem; border: 0; background: transparent; font-size: .78rem; text-align: left; }
-        .spreadsheet-remove-line { color: #f28b82; }
-        .spreadsheet-remove-line:hover, .spreadsheet-remove-line:focus-visible { color: #ffb4ab; text-decoration: underline; }
-        .spreadsheet-add-line { color: var(--transaction-accent); font-weight: 600; }
-        .spreadsheet-add-line:hover { text-decoration: underline; }
-        .spreadsheet-submit-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-top: 1px solid var(--transaction-line); }
-        .spreadsheet-submit-actions { display: flex; align-items: center; justify-content: flex-end; gap: .75rem; margin-left: auto; }
-        .spreadsheet-submit-actions .transaction-house-button { min-height: 48px; }
+        .spreadsheet-item-picker-menu {
+            display: block;
+            position: static;
+            margin-top: 0.35rem;
+            padding: 0.25rem;
+            overflow-x: hidden;
+            overflow-y: auto;
+            border: 1px solid var(--transaction-line);
+            border-radius: 8px;
+            background: var(--transaction-surface);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.10);
+            max-height: 240px;
+        }
+        .spreadsheet-purpose-menu {
+            max-height: 200px;
+        }
+        .spreadsheet-item-picker-option {
+            display: block;
+            width: 100%;
+            padding: 0.45rem 0.65rem;
+            margin: 0;
+            border: 0;
+            border-bottom: 1px solid var(--transaction-line);
+            border-radius: 5px;
+            color: var(--bs-body-color);
+            background: transparent;
+            line-height: 1.3;
+            text-align: left;
+            transition: background-color 120ms ease;
+        }
+        .spreadsheet-item-picker-option:last-child {
+            border-bottom: 0;
+        }
+        .spreadsheet-item-picker-option:hover,
+        .spreadsheet-item-picker-option.is-active,
+        .spreadsheet-item-picker-option:focus-visible {
+            background: color-mix(in srgb, var(--transaction-accent) 12%, var(--transaction-surface));
+            color: var(--bs-body-color);
+        }
+        .spreadsheet-item-picker-option[aria-selected="true"] {
+            background: color-mix(in srgb, var(--transaction-accent) 18%, var(--transaction-surface));
+        }
+        .spreadsheet-item-picker-option:focus-visible {
+            outline: 2px solid var(--transaction-accent);
+            outline-offset: -2px;
+        }
+        .spreadsheet-item-picker-option-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 650;
+            line-height: 1.25;
+            color: var(--bs-body-color);
+            overflow-wrap: anywhere;
+        }
+        .spreadsheet-item-picker-option-meta {
+            display: block;
+            margin-top: 0.15rem;
+            font-size: 0.72rem;
+            color: var(--bs-secondary-color);
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+        .spreadsheet-purpose-option {
+            display: block;
+            width: 100%;
+            padding: 0.45rem 0.65rem;
+            border: 0;
+            border-bottom: 1px solid var(--transaction-line);
+            border-radius: 5px;
+            color: var(--bs-body-color);
+            background: transparent;
+            font-size: 0.82rem;
+            text-align: left;
+        }
+        .spreadsheet-purpose-option:last-child {
+            border-bottom: 0;
+        }
+        .spreadsheet-purpose-option:hover,
+        .spreadsheet-purpose-option.is-active,
+        .spreadsheet-purpose-option:focus-visible {
+            background: color-mix(in srgb, var(--transaction-accent) 12%, var(--transaction-surface));
+        }
+        .spreadsheet-item-picker-empty {
+            padding: 0.65rem 0.75rem;
+            color: var(--bs-secondary-color);
+            font-size: 0.8rem;
+        }
+
+        /* Empty guide pill */
+        .spreadsheet-empty-cell {
+            background: color-mix(in srgb, var(--transaction-surface-muted) 35%, var(--transaction-surface)) !important;
+            padding: 1.25rem 1rem !important;
+        }
+        .spreadsheet-empty-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.8rem;
+            border: 1px dashed var(--transaction-line);
+            border-radius: 7px;
+            color: var(--bs-secondary-color);
+            font-size: 0.82rem;
+            background: var(--transaction-surface);
+        }
+
+        /* Actions and remove */
+        .spreadsheet-remove-line {
+            min-height: 24px !important;
+            padding: 0.15rem 0.45rem;
+            border: 0;
+            background: transparent;
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: var(--bs-danger-text-emphasis);
+            border-radius: 4px;
+            transition: background-color 120ms ease, color 120ms ease;
+            text-align: right;
+        }
+        .spreadsheet-remove-line:hover,
+        .spreadsheet-remove-line:focus-visible {
+            color: var(--bs-danger);
+            background: color-mix(in srgb, var(--bs-danger) 10%, transparent);
+            text-decoration: none;
+        }
+        .spreadsheet-house-material-total {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0.45rem 0.65rem;
+            margin-top: 0.6rem;
+            border-radius: 6px;
+            border: 1px solid color-mix(in srgb, var(--transaction-accent) 24%, var(--transaction-line));
+            background: color-mix(in srgb, var(--transaction-accent) 10%, var(--transaction-surface));
+            font-size: 0.78rem;
+        }
+        [data-bs-theme="dark"] .spreadsheet-house-material-total {
+            background: color-mix(in srgb, var(--transaction-accent) 14%, #111513);
+            border-color: color-mix(in srgb, var(--transaction-accent) 30%, rgba(255, 255, 255, 0.1));
+        }
+        .spreadsheet-house-material-total span {
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 0.72rem;
+            color: var(--transaction-accent);
+        }
+        .spreadsheet-house-material-total strong {
+            font-family: var(--bs-font-monospace);
+            font-size: 0.85rem;
+            color: var(--transaction-accent);
+        }
+        .spreadsheet-submit-bar {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--transaction-line);
+        }
+        .spreadsheet-submit-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-left: auto;
+        }
+        .spreadsheet-submit-actions .transaction-house-button {
+            min-height: 44px;
+        }
 
         .transaction-confirmation { width: min(560px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 1px solid var(--bs-border-color); border-radius: 14px; background: var(--bs-body-bg); color: var(--bs-body-color); }
         .transaction-confirmation:not(.transaction-confirmation--return)[open] { display: flex; flex-direction: column; overflow: hidden; }

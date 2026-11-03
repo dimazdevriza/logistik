@@ -79,9 +79,9 @@
                                 <p class="small text-secondary mb-0">Pilih gudang asal pengambilan dan gudang tujuan penerima.</p>
                             </div>
                         </div>
-                        @if (auth()->user()->warehouse)
+                        @if (auth()->user()->canAccessAllWarehouses() === false)
                             <span class="badge bg-success-subtle text-success fw-semibold">
-                                Gudang tugas Anda: {{ auth()->user()->warehouse->name }}
+                                Gudang tugas Anda: {{ auth()->user()->warehouses->isNotEmpty() ? auth()->user()->warehouses->pluck('name')->join(', ') : (auth()->user()->warehouse?->name ?? '-') }}
                             </span>
                         @endif
                     </div>
@@ -91,7 +91,7 @@
                             <label for="transfer-source-warehouse" class="form-label fw-semibold">Gudang asal <span class="text-danger">*</span></label>
                             <select id="transfer-source-warehouse" wire:model.live="source_warehouse_id" class="form-select">
                                 <option value="">Pilih gudang asal</option>
-                                @foreach ($warehouses as $warehouse)
+                                @foreach ($sourceWarehouses as $warehouse)
                                     <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
                                 @endforeach
                             </select>

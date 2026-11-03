@@ -4,14 +4,16 @@
     $isStaff = in_array($role, ['logistik', 'admin', 'keuangan', 'pengawas'], true);
     $isFieldStaff = in_array($role, ['logistik', 'admin', 'pengawas'], true);
     $canAccessAllClusters = $user?->canAccessAllClusters() ?? false;
+    $assignedClusterIds = $user?->assignedClusterIds() ?? [];
+    $assignedWarehouseIds = $user?->assignedWarehouseIds() ?? [];
     $assignedClusterName = in_array($role, ['logistik', 'pengawas'], true)
-        ? ($user?->cluster?->name ?? 'Belum ditugaskan')
+        ? (count($assignedClusterIds) > 1 ? count($assignedClusterIds).' Cluster' : ($user?->cluster?->name ?? 'Belum ditugaskan'))
         : null;
     $assignedWarehouseName = in_array($role, ['logistik', 'pengawas'], true)
-        ? $user?->warehouse?->name
+        ? (count($assignedWarehouseIds) > 1 ? count($assignedWarehouseIds).' Gudang' : ($user?->warehouse?->name ?? null))
         : null;
     $assignedClusterLabel = in_array($role, ['logistik', 'pengawas'], true)
-        ? (collect([$user?->cluster?->name, $user?->warehouse?->name])->filter()->join(' • ') ?: 'Belum ditugaskan')
+        ? (collect([$assignedClusterName, $assignedWarehouseName])->filter()->join(' • ') ?: 'Belum ditugaskan')
         : null;
 
     // Nav model: each section is a label plus its links. Sections with no
@@ -58,8 +60,10 @@
             'label' => 'Biaya',
             'show' => $role === 'logistik',
             'links' => array_values(array_filter([
-                $role === 'logistik' && $user?->cluster_id
-                    ? ['route' => 'clusters.expenses', 'query' => [$user->cluster_id], 'active' => 'clusters.expenses', 'icon' => 'i-chart', 'label' => 'Biaya Cluster']
+                $role === 'logistik' && ($user?->soleClusterId() || count($assignedClusterIds) > 1)
+                    ? (count($assignedClusterIds) > 1
+                        ? ['route' => 'logistik.cluster-costs', 'active' => 'logistik.cluster-*', 'icon' => 'i-chart', 'label' => 'Biaya Cluster']
+                        : ['route' => 'clusters.expenses', 'query' => [$user->soleClusterId() ?? $user->cluster_id], 'active' => 'clusters.expenses', 'icon' => 'i-chart', 'label' => 'Biaya Cluster'])
                     : null,
             ])),
         ],
@@ -68,9 +72,9 @@
             'show' => in_array($role, ['admin', 'keuangan', 'pengawas'], true),
             'links' => array_values(array_filter([
                 ['route' => $canAccessAllClusters ? 'admin.house-costs' : 'logistik.house-costs', 'active' => $canAccessAllClusters ? 'admin.house-costs*' : 'logistik.house-costs*', 'icon' => 'i-chart', 'label' => 'Biaya Rumah'],
-                $canAccessAllClusters
+                $canAccessAllClusters || count($assignedClusterIds) > 1
                     ? ['route' => 'logistik.cluster-costs', 'active' => 'logistik.cluster-*', 'icon' => 'i-chart', 'label' => 'Biaya Cluster']
-                    : ($user?->cluster_id ? ['route' => 'clusters.expenses', 'query' => [$user->cluster_id], 'active' => 'clusters.expenses', 'icon' => 'i-chart', 'label' => 'Biaya Cluster'] : null),
+                    : ($user?->soleClusterId() ?? $user?->cluster_id ? ['route' => 'clusters.expenses', 'query' => [$user->soleClusterId() ?? $user->cluster_id], 'active' => 'clusters.expenses', 'icon' => 'i-chart', 'label' => 'Biaya Cluster'] : null),
             ])),
         ],
         [

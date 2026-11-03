@@ -65,6 +65,7 @@ class HouseCosts extends Component
             'code' => 'houses.house_code',
             'type' => 'houses.type',
             'status' => 'houses.status',
+            'progress' => 'houses.physical_progress',
             'year_total' => fn ($query, $direction) => $query->orderBy(
                 MaterialUsage::selectRaw('COALESCE(SUM(total_cost), 0)')
                     ->whereColumn('material_usages.house_id', 'houses.id')
@@ -136,7 +137,7 @@ class HouseCosts extends Component
             ->orderBy('houses.id')
             ->paginate(10);
 
-        $clusters = Cluster::when(! auth()->user()->canAccessAllClusters(), fn ($query) => $query->whereKey(auth()->user()->cluster_id ?? 0))
+        $clusters = Cluster::when(! auth()->user()->canAccessAllClusters(), fn ($query) => $query->whereKey(auth()->user()->scopedClusterIds()))
             ->orderBy('name')
             ->get();
 
@@ -145,7 +146,7 @@ class HouseCosts extends Component
             $scopeLabel = $selectedCluster?->name ?? 'Cluster';
             $totalSpent = $this->materialUsagesQuery()->sum('total_cost');
         } else {
-            $scopeKey = in_array($user->role, ['logistik', 'pengawas'], true) ? 'cluster_'.($user->cluster_id ?? 0) : 'all';
+            $scopeKey = in_array($user->role, ['logistik', 'pengawas'], true) ? 'cluster_'.implode('-', $user->scopedClusterIds()) : 'all';
             $totalSpent = cache()->remember('total_material_spent_'.$scopeKey, 60, fn () => $this->materialUsagesQuery()->sum('total_cost'));
         }
 
@@ -175,7 +176,7 @@ class HouseCosts extends Component
             $this->filterStatus,
             (int) ($this->filterYear ?: now()->year),
             $this->filterCluster ?: null,
-            $user->canAccessAllClusters() ? null : (int) ($user->cluster_id ?? 0)
+            $user->canAccessAllClusters() ? null : $user->scopedClusterIds()
         );
         $filename = 'laporan-biaya-rumah-'.($this->filterYear ?: now()->year).'-'.now()->format('Ymd-His').'.xlsx';
 

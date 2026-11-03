@@ -264,7 +264,7 @@
                                         <input id="receipt-price" type="number" min="0" step="0.01" wire:model="receiptUnitPrice" class="form-control">
                                         @error('receiptUnitPrice') <small class="text-danger">{{ $message }}</small> @enderror
                                     </div>
-                                    <div class="{{ auth()->user()->canAccessAllWarehouses() ? 'col-md-6' : 'col-12' }}">
+                                    <div class="{{ auth()->user()->hasWarehouseChoice() ? 'col-md-6' : 'col-12' }}">
                                         <label class="form-label" for="receipt-supplier">Supplier</label>
                                         <select id="receipt-supplier" wire:model="receiptSupplierId" class="form-select">
                                             <option value="">Pilih supplier</option>
@@ -273,7 +273,7 @@
                                             @endforeach
                                         </select>
                                     </div>
-                                    @if (auth()->user()->canAccessAllWarehouses())
+                                    @if (auth()->user()->hasWarehouseChoice())
                                     <div class="col-md-6">
                                         <label class="form-label" for="receipt-warehouse">Gudang</label>
                                         <select id="receipt-warehouse" wire:model="receiptWarehouseId" class="form-select" @disabled($activeReceiptUsed > 0 || $activeReceiptTransferred > 0 || (float) $activeReceipt->available_quantity < (float) $activeReceipt->remaining_quantity)>
