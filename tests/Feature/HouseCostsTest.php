@@ -66,4 +66,73 @@ class HouseCostsTest extends TestCase
             ->call('exportExcel')
             ->assertFileDownloaded();
     }
+
+    public function test_export_excel_with_multi_cluster_scoped_user(): void
+    {
+        $clusterA = Cluster::create(['name' => 'Cluster Alpha']);
+        $clusterB = Cluster::create(['name' => 'Cluster Beta']);
+        $clusterC = Cluster::create(['name' => 'Cluster Gamma']);
+
+        House::factory()->create(['cluster_id' => $clusterA->id, 'name' => 'House A', 'house_code' => 'A-01']);
+        House::factory()->create(['cluster_id' => $clusterB->id, 'name' => 'House B', 'house_code' => 'B-01']);
+        House::factory()->create(['cluster_id' => $clusterC->id, 'name' => 'House C', 'house_code' => 'C-01']);
+
+        $user = User::factory()->create(['role' => 'logistik']);
+        $user->clusters()->sync([$clusterA->id, $clusterB->id]);
+
+        $this->actingAs($user);
+
+        Livewire::test(HouseCosts::class)
+            ->call('exportExcel')
+            ->assertFileDownloaded();
+    }
+
+    public function test_house_list_export_contains_bobot_kerja_and_bobot_bahan_columns(): void
+    {
+        $cluster = Cluster::create(['name' => 'Cluster Test']);
+        $house = House::factory()->create([
+            'cluster_id' => $cluster->id,
+            'name' => 'House 1',
+            'house_code' => 'H-01',
+            'physical_progress' => 45.0,
+            'material_budget' => 10000000,
+            'status' => 'pembangunan',
+        ]);
+
+        $export = new HouseListExport(clusterScope: $cluster->id);
+
+        $headings = $export->headings();
+        $headerRow = $headings[5];
+
+        $this->assertEquals('Status', $headerRow[5]);
+        $this->assertEquals('Bobot Kerja', $headerRow[6]);
+        $this->assertEquals('Bobot Bahan', $headerRow[7]);
+        $this->assertEquals('Jan', $headerRow[8]);
+
+        $formats = $export->columnFormats();
+        $this->assertEquals('0%', $formats['G']);
+        $this->assertEquals('0%', $formats['H']);
+        $this->assertEquals('[$Rp-421] #,##0.00', $formats['I']);
+
+        $mapped = $export->map($house);
+        $this->assertEquals('Pembangunan', $mapped[5]);
+        $this->assertEquals(0.45, $mapped[6]);
+        $this->assertEquals(0.0, $mapped[7]);
+
+        // Verify AfterSheet aligns G and H center and positions drawing at center
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('A7', '1');
+        $sheet->setCellValue('G7', 0.45);
+        $sheet->setCellValue('H7', 0.0);
+        foreach ($export->drawings() as $d) { $d->setWorksheet($sheet); }
+
+        $events = $export->registerEvents();
+        $afterSheetEvent = new \Maatwebsite\Excel\Events\AfterSheet(new \Maatwebsite\Excel\Sheet($sheet), $export);
+        $events[\Maatwebsite\Excel\Events\AfterSheet::class]($afterSheetEvent);
+
+        $this->assertEquals('center', $sheet->getStyle('G7')->getAlignment()->getHorizontal());
+        $this->assertEquals('center', $sheet->getStyle('H7')->getAlignment()->getHorizontal());
+        $this->assertEquals('right', $sheet->getStyle('I7')->getAlignment()->getHorizontal());
+    }
 }

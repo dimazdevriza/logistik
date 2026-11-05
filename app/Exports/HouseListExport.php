@@ -35,7 +35,7 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
         private ?string $filterStatus = null,
         ?int $year = null,
         private ?string $filterCluster = null,
-        private ?int $clusterScope = null,
+        private int|array|null $clusterScope = null,
         private ?string $sheetTitle = null,
         private ?string $reportTitle = null,
         private ?string $category = House::CATEGORY_HOUSE,
@@ -77,7 +77,7 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
             }))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterCluster, fn ($q) => $q->where('cluster_id', $this->filterCluster))
-            ->when($this->clusterScope !== null, fn ($q) => $q->where('cluster_id', $this->clusterScope))
+            ->when($this->clusterScope !== null, fn ($q) => is_array($this->clusterScope) ? $q->whereIn('cluster_id', $this->clusterScope) : $q->where('cluster_id', $this->clusterScope))
             ->orderBy('name');
     }
 
@@ -104,6 +104,8 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
                 'Cluster',
                 'Tipe',
                 'Status',
+                'Bobot Kerja',
+                'Bobot Bahan',
                 'Jan',
                 'Feb',
                 'Mar',
@@ -147,6 +149,10 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
             $yearTotal += $val;
         }
 
+        $isPublicWork = method_exists($house, 'isPublicWork') ? $house->isPublicWork() : false;
+        $bobotKerja = $isPublicWork ? null : ((float) $house->bobot_rumah) / 100;
+        $bobotBahan = $isPublicWork || $house->bobot_bahan === null ? null : ((float) $house->bobot_bahan) / 100;
+
         return array_merge(
             [
                 $this->rowNumber,
@@ -155,6 +161,8 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
                 $house->cluster?->name ?? 'Tanpa Cluster',
                 $house->type,
                 ucfirst($house->status),
+                $bobotKerja,
+                $bobotBahan,
             ],
             $months,
             [
@@ -167,8 +175,8 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
     public function columnFormats(): array
     {
         return [
-            'G' => '[$Rp-421] #,##0.00',
-            'H' => '[$Rp-421] #,##0.00',
+            'G' => '0%',
+            'H' => '0%',
             'I' => '[$Rp-421] #,##0.00',
             'J' => '[$Rp-421] #,##0.00',
             'K' => '[$Rp-421] #,##0.00',
@@ -181,21 +189,23 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
             'R' => '[$Rp-421] #,##0.00',
             'S' => '[$Rp-421] #,##0.00',
             'T' => '[$Rp-421] #,##0.00',
+            'U' => '[$Rp-421] #,##0.00',
+            'V' => '[$Rp-421] #,##0.00',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->mergeCells('A1:T1');
-        $sheet->mergeCells('A2:T2');
-        $sheet->mergeCells('A3:T3');
-        $sheet->mergeCells('A4:T4');
+        $sheet->mergeCells('A1:V1');
+        $sheet->mergeCells('A2:V2');
+        $sheet->mergeCells('A3:V3');
+        $sheet->mergeCells('A4:V4');
         $sheet->getRowDimension(1)->setRowHeight(52);
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
-        $sheet->getStyle('A1:T4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1:V4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        $sheet->getStyle('A6:T6')->applyFromArray([
+        $sheet->getStyle('A6:V6')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
@@ -212,27 +222,6 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
             ],
         ]);
 
-        $sheet->calculateColumnWidths();
-        $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
-        $columnWidths = [];
-        $totalWidth = 0;
-        for ($column = 1; $column <= 20; $column++) {
-            $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
-            $columnWidths[] = $width;
-            $totalWidth += $width;
-        }
-
-        $offset = max(0, (int) (($totalWidth - $sheet->getDrawingCollection()[0]->getWidth()) / 2));
-        foreach ($columnWidths as $index => $width) {
-            if ($offset < $width) {
-                $sheet->getDrawingCollection()[0]
-                    ->setCoordinates(Coordinate::stringFromColumnIndex($index + 1).'1')
-                    ->setOffsetX($offset);
-                break;
-            }
-            $offset -= $width;
-        }
-
         return [];
     }
 
@@ -243,7 +232,7 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
                 $sheet = $event->sheet->getDelegate();
                 $highestRow = max(6, $sheet->getHighestRow());
 
-                $sheet->getStyle("A6:T{$highestRow}")->applyFromArray([
+                $sheet->getStyle("A6:V{$highestRow}")->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -251,28 +240,54 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
                         ],
                     ],
                 ]);
-                $sheet->getStyle('A6:T6')->getBorders()->getAllBorders()->getColor()->setRGB('000000');
+                $sheet->getStyle('A6:V6')->getBorders()->getAllBorders()->getColor()->setRGB('000000');
 
                 if ($highestRow >= 7) {
                     $sheet->getStyle("A7:A{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("B7:B{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("F7:F{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("G7:T{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                    $sheet->getStyle("G7:H{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle("I7:V{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                 }
 
                 // Add summary footer row
                 $totalRow = $highestRow + 1;
-                $sheet->setCellValue("F{$totalRow}", 'TOTAL:');
-                foreach (range('G', 'T') as $col) {
+                $sheet->setCellValue("H{$totalRow}", 'TOTAL:');
+                foreach (range('I', 'V') as $col) {
                     $sheet->setCellValue("{$col}{$totalRow}", $highestRow >= 7 ? "=SUM({$col}7:{$col}{$highestRow})" : 0);
                 }
 
-                $sheet->getStyle("F{$totalRow}:T{$totalRow}")->applyFromArray([
+                $sheet->getStyle("H{$totalRow}:V{$totalRow}")->applyFromArray([
                     'font' => ['bold' => true],
                 ]);
-                $sheet->getStyle("F{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle("G{$totalRow}:T{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle("G{$totalRow}:T{$totalRow}")->getNumberFormat()->setFormatCode('[$Rp-421] #,##0.00');
+                $sheet->getStyle("H{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("I{$totalRow}:V{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("I{$totalRow}:V{$totalRow}")->getNumberFormat()->setFormatCode('[$Rp-421] #,##0.00');
+
+                // Center header logo across final calculated column widths
+                $sheet->calculateColumnWidths();
+                $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
+                $columnWidths = [];
+                $totalWidth = 0;
+                for ($column = 1; $column <= 22; $column++) {
+                    $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
+                    $columnWidths[] = $width;
+                    $totalWidth += $width;
+                }
+
+                if (! empty($sheet->getDrawingCollection()) && isset($sheet->getDrawingCollection()[0])) {
+                    $drawing = $sheet->getDrawingCollection()[0];
+                    $offset = max(0, (int) (($totalWidth - $drawing->getWidth()) / 2));
+                    foreach ($columnWidths as $index => $width) {
+                        if ($offset < $width) {
+                            $drawing
+                                ->setCoordinates(Coordinate::stringFromColumnIndex($index + 1).'1')
+                                ->setOffsetX($offset);
+                            break;
+                        }
+                        $offset -= $width;
+                    }
+                }
             },
         ];
     }

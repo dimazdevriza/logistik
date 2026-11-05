@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Livewire\Admin\UserManagement;
 use App\Livewire\Logistik\Materials;
 use App\Livewire\Logistik\Tools;
+use App\Livewire\Logistik\TransaksiLogistik;
 use App\Livewire\Logistik\WarehouseDetail;
 use App\Livewire\Logistik\Warehouses;
 use App\Models\Cluster;
@@ -175,6 +176,19 @@ class MultiAssignmentScopeTest extends TestCase
         $this->assertContains('Rumah A1', $accessibleHouses);
         $this->assertContains('Rumah B1', $accessibleHouses);
         $this->assertNotContains('Rumah C1', $accessibleHouses);
+
+        $this->assertTrue($user->hasClusterChoice());
+
+        Livewire::test(TransaksiLogistik::class)
+            ->call('openHousePicker', 'house')
+            ->assertSeeHtml('id="house-cluster"')
+            ->assertSee('Cluster Alpha')
+            ->assertSee('Cluster Beta')
+            ->assertDontSee('Cluster Gamma')
+            ->set('houseCluster', (string) $clusterA->id)
+            ->assertViewHas('houseResults', fn ($rows) => $rows->contains('id', $houseA->id) && $rows->doesntContain('id', $houseB->id))
+            ->set('houseCluster', (string) $clusterB->id)
+            ->assertViewHas('houseResults', fn ($rows) => $rows->doesntContain('id', $houseA->id) && $rows->contains('id', $houseB->id));
     }
 
     public function test_multi_warehouse_and_cluster_scoping_in_allocation(): void
@@ -470,5 +484,35 @@ class MultiAssignmentScopeTest extends TestCase
         // Visiting /biaya-cluster redirects directly to cluster expense detail
         $response = $this->get(route('logistik.cluster-costs'));
         $response->assertRedirect(route('clusters.expenses', $clusterA));
+    }
+
+    public function test_scoped_logistik_can_export_house_costs_and_houses(): void
+    {
+        $clusterA = Cluster::create(['name' => 'Cluster Alpha']);
+        $clusterB = Cluster::create(['name' => 'Cluster Beta']);
+        $warehouse = Warehouse::firstOrCreate(['name' => 'Gudang Utama']);
+
+        House::factory()->create(['cluster_id' => $clusterA->id, 'name' => 'House A', 'house_code' => 'A-01']);
+        House::factory()->create(['cluster_id' => $clusterB->id, 'name' => 'House B', 'house_code' => 'B-01']);
+
+        $user = User::factory()->create([
+            'role' => 'logistik',
+            'cluster_id' => $clusterA->id,
+            'warehouse_id' => $warehouse->id,
+        ]);
+        $user->clusters()->sync([$clusterA->id, $clusterB->id]);
+        $user->warehouses()->sync([$warehouse->id]);
+
+        $this->actingAs($user);
+
+        // Biaya rumah export
+        Livewire::test(\App\Livewire\Admin\HouseCosts::class)
+            ->call('exportExcel')
+            ->assertFileDownloaded();
+
+        // Houses list export
+        Livewire::test(\App\Livewire\Logistik\Houses::class)
+            ->call('exportExcel')
+            ->assertFileDownloaded();
     }
 }

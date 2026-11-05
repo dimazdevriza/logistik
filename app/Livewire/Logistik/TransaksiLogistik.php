@@ -1451,7 +1451,7 @@ class TransaksiLogistik extends Component
             ->values();
         $normalize = fn ($value) => mb_strtolower(preg_replace('/[\s-]+/u', '', $value));
         $terms = preg_split('/\s+/u', trim($this->houseSearch), -1, PREG_SPLIT_NO_EMPTY);
-        $effectiveCluster = auth()->user()->canAccessAllClusters() ? $this->houseCluster : 'all';
+        $effectiveCluster = auth()->user()->hasClusterChoice() ? $this->houseCluster : 'all';
         $filtered = ($effectiveCluster === 'all'
                 ? $houses
                 : $houses->filter(fn ($house) => ($house->cluster_id ? (string) $house->cluster_id : 'unassigned') === $effectiveCluster))

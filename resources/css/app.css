@@ -2687,14 +2687,8 @@ html.is-rail-initial .user-profile-card > div,
 
 @media (hover: hover) and (pointer: fine) and (min-width: 768px) {
     .data-table tbody .data-row-actions {
-        opacity: 0;
-        transform: translateX(0.25rem);
-    }
-
-    .data-table tbody tr:hover .data-row-actions,
-    .data-table tbody tr:focus-within .data-row-actions {
         opacity: 1;
-        transform: translateX(0);
+        transform: none;
     }
 }
 

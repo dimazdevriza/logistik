@@ -127,6 +127,12 @@ class User extends Authenticatable
         return $this->canAccessAllWarehouses() || ($warehouseId && in_array((int) $warehouseId, $this->assignedWarehouseIds(), true));
     }
 
+    /** UI: show cluster chooser/column for unrestricted accounts and for accounts holding 2+ clusters. */
+    public function hasClusterChoice(): bool
+    {
+        return $this->canAccessAllClusters() || count($this->assignedClusterIds()) > 1;
+    }
+
     /** UI: show gudang chooser/column for unrestricted accounts and for accounts holding 2+ gudang. */
     public function hasWarehouseChoice(): bool
     {

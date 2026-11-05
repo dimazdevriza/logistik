@@ -202,7 +202,7 @@
                                             @endfor
                                             <td data-label="Total {{ $selectedYear }}" class="text-end font-mono fw-bold text-success bg-success-subtle bg-opacity-10 data-number">Rp {{ number_format($yearTotal, 0, ',', '.') }}</td>
                                             <td data-label="Total keseluruhan" class="text-end font-mono fw-bold text-warning bg-warning-subtle bg-opacity-10 data-number">Rp {{ number_format($totalAllTime, 0, ',', '.') }}</td>
-                                            <td data-label="Aksi" class="text-end"><a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit">Lihat</a></td>
+                                            <td data-label="Aksi" class="text-end"><a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit">Detail</a></td>
                                         </tr>
                                     @endforeach
                                     @endif
@@ -272,7 +272,7 @@
                                         <td data-label="Status"><span class="cluster-expense-cell-value"><span class="badge {{ $pwStatusClasses[$pw->status] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($pw->status) }}</span></span></td>
                                         <td data-label="Mulai"><span class="cluster-expense-cell-value small text-secondary">{{ $pw->start_date?->format('d/m/Y') ?? '-' }}</span></td>
                                         <td data-label="Total biaya material" class="text-end"><span class="cluster-expense-cell-value font-mono fw-bold text-success">Rp {{ number_format((float) ($pw->material_usages_sum_total_cost ?? 0), 0, ',', '.') }}</span></td>
-                                        <td data-label="Aksi" class="text-end"><a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $pw) }}" wire:navigate class="btn log-row-action log-row-action--edit">Lihat</a></td>
+                                        <td data-label="Aksi" class="text-end"><a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $pw) }}" wire:navigate class="btn log-row-action log-row-action--edit">Detail</a></td>
                                     </tr>
                                 @empty
                                     <tr><td colspan="6" class="cluster-expense-empty text-center py-5 text-secondary">Belum ada pekerjaan umum untuk cluster ini.</td></tr>

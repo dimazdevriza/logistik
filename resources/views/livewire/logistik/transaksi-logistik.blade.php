@@ -191,7 +191,7 @@
                         <span class="d-block small">Interior, plumbing, pekerjaan unit</span>
                     </label>
                 </div>
-                @if (auth()->user()->canAccessAllClusters())
+                @if (auth()->user()->hasClusterChoice())
                 <div x-show="vendorServiceTarget === 'cluster'" x-cloak class="mt-3">
                     <label for="vendor-service-cluster" class="form-label small fw-semibold">Cluster pekerjaan <span class="text-danger">*</span></label>
                     <select id="vendor-service-cluster" wire:model="vendor_service_cluster_id" class="form-select" required>
@@ -1175,11 +1175,11 @@
             <button type="button" class="btn-close" aria-label="Tutup pilihan {{ $pickerUnitLabel }}" @click="housePickerOpen = false" wire:click="closeHousePicker"></button>
         </div>
         <div class="row g-2">
-            <div class="{{ auth()->user()->canAccessAllClusters() ? 'col-7' : 'col-12' }}">
+            <div class="{{ auth()->user()->hasClusterChoice() ? 'col-7' : 'col-12' }}">
                 <label for="house-search" class="form-label small fw-semibold">Cari {{ $pickerUnitLabel }}</label>
                 <input id="house-search" autofocus type="search" wire:model.live.debounce.250ms="houseSearch" class="form-control" placeholder="{{ $isPublicWorkPicker ? 'Nama atau kode pekerjaan umum' : 'Nama, kode, atau tipe rumah' }}" />
             </div>
-            @if (auth()->user()->canAccessAllClusters())
+            @if (auth()->user()->hasClusterChoice())
             <div class="col-5">
                 <label for="house-cluster" class="form-label small fw-semibold">Cluster</label>
                 <select id="house-cluster" wire:model.live="houseCluster" class="form-select">
@@ -1224,7 +1224,7 @@
             <div class="text-center p-4">
                 <p class="fw-semibold mb-1">{{ $selectedHousesOnly ? "Tidak ada {$pickerUnitLabel} dipilih yang cocok" : "Tidak ada {$pickerUnitLabel} yang cocok" }}</p>
                 @php
-                    $emptySearchHint = auth()->user()->canAccessAllClusters() ? 'Coba kata kunci atau cluster lain.' : 'Coba kata kunci lain.';
+                    $emptySearchHint = auth()->user()->hasClusterChoice() ? 'Coba kata kunci atau cluster lain.' : 'Coba kata kunci lain.';
                 @endphp
                 <p class="small text-secondary mb-0">{{ $activeTab === 'return' ? "Coba kata kunci lain. Hanya {$pickerUnitLabel} dengan peminjaman aktif yang ditampilkan." : (in_array($activeTab, ['allocation', 'material', 'tool', 'spreadsheet'], true) ? "{$emptySearchHint} " . ucfirst($pickerUnitLabel) . " selesai hanya ditampilkan selama masa garansi." : ($activeTab === 'vendor-service' ? $emptySearchHint : "{$emptySearchHint} " . ucfirst($pickerUnitLabel) . " yang sudah selesai tidak ditampilkan.")) }}</p>
             </div>

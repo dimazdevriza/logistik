@@ -161,7 +161,7 @@
                                 Rp {{ number_format($totalAllTime, 0, ',', '.') }}
                             </td>
                             <td data-label="Aksi" class="text-end">
-                                <a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit">Lihat</a>
+                                <a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit">Detail</a>
                             </td>
                         </tr>
                         @empty

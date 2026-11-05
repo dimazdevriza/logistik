@@ -155,7 +155,7 @@
                                     @endfor
                                     <td data-label="Total {{ $selectedYear }}" class="text-end font-mono fw-bold text-success bg-success-subtle bg-opacity-10 data-number">Rp {{ number_format($cluster->year_total, 0, ',', '.') }}</td>
                                     <td data-label="Total keseluruhan" class="text-end font-mono fw-bold text-warning bg-warning-subtle bg-opacity-10 data-number">Rp {{ number_format($cluster->all_time_total, 0, ',', '.') }}</td>
-                                    <td data-label="Aksi" class="text-end"><a href="{{ route('clusters.expenses', ['cluster' => $cluster, 'from' => 'costs']) }}" wire:navigate class="btn log-row-action log-row-action--edit">Lihat</a></td>
+                                    <td data-label="Aksi" class="text-end"><a href="{{ route('clusters.expenses', ['cluster' => $cluster, 'from' => 'costs']) }}" wire:navigate class="btn log-row-action log-row-action--edit">Detail</a></td>
                                 </tr>
                             @empty
                                 <tr><td colspan="19" class="house-cost-empty text-center py-5 text-secondary">Belum ada data biaya cluster.</td></tr>
@@ -205,7 +205,7 @@
                             <x-sortable-th field="name" :sort="$sort">Nama Cluster</x-sortable-th>
                             <x-sortable-th field="houses" :sort="$sort">Rumah</x-sortable-th>
                             <x-sortable-th field="description" :sort="$sort">Catatan</x-sortable-th>
-                            <th class="text-end" style="width: 150px;">Aksi</th>
+                            <th class="text-end" style="width: 215px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -216,7 +216,7 @@
                                 <td data-label="Rumah"><span class="management-cell-value"><span class="fw-semibold">{{ $cluster->houses_count }} rumah</span>@if ($cluster->houses_count)<span class="d-block small text-secondary data-cell-truncate" title="{{ $cluster->houses->pluck('name')->join(', ') }}">{{ $cluster->houses->take(3)->pluck('name')->join(', ') }}@if ($cluster->houses_count > 3)<span>, +{{ $cluster->houses_count - 3 }} lainnya</span>@endif</span>@endif</span></td>
                                 <td data-label="Catatan" class="text-secondary small data-cell-truncate" title="{{ $cluster->description ?: '-' }}"><span class="management-cell-value">{{ $cluster->description ?: '-' }}</span></td>
                             <td data-label="Aksi" class="text-end"><span class="management-cell-value"><span class="btn-group btn-group-sm data-row-actions">
-                                        <a href="{{ route('clusters.expenses', $isCostPage ? ['cluster' => $cluster, 'from' => 'costs'] : $cluster) }}" wire:navigate class="btn log-row-action log-row-action--edit">{{ $isCostPage ? 'Lihat' : 'Biaya' }}</a>
+                                        <a href="{{ route('clusters.expenses', $isCostPage ? ['cluster' => $cluster, 'from' => 'costs'] : $cluster) }}" wire:navigate class="btn log-row-action log-row-action--edit">{{ $isCostPage ? 'Detail' : 'Biaya' }}</a>
                                         @if (auth()->user()->role === 'admin' && ! $isCostPage)
                                             <button type="button" wire:click="edit({{ $cluster->id }})" class="btn log-row-action log-row-action--quiet">Edit</button>
                                             <button type="button" wire:click="confirmDelete({{ $cluster->id }})" class="btn log-row-action log-row-action--danger">Hapus</button>
