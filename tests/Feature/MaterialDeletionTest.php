@@ -54,6 +54,77 @@ class MaterialDeletionTest extends TestCase
         $this->assertDatabaseMissing('materials', ['id' => $material->id]);
     }
 
+    public function test_voided_and_cancelled_material_can_be_deleted_with_cascade_purge(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($user);
+        $house = House::factory()->create();
+        $material = Material::factory()->create(['stock' => 0]);
+
+        $receipt = StockIn::create([
+            'material_id' => $material->id,
+            'user_id' => $user->id,
+            'quantity' => 50,
+            'remaining_quantity' => 0,
+            'unit_price' => 75500,
+            'total_cost' => 3775000,
+            'date' => '2026-10-29',
+            'entry_type' => 'cancelled',
+            'notes' => 'Penerimaan awal DIBATALKAN',
+        ]);
+
+        $usage = MaterialUsage::create([
+            'material_id' => $material->id,
+            'stock_in_id' => $receipt->id,
+            'house_id' => $house->id,
+            'user_id' => $user->id,
+            'quantity' => 10,
+            'unit_price_at_usage' => 75500,
+            'total_cost' => 755000,
+            'usage_date' => '2026-10-29',
+            'voided_at' => now(),
+            'voided_by' => $user->id,
+            'void_reason' => 'Salah input',
+        ]);
+
+        $materialAdjustment = \App\Models\InventoryAdjustment::create([
+            'user_id' => $user->id,
+            'adjustable_type' => Material::class,
+            'adjustable_id' => $material->id,
+            'field' => 'stock',
+            'before_value' => 50,
+            'after_value' => 0,
+            'delta' => -50,
+            'reason' => 'Penerimaan dibatalkan',
+        ]);
+
+        $stockInAdjustment = \App\Models\InventoryAdjustment::create([
+            'user_id' => $user->id,
+            'adjustable_type' => StockIn::class,
+            'adjustable_id' => $receipt->id,
+            'field' => 'remaining_quantity',
+            'before_value' => 40,
+            'after_value' => 0,
+            'delta' => -40,
+            'reason' => 'Penerimaan dibatalkan',
+        ]);
+
+        // Confirmation should succeed (no error, confirmation modal shows)
+        Livewire::test(Materials::class)
+            ->call('confirm', 'delete', $material->id)
+            ->assertHasNoErrors()
+            ->assertSet('showConfirmation', true)
+            ->call('executeConfirmedAction')
+            ->assertHasNoErrors();
+
+        // Verify all related records are purged cleanly without foreign key violations
+        $this->assertDatabaseMissing('materials', ['id' => $material->id]);
+        $this->assertDatabaseMissing('stock_ins', ['id' => $receipt->id]);
+        $this->assertDatabaseMissing('material_usages', ['id' => $usage->id]);
+        $this->assertDatabaseMissing('inventory_adjustments', ['id' => $materialAdjustment->id]);
+        $this->assertDatabaseMissing('inventory_adjustments', ['id' => $stockInAdjustment->id]);
+    }
+
     public function test_inventory_transfer_history_protects_materials_and_tools(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

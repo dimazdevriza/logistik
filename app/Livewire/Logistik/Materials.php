@@ -102,8 +102,8 @@ class Materials extends Component
             if (auth()->user()?->canAccessWarehouse((int) $material->warehouse_id) === false) {
                 abort(403);
             }
-            if ($material->hasTransactionHistory()) {
-                $this->addError('delete', 'Material tidak dapat dihapus karena memiliki riwayat stok, pemakaian, permintaan, atau transfer gudang. Riwayat transaksi harus tetap tersimpan.');
+            if ($material->hasActiveTransactions()) {
+                $this->addError('delete', 'Material tidak dapat dihapus karena masih memiliki stok aktif, transaksi aktif, atau transfer gudang.');
                 return;
             }
         }
@@ -511,10 +511,39 @@ class Materials extends Component
             if (auth()->user()?->canAccessWarehouse((int) $material->warehouse_id) === false) {
                 abort(403);
             }
-            if ($material->hasTransactionHistory()) {
-                $this->addError('delete', 'Material tidak dapat dihapus karena memiliki riwayat stok, pemakaian, permintaan, atau transfer gudang. Riwayat transaksi harus tetap tersimpan.');
+            if ($material->hasActiveTransactions()) {
+                $this->addError('delete', 'Material tidak dapat dihapus karena masih memiliki stok aktif, transaksi aktif, atau transfer gudang.');
                 return;
             }
+
+            $usageIds = $material->usages()->pluck('id');
+            if ($usageIds->isNotEmpty()) {
+                InventoryAdjustment::where('adjustable_type', \App\Models\MaterialUsage::class)
+                    ->whereIn('adjustable_id', $usageIds)
+                    ->delete();
+                $material->usages()->whereIn('id', $usageIds)->delete();
+            }
+
+            $requestIds = MaterialToolRequest::where('material_id', $material->id)->pluck('id');
+            if ($requestIds->isNotEmpty()) {
+                DB::table('dispatch_lines')->whereIn('material_tool_request_id', $requestIds)->delete();
+                MaterialToolRequest::whereIn('id', $requestIds)->delete();
+            }
+
+            $stockInIds = $material->stockIns()->pluck('id');
+            if ($stockInIds->isNotEmpty()) {
+                InventoryAdjustment::where('adjustable_type', StockIn::class)
+                    ->whereIn('adjustable_id', $stockInIds)
+                    ->delete();
+                $material->stockIns()->whereIn('id', $stockInIds)->delete();
+            }
+
+            $material->inventoryAdjustments()->delete();
+
+            if ($material->image && Storage::disk('public')->exists($material->image)) {
+                Storage::disk('public')->delete($material->image);
+            }
+
             $material->delete();
             session()->flash('success', 'Material berhasil dihapus.');
         });

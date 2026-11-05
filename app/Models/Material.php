@@ -81,4 +81,16 @@ class Material extends Model
             || $this->inventoryTransfers()->exists()
             || $this->receivedInventoryTransfers()->exists();
     }
+
+    public function hasActiveTransactions(): bool
+    {
+        return abs((float) $this->stock) > 0.0001
+            || $this->usages()->whereNull('voided_at')->exists()
+            || $this->stockIns()->where(function ($query) {
+                $query->whereNull('entry_type')->orWhere('entry_type', '!=', 'cancelled');
+            })->exists()
+            || MaterialToolRequest::where('material_id', $this->id)->where('status', '!=', 'rejected')->exists()
+            || $this->inventoryTransfers()->exists()
+            || $this->receivedInventoryTransfers()->exists();
+    }
 }
