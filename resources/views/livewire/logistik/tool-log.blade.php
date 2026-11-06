@@ -82,9 +82,9 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase text-secondary">Rumah</label>
+                            <label class="form-label small fw-bold text-uppercase text-secondary">Tujuan Alokasi</label>
                             <select wire:model.live="filterHouse" class="form-select">
-                                <option value="">Semua Rumah</option>
+                                <option value="">Semua Tujuan</option>
                                 @foreach ($houses as $house)
                                     <option value="{{ $house->id }}">{{ $house->name }}</option>
                                 @endforeach
@@ -112,7 +112,7 @@
                             <th>Tahun</th>
                             <x-sortable-th field="type" :sort="$sort">Tipe</x-sortable-th>
                             <x-sortable-th field="admin" :sort="$sort">Penanggung Jawab</x-sortable-th>
-                            <x-sortable-th field="house" :sort="$sort">Rumah / Gudang</x-sortable-th>
+                            <x-sortable-th field="house" :sort="$sort">Tujuan / Gudang</x-sortable-th>
                             <x-sortable-th field="notes" :sort="$sort">Keterangan Pekerjaan</x-sortable-th>
                             <x-sortable-th field="code" :sort="$sort" class="data-key-code">Kode Alat</x-sortable-th>
                             <x-sortable-th field="name" :sort="$sort" class="data-key-name">Nama Alat</x-sortable-th>
@@ -159,7 +159,7 @@
                                     @endif
                                 </span>
                             </td>
-                            <td data-label="Rumah / Gudang" class="fw-semibold data-cell-truncate" title="{{ $record->house_name ?? '-' }}"><span class="tool-log-cell-value">{{ $record->house_name ?: '-' }}</span></td>
+                            <td data-label="Tujuan / Gudang" class="fw-semibold data-cell-truncate" title="{{ $record->house_name ?? '-' }}"><span class="tool-log-cell-value">{{ $record->house_name ?: '-' }}</span></td>
                             <td data-label="Keterangan" class="data-cell-truncate" title="{{ $record->job_notes ?? '-' }}">
                                 <span class="tool-log-cell-value">
                                     {{ $record->job_notes ?: '-' }}

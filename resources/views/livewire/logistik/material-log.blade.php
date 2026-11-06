@@ -8,7 +8,7 @@
                         Catatan Riwayat <span class="text-success">Material</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
-                        Riwayat penerimaan, transfer gudang, dan penggunaan material di rumah.
+                        Riwayat penerimaan, transfer gudang, dan alokasi material lapangan.
                     </p>
                 </div>
                 <div>
@@ -55,9 +55,9 @@
                         </div>
                         @if ($filterType === 'keluar')
                             <div class="mb-3">
-                                <label class="form-label small fw-bold text-uppercase text-secondary">Rumah</label>
+                                <label class="form-label small fw-bold text-uppercase text-secondary">Tujuan Alokasi</label>
                                 <select wire:model.live="filterHouse" class="form-select">
-                                    <option value="">Semua Rumah</option>
+                                    <option value="">Semua Tujuan</option>
                                     @foreach ($houses as $house)
                                         <option value="{{ $house->id }}">{{ $house->name }}</option>
                                     @endforeach
@@ -97,7 +97,7 @@
                             <x-sortable-th field="type" :sort="$sort" title="Masuk menambah stok; transfer berpindah gudang tanpa menambah biaya; keluar dipakai di rumah.">Tipe</x-sortable-th>
                             <x-sortable-th field="admin" :sort="$sort">Pencatat</x-sortable-th>
                             <th>Pengambil</th>
-                            <x-sortable-th field="house" :sort="$sort">Rumah / Gudang</x-sortable-th>
+                            <x-sortable-th field="house" :sort="$sort">Tujuan / Gudang</x-sortable-th>
                             <x-sortable-th field="notes" :sort="$sort">Keterangan Pekerjaan</x-sortable-th>
                             <x-sortable-th field="code" :sort="$sort" class="data-key-code">Kode Barang</x-sortable-th>
                             <x-sortable-th field="name" :sort="$sort" class="data-key-name">Nama Barang</x-sortable-th>
@@ -159,7 +159,7 @@
                                     </span>
                                 </td>
                                 <td data-label="Pengambil" class="data-cell-truncate" title="{{ $record->taken_by ?? '-' }}"><span class="material-log-cell-value">{{ $record->type === 'keluar' ? ($record->taken_by ?: '-') : '-' }}</span></td>
-                                <td data-label="Rumah / Gudang" class="fw-semibold data-cell-truncate" title="{{ $record->house_name ?? '-' }}"><span class="material-log-cell-value">{{ $record->house_name ?: '-' }}</span></td>
+                                <td data-label="Tujuan / Gudang" class="fw-semibold data-cell-truncate" title="{{ $record->house_name ?? '-' }}"><span class="material-log-cell-value">{{ $record->house_name ?: '-' }}</span></td>
                                 <td data-label="Keterangan" class="data-cell-truncate" title="{{ $record->job_notes ?? '-' }}">
                                     <span class="material-log-cell-value">
                                         {{ $record->job_notes ?: '-' }}
@@ -342,7 +342,7 @@
                                         @endif
                                     </div>
                                     @if ($adjustment->field === 'total_cost' && $adjustment->adjustable)
-                                        <div class="small text-secondary">Rumah: {{ $adjustment->adjustable->house?->name ?? '-' }}</div>
+                                        <div class="small text-secondary">Tujuan: {{ $adjustment->adjustable->house?->name ?? '-' }}</div>
                                     @endif
                                     <div class="small text-secondary mt-1">{{ $adjustment->user?->name ?? 'Pengguna tidak tercatat' }} · {{ $adjustment->created_at->format('d/m/Y H:i') }}</div>
                                     <div class="mt-2">{{ $adjustment->reason }}</div>

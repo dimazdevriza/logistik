@@ -41,7 +41,7 @@ class ToolLogReceiptDisplayTest extends TestCase
         ]);
 
         Livewire::test(ToolLog::class)
-            ->assertSee('Rumah / Gudang')
+            ->assertSee('Tujuan / Gudang')
             ->assertSee('Masuk')
             ->assertSee('Dipinjam')
             ->assertSeeInOrder([$usage->transaction_code, $tool->entry_code])

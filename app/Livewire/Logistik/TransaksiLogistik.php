@@ -420,7 +420,7 @@ class TransaksiLogistik extends Component
             foreach ($row['returns'] ?? [] as $line) {
                 $usage = $usageMap[(int) $line['usage_id']] ?? null;
                 if (! $usage || (int) $usage->house_id !== (int) $row['house_id'] || $usage->return_date || $usage->voided_at) {
-                    throw ValidationException::withMessages(["spreadsheetRows.{$rowIndex}.returns.{$lineIndex}.usage_id" => 'Pilihan pengembalian sudah berubah. Pilih ulang alat pada rumah tersebut.']);
+                    throw ValidationException::withMessages(["spreadsheetRows.{$rowIndex}.returns.{$lineIndex}.usage_id" => 'Pilihan pengembalian sudah berubah. Pilih ulang alat pada target tersebut.']);
                 }
                 $returnQuantity = (int) $line['qty_normal'] + (int) $line['qty_broken'] + (int) $line['qty_lost'];
                 if ($returnQuantity > $usage->quantity) {
@@ -430,7 +430,7 @@ class TransaksiLogistik extends Component
                 $details[] = 'Kembali · '.$usage->tool->name.' · baik '.$line['qty_normal'].' / rusak '.$line['qty_broken'].' / hilang '.$line['qty_lost'].$warehouse;
             }
             $house = $houses[(int) $row['house_id']];
-            $this->spreadsheetReviewRows[] = ['house' => implode(' · ', array_filter([$house->name, $house->house_code])), 'details' => $details, 'material_total' => $materialTotal, 'material_count' => count($row['materials'] ?? [])];
+            $this->spreadsheetReviewRows[] = ['house' => implode(' · ', array_filter([$house->name, $house->house_code])), 'category' => $house->category, 'details' => $details, 'material_total' => $materialTotal, 'material_count' => count($row['materials'] ?? [])];
         }
         $this->spreadsheetReviewTotals = [
             'materials' => collect($rows)->sum(fn ($row) => count($row['materials'] ?? [])),
@@ -598,7 +598,12 @@ class TransaksiLogistik extends Component
             $hasMaterialHistory = collect($rows)->contains(fn ($row) => ! empty($row['materials']));
             $hasToolHistory = collect($rows)->contains(fn ($row) => ! empty($row['tools']) || ! empty($row['returns']));
             $historyType = $hasMaterialHistory && $hasToolHistory ? 'both' : ($hasMaterialHistory ? 'material' : ($hasToolHistory ? 'tool' : ''));
-            $this->showSuccess('Alokasi spreadsheet berhasil disimpan untuk '.count($rows).' rumah.', $historyType);
+            $rowHouseIds = collect($rows)->pluck('house_id')->map(fn ($id) => (int) $id)->all();
+            $targetHouses = House::whereIn('id', $rowHouseIds)->get();
+            $isAllPublicWork = $targetHouses->isNotEmpty() && $targetHouses->every(fn ($h) => $h->category === House::CATEGORY_PUBLIC_WORK);
+            $isAllHouse = $targetHouses->isNotEmpty() && $targetHouses->every(fn ($h) => $h->category === House::CATEGORY_HOUSE);
+            $targetLabel = $isAllPublicWork ? 'pekerjaan umum' : ($isAllHouse ? 'rumah' : 'target');
+            $this->showSuccess('Alokasi spreadsheet berhasil disimpan untuk '.count($rows).' '.$targetLabel.'.', $historyType);
         } catch (ValidationException $e) {
             $this->showSpreadsheetReview = false;
             throw $e;
@@ -881,7 +886,7 @@ class TransaksiLogistik extends Component
         }
         $houses = House::with('cluster:id,name')->forUser(auth()->user())->whereIn('id', $houseIds)->get();
         if ($houses->count() !== count($houseIds)) {
-            $this->addError('house_ids', 'Pilih rumah di cluster yang ditugaskan kepada Anda.');
+            $this->addError('house_ids', 'Pilih target di cluster yang ditugaskan kepada Anda.');
 
             return;
         }
@@ -898,7 +903,9 @@ class TransaksiLogistik extends Component
         $completedHouses = $houses->filter(fn ($house) => ! $house->canReceiveAllocations());
         if ($completedHouses->isNotEmpty()) {
             $names = $completedHouses->pluck('name')->join(', ');
-            $this->addError('house_ids', "Rumah berikut sudah selesai masa garansinya: {$names}");
+            $isAllPw = $completedHouses->every(fn ($h) => $h->category === House::CATEGORY_PUBLIC_WORK);
+            $unitName = $isAllPw ? 'Pekerjaan umum' : ($completedHouses->every(fn ($h) => $h->category === House::CATEGORY_HOUSE) ? 'Rumah' : 'Target');
+            $this->addError('house_ids', "{$unitName} berikut sudah selesai masa garansinya: {$names}");
 
             return;
         }
@@ -966,7 +973,12 @@ class TransaksiLogistik extends Component
                 auth()->user()
             );
 
-            $this->showSuccess('Material langsung dialokasikan ke '.count($houseIds).' rumah.', 'material');
+            $targetHouses = House::whereIn('id', $houseIds)->get(['id', 'category']);
+            $isAllPublicWork = $targetHouses->isNotEmpty() && $targetHouses->every(fn ($h) => $h->category === House::CATEGORY_PUBLIC_WORK);
+            $isAllHouse = $targetHouses->isNotEmpty() && $targetHouses->every(fn ($h) => $h->category === House::CATEGORY_HOUSE);
+            $targetLabel = $isAllPublicWork ? 'pekerjaan umum' : ($isAllHouse ? 'rumah' : 'target');
+
+            $this->showSuccess('Material langsung dialokasikan ke '.count($houseIds).' '.$targetLabel.'.', 'material');
             $this->resetMaterialForm();
         } catch (ValidationException $e) {
             if ($proofPath) Storage::disk('public')->delete($proofPath);
@@ -996,7 +1008,7 @@ class TransaksiLogistik extends Component
         // D2: condition is display-only now — available_qty is the single source of truth
         $houses = House::with('cluster:id,name')->forUser(auth()->user())->whereIn('id', $houseIds)->get();
         if ($houses->count() !== count($houseIds)) {
-            $this->addError('house_ids', 'Pilih rumah di cluster yang ditugaskan kepada Anda.');
+            $this->addError('house_ids', 'Pilih target di cluster yang ditugaskan kepada Anda.');
 
             return;
         }
@@ -1011,7 +1023,9 @@ class TransaksiLogistik extends Component
         $completedHouses = $houses->filter(fn ($house) => ! $house->canReceiveAllocations());
         if ($completedHouses->isNotEmpty()) {
             $names = $completedHouses->pluck('name')->join(', ');
-            $this->addError('house_ids', "Rumah berikut sudah selesai masa garansinya: {$names}");
+            $isAllPw = $completedHouses->every(fn ($h) => $h->category === House::CATEGORY_PUBLIC_WORK);
+            $unitName = $isAllPw ? 'Pekerjaan umum' : ($completedHouses->every(fn ($h) => $h->category === House::CATEGORY_HOUSE) ? 'Rumah' : 'Target');
+            $this->addError('house_ids', "{$unitName} berikut sudah selesai masa garansinya: {$names}");
 
             return;
         }
@@ -1076,7 +1090,12 @@ class TransaksiLogistik extends Component
                 auth()->user()
             );
 
-            $this->showSuccess('Alat langsung dialokasikan ke '.count($houseIds).' rumah.', 'tool');
+            $targetHouses = House::whereIn('id', $houseIds)->get(['id', 'category']);
+            $isAllPublicWork = $targetHouses->isNotEmpty() && $targetHouses->every(fn ($h) => $h->category === House::CATEGORY_PUBLIC_WORK);
+            $isAllHouse = $targetHouses->isNotEmpty() && $targetHouses->every(fn ($h) => $h->category === House::CATEGORY_HOUSE);
+            $targetLabel = $isAllPublicWork ? 'pekerjaan umum' : ($isAllHouse ? 'rumah' : 'target');
+
+            $this->showSuccess('Alat langsung dialokasikan ke '.count($houseIds).' '.$targetLabel.'.', 'tool');
             $this->resetToolForm();
         } catch (ValidationException $e) {
             Storage::disk('public')->delete($proofPath);

@@ -113,14 +113,14 @@
             <div class="card-body p-4 p-md-5 transaction-header-body">
                 <div>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit transaction-title">Buat alokasi <span class="text-success">lapangan</span></h1>
-                    <p class="text-secondary mb-0 max-w-xl transaction-intro">Pilih alur, tentukan rumah, lalu periksa dampaknya sebelum disimpan.</p>
+                    <p class="text-secondary mb-0 max-w-xl transaction-intro">Pilih alur, tentukan target alokasi, lalu periksa dampaknya sebelum disimpan.</p>
                 </div>
                 <p class="transaction-header-note" x-show="activeTab !== 'spreadsheet'" x-cloak>
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M12 3 4.5 7v10L12 21l7.5-4V7L12 3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
                         <path d="m4.8 7.2 7.2 4 7.2-4M12 11.2V21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
                     </svg>
-                    <span x-text="activeTab === 'rental' ? 'Sewa vendor tercatat sebagai biaya cluster, tanpa mengubah stok gudang.' : (activeTab === 'vendor-service' ? 'Catat pekerjaan vendor pada cluster atau satu rumah.' : (activeTab === 'return' ? 'Pengembalian langsung memperbarui pinjaman dan saldo gudang.' : 'Material langsung masuk ke catatan biaya rumah dan alat langsung tercatat sebagai pinjaman rumah.'))"></span>
+                    <span x-text="activeTab === 'rental' ? 'Sewa vendor tercatat sebagai biaya cluster, tanpa mengubah stok gudang.' : (activeTab === 'vendor-service' ? 'Catat pekerjaan vendor pada cluster atau satu unit.' : (activeTab === 'return' ? 'Pengembalian langsung memperbarui pinjaman dan saldo gudang.' : ('Material langsung masuk ke biaya ' + targetUnitLabel + ' dan alat tercatat sebagai pinjaman ' + targetUnitLabel + '.')))"></span>
                 </p>
             </div>
         </header>
@@ -195,8 +195,8 @@
                 <div class="transaction-step-heading">
                     <span class="transaction-step-index" aria-hidden="true">01</span>
                     <div>
-                    <h2 id="house-section-title" class="h6 fw-bold mb-1" x-text="activeTab === 'vendor-service' ? 'Target pekerjaan' : (activeTab === 'return' ? 'Rumah asal alat' : 'Tujuan alokasi')"></h2>
-                    <p class="small text-secondary mb-0" x-text="activeTab === 'vendor-service' ? (vendorServiceTarget === 'cluster' ? 'Untuk pekerjaan area bersama seperti drainase, jalur listrik, atau fasilitas umum.' : 'Pilih satu rumah untuk pekerjaan unit seperti interior atau plumbing.') : (activeTab === 'return' ? 'Pilih rumah yang masih meminjam alat.' : (activeTab === 'rental' ? 'Pilih beberapa rumah dalam satu cluster untuk sewa alat yang sama.' : 'Bisa pilih unit rumah atau pekerjaan umum untuk satu alokasi.'))"></p>
+                    <h2 id="house-section-title" class="h6 fw-bold mb-1" x-text="activeTab === 'vendor-service' ? 'Target pekerjaan' : (activeTab === 'return' ? (isAllPublicWork ? 'Pekerjaan umum asal alat' : (isAllHouse ? 'Rumah asal alat' : 'Asal alat')) : 'Tujuan alokasi')"></h2>
+                    <p class="small text-secondary mb-0" x-text="activeTab === 'vendor-service' ? (vendorServiceTarget === 'cluster' ? 'Untuk pekerjaan area bersama seperti drainase, jalur listrik, atau fasilitas umum.' : 'Pilih satu rumah untuk pekerjaan unit seperti interior atau plumbing.') : (activeTab === 'return' ? (isAllPublicWork ? 'Pilih pekerjaan umum yang masih meminjam alat.' : (isAllHouse ? 'Pilih rumah yang masih meminjam alat.' : 'Pilih unit atau pekerjaan umum yang masih meminjam alat.')) : (activeTab === 'rental' ? 'Pilih beberapa unit dalam satu cluster untuk sewa alat yang sama.' : 'Bisa pilih unit rumah atau pekerjaan umum untuk satu alokasi.'))"></p>
                     </div>
                 </div>
                 <div x-show.important="activeTab !== 'vendor-service' || vendorServiceTarget === 'house'" class="d-flex flex-wrap gap-2">
@@ -914,8 +914,8 @@
 
                 @if (empty($house_ids))
                     <div class="text-center py-5">
-                        <p class="fw-semibold text-body mb-1">Pilih unit rumah terlebih dahulu</p>
-                        <p class="small text-secondary mb-0">Klik Pilih rumah, lalu pilih rumah asal alat yang dikembalikan.</p>
+                        <p class="fw-semibold text-body mb-1">Pilih asal alat terlebih dahulu</p>
+                        <p class="small text-secondary mb-0">Klik Pilih rumah atau Pilih pekerjaan umum asal alat yang dikembalikan.</p>
                     </div>
                 @elseif ($activeUsages->isEmpty())
                     <div class="text-center py-5">
@@ -931,7 +931,7 @@
                             type="text"
                             x-model="returnSearch"
                             class="form-control pe-5"
-                            placeholder="Cari nama alat, kode, atau unit rumah (mis. Molen, AB-001, A-01)..."
+                            placeholder="Cari nama alat, kode, atau unit asal (mis. Molen, AB-001, Drainase)..."
                         />
                         <span class="position-absolute top-50 end-0 translate-middle-y me-3 text-secondary pointer-events-none d-flex align-items-center">
                             <svg width="15" height="15" fill="currentColor" aria-hidden="true"><use href="#i-search"/></svg>
@@ -1007,8 +1007,8 @@
     <aside x-show="activeTab === 'rental'" x-cloak class="transaction-summary" aria-labelledby="rental-summary-title">
         <div class="transaction-summary__sticky transaction-slip p-4">
             <h2 id="rental-summary-title" class="h6 fw-bold mb-3">Ringkasan sewa</h2>
-            <p class="small text-secondary mb-3">Pilih rumah dalam satu cluster. Satu biaya sewa dicatat untuk semua rumah terpilih.</p>
-            <div class="d-flex justify-content-between gap-3 small border-top pt-3"><span>Rumah tujuan</span><strong class="text-end">{{ $selectedHouses->isEmpty() ? 'Belum dipilih' : $selectedHouses->take(3)->pluck('name')->join(', ').($selectedHouses->count() > 3 ? ' +'.($selectedHouses->count() - 3).' lainnya' : '') }}</strong></div>
+            <p class="small text-secondary mb-3">Pilih target dalam satu cluster. Satu biaya sewa dicatat untuk semua target terpilih.</p>
+            <div class="d-flex justify-content-between gap-3 small border-top pt-3"><span>{{ $isAllPublicWork ? 'Pekerjaan umum tujuan' : ($isAllHouse ? 'Rumah tujuan' : 'Target tujuan') }}</span><strong class="text-end">{{ $selectedHouses->isEmpty() ? 'Belum dipilih' : $selectedHouses->take(3)->pluck('name')->join(', ').($selectedHouses->count() > 3 ? ' +'.($selectedHouses->count() - 3).' lainnya' : '') }}</strong></div>
             <div class="d-flex justify-content-between gap-3 small border-top pt-3 mt-3"><span>Alat vendor</span><strong>{{ $rental_description ?: 'Belum diisi' }}</strong></div>
             <div class="d-flex justify-content-between gap-3 small border-top pt-3 mt-3"><span>Biaya sewa</span><strong>Rp {{ number_format((float) $rental_amount, 0, ',', '.') }}</strong></div>
             <p class="small text-secondary border-top pt-3 mt-3 mb-0">Tidak mengubah stok alat milik perusahaan. Perpanjangan dan off-hire dicatat di biaya cluster.</p>
@@ -1133,7 +1133,7 @@
                     <!-- Receipt Summary Calculations -->
                     <div class="transaction-slip__totals extra-small" aria-live="polite">
                         <div class="d-flex align-items-center justify-content-between text-secondary mb-1">
-                            <span x-text="activeTab === 'return' ? 'Rumah asal' : (isAllPublicWork ? 'Pekerjaan umum' : (isAllHouse ? 'Rumah tujuan' : 'Tujuan alokasi'))">{{ $isAllPublicWork ? 'Pekerjaan umum' : ($isAllHouse ? 'Rumah tujuan' : 'Tujuan alokasi') }}</span>
+                            <span x-text="activeTab === 'return' ? (isAllPublicWork ? 'Pekerjaan umum asal' : (isAllHouse ? 'Rumah asal' : 'Asal alat')) : (isAllPublicWork ? 'Pekerjaan umum' : (isAllHouse ? 'Rumah tujuan' : 'Tujuan alokasi'))">{{ $activeTab === 'return' ? ($isAllPublicWork ? 'Pekerjaan umum asal' : ($isAllHouse ? 'Rumah asal' : 'Asal alat')) : ($isAllPublicWork ? 'Pekerjaan umum' : ($isAllHouse ? 'Rumah tujuan' : 'Tujuan alokasi')) }}</span>
                             <span class="fw-bold text-body" x-text="targetCountLabel">{{ $selectedHouses->count() }} {{ $targetNoun }}</span>
                         </div>
                         <template x-if="activeTab === 'allocation' && allocationType === 'material'">

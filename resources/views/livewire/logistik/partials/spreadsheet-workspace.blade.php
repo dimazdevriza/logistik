@@ -300,7 +300,7 @@
                                                     ->map(fn ($usage) => [
                                                         'id' => (string) $usage->id,
                                                         'label' => $usage->tool->name,
-                                                        'meta' => $usage->quantity.' unit di rumah · '.$usage->tool->code,
+                                                        'meta' => $usage->quantity.' unit terpinjam · '.$usage->tool->code,
                                                     ])->values()->all();
                                                 $returnEmptyMessage = $houseUsages->isNotEmpty()
                                                     ? 'Semua peminjaman aktif sudah dipilih.'
@@ -387,8 +387,14 @@
                         </div>
                         <button type="button" class="btn-close flex-shrink-0" aria-label="Tutup pratinjau" wire:click="$set('showSpreadsheetReview', false)"></button>
                     </header>
+                    @php
+                        $reviewCategories = collect($spreadsheetReviewRows)->pluck('category')->filter();
+                        $isAllReviewPublicWork = $reviewCategories->isNotEmpty() && $reviewCategories->every(fn ($c) => $c === \App\Models\House::CATEGORY_PUBLIC_WORK);
+                        $isAllReviewHouse = $reviewCategories->isNotEmpty() && $reviewCategories->every(fn ($c) => $c === \App\Models\House::CATEGORY_HOUSE);
+                        $spreadsheetReviewTargetLabel = $isAllReviewPublicWork ? 'pekerjaan umum' : ($isAllReviewHouse ? 'rumah' : 'target');
+                    @endphp
                     <div class="return-confirmation-body">
-                        <div class="small fw-semibold mb-3">{{ count($spreadsheetReviewRows) }} rumah · {{ $spreadsheetReviewTotals['materials'] ?? 0 }} material · {{ $spreadsheetReviewTotals['tools'] ?? 0 }} alat · {{ $spreadsheetReviewTotals['returns'] ?? 0 }} pengembalian</div>
+                        <div class="small fw-semibold mb-3">{{ count($spreadsheetReviewRows) }} {{ $spreadsheetReviewTargetLabel }} · {{ $spreadsheetReviewTotals['materials'] ?? 0 }} material · {{ $spreadsheetReviewTotals['tools'] ?? 0 }} alat · {{ $spreadsheetReviewTotals['returns'] ?? 0 }} pengembalian</div>
                         @foreach ($spreadsheetReviewRows as $reviewRow)
                             <section class="return-confirmation-item">
                                 <h3 class="small fw-bold mb-2">{{ $reviewRow['house'] }}</h3>
@@ -398,7 +404,7 @@
                                     @endforeach
                                 </ul>
                                 @if (($reviewRow['material_count'] ?? 0) > 0)
-                                    <p class="spreadsheet-house-material-total mb-0"><span>Total material rumah</span><strong class="font-mono">Rp {{ number_format((float) $reviewRow['material_total'], 0, ',', '.') }}</strong></p>
+                                    <p class="spreadsheet-house-material-total mb-0"><span>Total material {{ ($reviewRow['category'] ?? '') === \App\Models\House::CATEGORY_PUBLIC_WORK ? 'pekerjaan umum' : 'rumah' }}</span><strong class="font-mono">Rp {{ number_format((float) $reviewRow['material_total'], 0, ',', '.') }}</strong></p>
                                 @endif
                             </section>
                         @endforeach
@@ -413,11 +419,17 @@
 
         @if ($showSpreadsheetConfirmation)
             @teleport('body')
+                @php
+                    $confirmCategories = collect($spreadsheetReviewRows)->pluck('category')->filter();
+                    $isAllConfirmPublicWork = $confirmCategories->isNotEmpty() && $confirmCategories->every(fn ($c) => $c === \App\Models\House::CATEGORY_PUBLIC_WORK);
+                    $isAllConfirmHouse = $confirmCategories->isNotEmpty() && $confirmCategories->every(fn ($c) => $c === \App\Models\House::CATEGORY_HOUSE);
+                    $spreadsheetConfirmTargetLabel = $isAllConfirmPublicWork ? 'pekerjaan umum' : ($isAllConfirmHouse ? 'rumah' : 'target');
+                @endphp
                 <dialog class="transaction-confirmation transaction-confirmation--return" x-data x-init="if ($el.showModal) $el.showModal(); else $el.setAttribute('open', '')" @cancel="$wire.set('showSpreadsheetConfirmation', false)" aria-labelledby="spreadsheet-confirmation-title">
                     <header class="return-confirmation-header">
                         <div>
                             <h2 id="spreadsheet-confirmation-title" class="font-outfit fw-bold mb-1">Yakin ingin menyimpan alokasi ini?</h2>
-                            <p class="small text-secondary mb-0">{{ count($spreadsheetReviewRows) }} rumah akan menerima perubahan sesuai pratinjau.</p>
+                            <p class="small text-secondary mb-0">{{ count($spreadsheetReviewRows) }} {{ $spreadsheetConfirmTargetLabel }} akan menerima perubahan sesuai pratinjau.</p>
                         </div>
                         <button type="button" class="btn-close flex-shrink-0" aria-label="Tutup konfirmasi" wire:click="$set('showSpreadsheetConfirmation', false)"></button>
                     </header>
