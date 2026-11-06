@@ -903,7 +903,12 @@ class TransaksiLogistik extends Component
             return;
         }
 
+        $isAllPublicWork = $houses->isNotEmpty() && $houses->every(fn ($h) => $h->category === House::CATEGORY_PUBLIC_WORK);
+        $targetLabel = $isAllPublicWork ? 'pekerjaan umum' : ($houses->every(fn ($h) => $h->category === House::CATEGORY_HOUSE) ? 'rumah' : 'target');
+
         $this->materialConfirmationData = [
+            'isAllPublicWork' => $isAllPublicWork,
+            'targetLabel' => $targetLabel,
             'houses' => $houses->pluck('name')->join(', '),
             'houseRows' => $houses->map(fn ($house) => [
                 'name' => $house->name,
@@ -1011,7 +1016,12 @@ class TransaksiLogistik extends Component
             return;
         }
 
+        $isAllPublicWork = $houses->isNotEmpty() && $houses->every(fn ($h) => $h->category === House::CATEGORY_PUBLIC_WORK);
+        $targetLabel = $isAllPublicWork ? 'pekerjaan umum' : ($houses->every(fn ($h) => $h->category === House::CATEGORY_HOUSE) ? 'rumah' : 'target');
+
         $this->toolConfirmationData = [
+            'isAllPublicWork' => $isAllPublicWork,
+            'targetLabel' => $targetLabel,
             'houses' => $houses->pluck('name')->join(', '),
             'houseRows' => $houses->map(fn ($house) => [
                 'name' => $house->name,

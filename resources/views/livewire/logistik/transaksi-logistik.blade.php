@@ -32,6 +32,35 @@
                 'availableQty' => (int) $balance->allocation_available_qty,
             ])->values(),
         ])),
+        housesMap: @js($houses->keyBy('id')->map(fn($h) => [
+            'id' => $h->id,
+            'name' => $h->name,
+            'category' => $h->category ?? 'house',
+        ])),
+        get selectedHousesList() {
+            return ($wire.house_ids || []).map(id => this.housesMap[id]).filter(Boolean);
+        },
+        get isAllPublicWork() {
+            const list = this.selectedHousesList;
+            return list.length > 0 && list.every(h => h.category === 'public_work');
+        },
+        get isAllHouse() {
+            const list = this.selectedHousesList;
+            return list.length > 0 && list.every(h => h.category === 'house');
+        },
+        get targetUnitLabel() {
+            if (this.isAllPublicWork) return 'pekerjaan umum';
+            if (this.isAllHouse) return 'rumah';
+            return this.houseCount > 0 ? 'target' : 'rumah / pekerjaan umum';
+        },
+        get targetUnitLabelCap() {
+            if (this.isAllPublicWork) return 'Pekerjaan umum';
+            if (this.isAllHouse) return 'Rumah';
+            return this.houseCount > 0 ? 'Target' : 'Rumah / pekerjaan umum';
+        },
+        get targetCountLabel() {
+            return this.houseCount + ' ' + (this.isAllPublicWork ? 'pekerjaan umum' : (this.isAllHouse ? 'rumah' : 'target'));
+        },
         get houseCount() { return $wire.house_ids.length },
         get mat() { return this.materials[$wire.material_id] ?? null },
         get matBatch() { return this.materialBatches[this.materialSourceId] ?? null },
@@ -64,6 +93,9 @@
     @endif
     @php
         $selectedHouses = $houses->whereIn('id', $house_ids);
+        $isAllPublicWork = $selectedHouses->isNotEmpty() && $selectedHouses->every(fn ($h) => ($h->category ?? 'house') === \App\Models\House::CATEGORY_PUBLIC_WORK);
+        $isAllHouse = $selectedHouses->isNotEmpty() && $selectedHouses->every(fn ($h) => ($h->category ?? 'house') === \App\Models\House::CATEGORY_HOUSE);
+        $targetNoun = $isAllPublicWork ? 'pekerjaan umum' : ($isAllHouse ? 'rumah' : ($selectedHouses->isNotEmpty() ? 'target' : 'rumah / pekerjaan umum'));
         $selectedVendorCluster = $clusters->firstWhere('id', (int) $vendor_service_cluster_id);
         $noteOptions = array_values(array_unique(array_merge([
             'Pemasangan Pondasi',
@@ -163,8 +195,8 @@
                 <div class="transaction-step-heading">
                     <span class="transaction-step-index" aria-hidden="true">01</span>
                     <div>
-                    <h2 id="house-section-title" class="h6 fw-bold mb-1" x-text="activeTab === 'vendor-service' ? 'Target pekerjaan' : (activeTab === 'return' ? 'Rumah asal alat' : 'Rumah tujuan')"></h2>
-                    <p class="small text-secondary mb-0" x-text="activeTab === 'vendor-service' ? (vendorServiceTarget === 'cluster' ? 'Untuk pekerjaan area bersama seperti drainase, jalur listrik, atau fasilitas umum.' : 'Pilih satu rumah untuk pekerjaan unit seperti interior atau plumbing.') : (activeTab === 'return' ? 'Pilih rumah yang masih meminjam alat.' : (activeTab === 'rental' ? 'Pilih beberapa rumah dalam satu cluster untuk sewa alat yang sama.' : 'Bisa pilih beberapa rumah untuk satu alokasi.'))"></p>
+                    <h2 id="house-section-title" class="h6 fw-bold mb-1" x-text="activeTab === 'vendor-service' ? 'Target pekerjaan' : (activeTab === 'return' ? 'Rumah asal alat' : 'Tujuan alokasi')"></h2>
+                    <p class="small text-secondary mb-0" x-text="activeTab === 'vendor-service' ? (vendorServiceTarget === 'cluster' ? 'Untuk pekerjaan area bersama seperti drainase, jalur listrik, atau fasilitas umum.' : 'Pilih satu rumah untuk pekerjaan unit seperti interior atau plumbing.') : (activeTab === 'return' ? 'Pilih rumah yang masih meminjam alat.' : (activeTab === 'rental' ? 'Pilih beberapa rumah dalam satu cluster untuk sewa alat yang sama.' : 'Bisa pilih unit rumah atau pekerjaan umum untuk satu alokasi.'))"></p>
                     </div>
                 </div>
                 <div x-show.important="activeTab !== 'vendor-service' || vendorServiceTarget === 'house'" class="d-flex flex-wrap gap-2">
@@ -219,7 +251,7 @@
                         @endforeach
                         <button type="button" class="btn btn-link p-1" @click="showAllHouses = !showAllHouses" :aria-expanded="showAllHouses.toString()" x-text="showAllHouses ? 'Sembunyikan' : '+{{ $selectedHouses->count() - 3 }} lainnya'"></button>
                     @endif
-                    <span class="small text-secondary ms-auto">{{ $selectedHouses->count() }} rumah dipilih</span>
+                    <span class="small text-secondary ms-auto" x-text="targetCountLabel + ' dipilih'">{{ $selectedHouses->count() }} {{ $targetNoun }} dipilih</span>
                 </div>
             @endif
             @error('house_ids')
@@ -423,7 +455,7 @@
                     <span class="transaction-step-index" aria-hidden="true">02</span>
                     <div>
                         <h2 class="h6 fw-bold font-outfit text-body mb-1">Detail alokasi material</h2>
-                        <p class="small text-secondary mb-0">Jumlah di bawah diterapkan ke setiap rumah yang dipilih.</p>
+                        <p class="small text-secondary mb-0" x-text="'Jumlah di bawah diterapkan ke setiap ' + targetUnitLabel + ' yang dipilih.'">Jumlah di bawah diterapkan ke setiap {{ $targetNoun }} yang dipilih.</p>
                     </div>
                 </div>
 
@@ -552,7 +584,7 @@
 
                     <div class="col-12">
                         <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
-                            <label for="material-quantity" class="form-label fw-semibold mb-0">Jumlah / rumah</label>
+                            <label for="material-quantity" class="form-label fw-semibold mb-0" x-text="'Jumlah / ' + targetUnitLabel">Jumlah / {{ $targetNoun }}</label>
                             <span x-show="mat" class="extra-small font-mono text-secondary" :class="mat && mat.stock < totalQty ? 'text-danger fw-bold' : ''">
                                 Maks: <span x-text="mat && matBatch ? (houseCount ? Math.floor(Math.min(mat.stock, matBatch.remaining_quantity) / houseCount * 100) / 100 : Math.min(mat.stock, matBatch.remaining_quantity)) : 0"></span>
                             </span>
@@ -652,7 +684,7 @@
             </div>
 
             <div x-show="activeTab === 'allocation' && allocationType === 'material' && mat && totalQty > parseFloat(mat.stock)" x-cloak class="alert alert-danger small mt-3 mb-0" role="alert">
-                Kebutuhan <span x-text="Number(totalQty.toFixed(2))"></span> melebihi stok. Kurangi jumlah per rumah atau rumah tujuan.
+                Kebutuhan <span x-text="Number(totalQty.toFixed(2))"></span> melebihi stok. Kurangi jumlah per <span x-text="targetUnitLabel"></span> atau tujuan alokasi.
             </div>
 
             <!-- ---- Tool checkout ---- -->
@@ -661,7 +693,7 @@
                     <span class="transaction-step-index" aria-hidden="true">02</span>
                     <div>
                         <h2 class="h6 fw-bold font-outfit text-body mb-1">Detail peminjaman alat</h2>
-                        <p class="small text-secondary mb-0">Jumlah di bawah diterapkan ke setiap rumah yang dipilih.</p>
+                        <p class="small text-secondary mb-0" x-text="'Jumlah di bawah diterapkan ke setiap ' + targetUnitLabel + ' yang dipilih.'">Jumlah di bawah diterapkan ke setiap {{ $targetNoun }} yang dipilih.</p>
                     </div>
                 </div>
                 <div class="row g-3 align-items-start">
@@ -781,7 +813,7 @@
 
                     <div class="col-12">
                         <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 21px;">
-                            <label for="tool-quantity" class="form-label fw-semibold mb-0">Jumlah / rumah</label>
+                            <label for="tool-quantity" class="form-label fw-semibold mb-0" x-text="'Jumlah / ' + targetUnitLabel">Jumlah / {{ $targetNoun }}</label>
                             <span x-show="tool" class="extra-small font-mono text-secondary" :class="tool && toolAvailableAtWarehouse < totalTools ? 'text-danger fw-bold' : ''">
                                 Maks: <span x-text="tool ? (houseCount ? Math.floor(toolAvailableAtWarehouse / houseCount) : toolAvailableAtWarehouse) : 0"></span>
                             </span>
@@ -1004,7 +1036,7 @@
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6M9 12h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         <div>
                             <h2 id="transaction-summary-title" class="h6 fw-bold text-body mb-1">Dampak alokasi</h2>
-                            <p class="small text-secondary mb-0" x-text="activeTab === 'return' ? 'Periksa jumlah dan kondisi alat.' : 'Jumlah yang sama untuk setiap rumah.'"></p>
+                            <p class="small text-secondary mb-0" x-text="activeTab === 'return' ? 'Periksa jumlah dan kondisi alat.' : ('Jumlah yang sama untuk setiap ' + targetUnitLabel + '.')">Jumlah yang sama untuk setiap {{ $targetNoun }}.</p>
                         </div>
                     </div>
 
@@ -1050,7 +1082,7 @@
 
                     <!-- Column Header -->
                     <div x-show.important="activeTab !== 'return'" class="d-flex align-items-center justify-content-between small text-secondary fw-semibold py-2 mb-3 border-bottom">
-                        <span>Alokasi per rumah</span>
+                        <span x-text="'Alokasi per ' + targetUnitLabel">Alokasi per {{ $targetNoun }}</span>
                         <span x-text="activeTab === 'allocation' && allocationType === 'material' ? 'Biaya' : 'Kode'"></span>
                     </div>
 
@@ -1058,7 +1090,7 @@
                     <div class="mb-3">
                         @if ($selectedHouses->isEmpty())
                             <div class="py-2 text-secondary small">
-                                Pilih rumah untuk melihat ringkasan.
+                                Pilih tujuan alokasi untuk melihat ringkasan.
                             </div>
                         @else
                             <!-- MATERIAL STACKED LIST -->
@@ -1093,7 +1125,7 @@
                                 <div class="text-secondary mt-1">Alokasi alat dikembalikan</div>
                             </div>
                             @if ($selectedHouses->count() > 5)
-                                <button x-show="activeTab !== 'return'" type="button" class="btn btn-link btn-sm px-0" @click="showAllSummaryHouses = !showAllSummaryHouses" :aria-expanded="showAllSummaryHouses.toString()" x-text="showAllSummaryHouses ? 'Sembunyikan' : 'Lihat {{ $selectedHouses->count() - 5 }} rumah lainnya'" x-cloak></button>
+                                <button x-show="activeTab !== 'return'" type="button" class="btn btn-link btn-sm px-0" @click="showAllSummaryHouses = !showAllSummaryHouses" :aria-expanded="showAllSummaryHouses.toString()" x-text="showAllSummaryHouses ? 'Sembunyikan' : ('Lihat ' + (houseCount - 5) + ' ' + targetUnitLabel + ' lainnya')" x-cloak></button>
                             @endif
                         @endif
                     </div>
@@ -1101,8 +1133,8 @@
                     <!-- Receipt Summary Calculations -->
                     <div class="transaction-slip__totals extra-small" aria-live="polite">
                         <div class="d-flex align-items-center justify-content-between text-secondary mb-1">
-                            <span x-text="activeTab === 'return' ? 'Rumah asal' : 'Rumah tujuan'"></span>
-                            <span class="fw-bold text-body" x-text="houseCount + ' rumah'"></span>
+                            <span x-text="activeTab === 'return' ? 'Rumah asal' : (isAllPublicWork ? 'Pekerjaan umum' : (isAllHouse ? 'Rumah tujuan' : 'Tujuan alokasi'))">{{ $isAllPublicWork ? 'Pekerjaan umum' : ($isAllHouse ? 'Rumah tujuan' : 'Tujuan alokasi') }}</span>
+                            <span class="fw-bold text-body" x-text="targetCountLabel">{{ $selectedHouses->count() }} {{ $targetNoun }}</span>
                         </div>
                         <template x-if="activeTab === 'allocation' && allocationType === 'material'">
                             <div class="d-flex align-items-center justify-content-between text-secondary mb-2">
@@ -1112,7 +1144,7 @@
                         </template>
                         <template x-if="activeTab === 'allocation' && allocationType === 'tool'">
                             <div class="d-flex align-items-center justify-content-between text-secondary mb-2">
-                                <span>Jumlah per rumah</span>
+                                <span>Jumlah per <span x-text="targetUnitLabel"></span></span>
                                 <span class="fw-bold text-body" x-text="toolQty + ' unit'"></span>
                             </div>
                         </template>
@@ -2016,8 +2048,8 @@
                 </div>
                 <div class="modal-body allocation-confirmation-body">
                     <dl class="allocation-confirmation-summary small mb-0">
-                        <dt class="text-secondary fw-semibold">Unit rumah</dt>
-                        <dd class="mb-0 fw-bold">{{ $materialConfirmationData['houseCount'] ?? 0 }} rumah</dd>
+                        <dt class="text-secondary fw-semibold">{{ ($materialConfirmationData['isAllPublicWork'] ?? false) ? 'Pekerjaan umum' : 'Tujuan alokasi' }}</dt>
+                        <dd class="mb-0 fw-bold">{{ $materialConfirmationData['houseCount'] ?? 0 }} {{ $materialConfirmationData['targetLabel'] ?? 'unit' }}</dd>
                         <dt class="text-secondary fw-semibold">Cluster</dt>
                         <dd class="mb-0 fw-bold">{{ $materialConfirmationData['clusters'] ?? '-' }}</dd>
                         <dt class="text-secondary fw-semibold">Material</dt>
@@ -2033,7 +2065,7 @@
                         <dt class="text-secondary fw-semibold">Estimasi biaya batch</dt>
                         <dd class="mb-0 fw-bold text-success font-mono">Rp {{ number_format($materialConfirmationData['totalCost'] ?? 0, 0, ',', '.') }}</dd>
                     </dl>
-                    <p class="allocation-confirmation-note small text-secondary mt-3 mb-0">Saat disimpan, stok langsung berkurang dan biaya material tercatat pada setiap rumah.</p>
+                    <p class="allocation-confirmation-note small text-secondary mt-3 mb-0">Saat disimpan, stok langsung berkurang dan biaya material tercatat pada setiap {{ $materialConfirmationData['targetLabel'] ?? 'target' }}.</p>
                     <div class="allocation-confirmation-proof mt-3">
                         <label for="material-allocation-proof" class="form-label small fw-semibold">Foto bukti alokasi material <span class="text-secondary fw-normal">(opsional)</span></label>
                         <input id="material-allocation-proof" type="file" class="form-control" accept="image/*" wire:model="materialAllocationProofImage">
@@ -2043,8 +2075,8 @@
                     </div>
                     <div class="allocation-confirmation-houses">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h6 class="small fw-bold mb-0">Dampak per rumah</h6>
-                            <span class="extra-small text-secondary">{{ $materialConfirmationData['houseCount'] ?? 0 }} rumah</span>
+                            <h6 class="small fw-bold mb-0">Dampak per {{ $materialConfirmationData['targetLabel'] ?? 'target' }}</h6>
+                            <span class="extra-small text-secondary">{{ $materialConfirmationData['houseCount'] ?? 0 }} {{ $materialConfirmationData['targetLabel'] ?? 'unit' }}</span>
                         </div>
                         <div>
                             @foreach (($materialConfirmationData['houseRows'] ?? []) as $houseRow)
@@ -2083,8 +2115,8 @@
                 </div>
                 <div class="modal-body allocation-confirmation-body">
                     <dl class="allocation-confirmation-summary small mb-0">
-                        <dt class="text-secondary fw-semibold">Unit rumah</dt>
-                        <dd class="mb-0 fw-bold">{{ $toolConfirmationData['houseCount'] ?? 0 }} rumah</dd>
+                        <dt class="text-secondary fw-semibold">{{ ($toolConfirmationData['isAllPublicWork'] ?? false) ? 'Pekerjaan umum' : 'Tujuan alokasi' }}</dt>
+                        <dd class="mb-0 fw-bold">{{ $toolConfirmationData['houseCount'] ?? 0 }} {{ $toolConfirmationData['targetLabel'] ?? 'unit' }}</dd>
                         <dt class="text-secondary fw-semibold">Cluster</dt>
                         <dd class="mb-0 fw-bold">{{ $toolConfirmationData['clusters'] ?? '-' }}</dd>
                         <dt class="text-secondary fw-semibold">Alat</dt>
@@ -2105,8 +2137,8 @@
                     </div>
                     <div class="allocation-confirmation-houses">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h6 class="small fw-bold mb-0">Dampak per rumah</h6>
-                            <span class="extra-small text-secondary">{{ $toolConfirmationData['houseCount'] ?? 0 }} rumah</span>
+                            <h6 class="small fw-bold mb-0">Dampak per {{ $toolConfirmationData['targetLabel'] ?? 'target' }}</h6>
+                            <span class="extra-small text-secondary">{{ $toolConfirmationData['houseCount'] ?? 0 }} {{ $toolConfirmationData['targetLabel'] ?? 'unit' }}</span>
                         </div>
                         <div>
                             @foreach (($toolConfirmationData['houseRows'] ?? []) as $houseRow)
