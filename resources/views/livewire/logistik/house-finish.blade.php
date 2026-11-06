@@ -101,7 +101,7 @@
                     </table>
                 </div>
 
-            <div class="d-flex justify-content-end">{{ $materialUsages->links() }}</div>
+            <div class="mt-3">{{ $materialUsages->links('vendor.livewire.bootstrap') }}</div>
             @endif
         </div>
 

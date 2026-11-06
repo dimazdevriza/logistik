@@ -203,7 +203,7 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-end">{{ $records->links() }}</div>
+        <div class="mt-3">{{ $records->links('vendor.livewire.bootstrap') }}</div>
     </div>
 
     @if ($showConfirmation)

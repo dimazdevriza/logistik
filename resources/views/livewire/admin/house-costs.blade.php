@@ -120,28 +120,18 @@
                                     $bobotBahan = $house->bobot_bahan;
                                     $isOverBudget = $bobotBahan !== null && $bobotBahan > 100;
                                 @endphp
-                                <div class="d-flex flex-column gap-1" style="min-width: 130px;">
-                                    <div class="d-flex justify-content-between align-items-center extra-small">
-                                        <span class="text-secondary">Fisik:</span>
-                                        <span class="font-mono fw-bold text-body">{{ number_format($bobotRumah, 1, ',', '.') }}%</span>
-                                    </div>
-                                    <div class="progress bg-body-tertiary" style="height: 4px;">
-                                        <div class="progress-bar bg-success" style="width: {{ min(100, $bobotRumah) }}%;"></div>
-                                    </div>
-
-                                    <div class="d-flex justify-content-between align-items-center extra-small mt-1">
-                                        <span class="text-secondary">Bahan:</span>
+                                <div class="d-inline-flex flex-column gap-1" style="min-width: 120px;">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 font-mono extra-small">
+                                        <span class="badge bg-body-secondary text-body px-1.5 py-0.5" title="Bobot Progres Fisik">F: {{ number_format($bobotRumah, 1, ',', '.') }}%</span>
                                         @if ($bobotBahan !== null)
-                                            <span class="font-mono fw-bold {{ $isOverBudget ? 'text-danger' : 'text-body' }}">{{ number_format($bobotBahan, 1, ',', '.') }}%</span>
+                                            <span class="badge {{ $isOverBudget ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success' }} px-1.5 py-0.5" title="Bobot Serapan Bahan">B: {{ number_format($bobotBahan, 1, ',', '.') }}%</span>
                                         @else
-                                            <span class="text-secondary">-</span>
+                                            <span class="text-secondary small" title="Bobot Serapan Bahan">-</span>
                                         @endif
                                     </div>
-                                    @if ($bobotBahan !== null)
-                                    <div class="progress bg-body-tertiary" style="height: 4px;">
-                                        <div class="progress-bar {{ $isOverBudget ? 'bg-danger' : 'bg-success' }}" style="width: {{ min(100, $bobotBahan) }}%;"></div>
+                                    <div class="progress bg-body-tertiary" style="height: 3px;" title="Progres Fisik: {{ number_format($bobotRumah, 1, ',', '.') }}%">
+                                        <div class="progress-bar bg-success" style="width: {{ min(100, $bobotRumah) }}%;"></div>
                                     </div>
-                                    @endif
                                 </div>
                             </td>
                             
@@ -175,6 +165,6 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-end">{{ $houses->links() }}</div>
+        <div class="mt-3">{{ $houses->links('vendor.livewire.bootstrap') }}</div>
     </div>
 </div>

@@ -330,7 +330,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="d-flex justify-content-end">{{ $materialUsages->links() }}</div>
+                <div class="mt-3">{{ $materialUsages->links('vendor.livewire.bootstrap') }}</div>
             </div>
             @endif
 
@@ -380,7 +380,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="d-flex justify-content-end">{{ $toolUsages->links() }}</div>
+                <div class="mt-3">{{ $toolUsages->links('vendor.livewire.bootstrap') }}</div>
             </div>
             @endif
 
@@ -417,7 +417,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="d-flex justify-content-end mt-3">{{ $vendorServiceExpenses->links() }}</div>
+                <div class="mt-3">{{ $vendorServiceExpenses->links('vendor.livewire.bootstrap') }}</div>
             </div>
             @endif
 
@@ -461,7 +461,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="d-flex justify-content-end mt-3">{{ $vendorRentalExpenses->links() }}</div>
+                <div class="mt-3">{{ $vendorRentalExpenses->links('vendor.livewire.bootstrap') }}</div>
             </div>
             @endif
         </div>

@@ -21,18 +21,18 @@
                             @unless ($isPublicWork)
                                 <button type="button" wire:click="openImportModal" class="btn btn-hero-action flex-fill">
                                     <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
-                                    <span>Import</span>
+                                    <span>Impor</span>
                                 </button>
                             @endunless
                             <button type="button" wire:click="exportExcel" class="btn btn-hero-action flex-fill">
                                 <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
-                                <span>Export</span>
+                                <span>Ekspor</span>
                             </button>
                         </div>
                     @endif
                     <button type="button" wire:click="create" class="btn btn-hero-primary w-100">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/></svg>
-                        <span>{{ $isPublicWork ? 'Tambah Pekerjaan Baru' : 'Tambah Rumah' }}</span>
+                        <span>{{ $isPublicWork ? 'Tambah Pekerjaan' : 'Tambah Rumah' }}</span>
                     </button>
                 </div>
             </div>
@@ -128,27 +128,17 @@
                                     $bobotBahan = $house->bobot_bahan;
                                     $isOverBudget = $bobotBahan !== null && $bobotBahan > 100;
                                 @endphp
-                                <div class="d-flex flex-column gap-1" style="min-width: 130px;">
-                                    <div class="d-flex justify-content-between align-items-center extra-small">
-                                        <span class="text-secondary">Fisik:</span>
-                                        <span class="font-mono fw-bold text-body">{{ number_format($bobotRumah, 1, ',', '.') }}%</span>
-                                    </div>
-                                    <div class="progress bg-body-tertiary" style="height: 4px;">
-                                        <div class="progress-bar bg-success" style="width: {{ min(100, $bobotRumah) }}%;"></div>
-                                    </div>
-
-                                    <div class="d-flex justify-content-between align-items-center extra-small mt-1">
-                                        <span class="text-secondary">Bahan:</span>
+                                <div class="d-inline-flex flex-column gap-1" style="min-width: 120px;">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 font-mono extra-small">
+                                        <span class="badge bg-body-secondary text-body px-1.5 py-0.5" title="Bobot Progres Fisik">F: {{ number_format($bobotRumah, 1, ',', '.') }}%</span>
                                         @if ($bobotBahan !== null)
-                                            <span class="font-mono fw-bold {{ $isOverBudget ? 'text-danger' : 'text-body' }}">{{ number_format($bobotBahan, 1, ',', '.') }}%</span>
+                                            <span class="badge {{ $isOverBudget ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success' }} px-1.5 py-0.5" title="Bobot Serapan Bahan">B: {{ number_format($bobotBahan, 1, ',', '.') }}%</span>
                                         @else
-                                            <span class="text-secondary italic">-</span>
+                                            <span class="text-secondary small" title="Bobot Serapan Bahan">-</span>
                                         @endif
                                     </div>
-                                    <div class="progress bg-body-tertiary" style="height: 4px;">
-                                        @if ($bobotBahan !== null)
-                                            <div class="progress-bar {{ $isOverBudget ? 'bg-danger' : 'bg-success' }}" style="width: {{ min(100, $bobotBahan) }}%;"></div>
-                                        @endif
+                                    <div class="progress bg-body-tertiary" style="height: 3px;" title="Progres Fisik: {{ number_format($bobotRumah, 1, ',', '.') }}%">
+                                        <div class="progress-bar bg-success" style="width: {{ min(100, $bobotRumah) }}%;"></div>
                                     </div>
                                 </div>
                             </td>
@@ -176,7 +166,7 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-end">{{ $houses->links() }}</div>
+        <div class="mt-3">{{ $houses->links('vendor.livewire.bootstrap') }}</div>
     </div>
 
     <!-- Modal: Create / Edit House or Public Work -->

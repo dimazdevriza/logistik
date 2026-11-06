@@ -105,7 +105,7 @@
                             <x-sortable-th field="unit" :sort="$sort">Satuan</x-sortable-th>
                             <x-sortable-th field="unit_price" :sort="$sort" class="text-end data-number">Harga Satuan</x-sortable-th>
                             <x-sortable-th field="total" :sort="$sort" class="text-end data-number">Jumlah</x-sortable-th>
-                            <x-sortable-th field="supplier" :sort="$sort">Toko/Supplier</x-sortable-th>
+                            <x-sortable-th field="supplier" :sort="$sort">Supplier</x-sortable-th>
                             <th class="text-end">Aksi</th>
                         </tr>
                     </thead>
@@ -221,7 +221,7 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-end">{{ $records->links() }}</div>
+        <div class="mt-3">{{ $records->links('vendor.livewire.bootstrap') }}</div>
     </div>
 
         @if ($showReceiptModal && $activeReceipt)

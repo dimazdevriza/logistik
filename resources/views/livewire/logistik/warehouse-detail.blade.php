@@ -122,7 +122,7 @@
                     </table>
                 </div>
                 @endif
-                <div class="d-flex justify-content-end mt-3">{{ $materials->links() }}</div>
+                <div class="mt-3">{{ $materials->links('vendor.livewire.bootstrap') }}</div>
             @endif
 
             @if ($activeTab === 'tool')
@@ -164,7 +164,7 @@
                     </table>
                 </div>
                 @endif
-                <div class="d-flex justify-content-end mt-3">{{ $tools->links() }}</div>
+                <div class="mt-3">{{ $tools->links('vendor.livewire.bootstrap') }}</div>
             @endif
         </div>
     </div>

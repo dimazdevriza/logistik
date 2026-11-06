@@ -5,7 +5,7 @@
             <div class="card-body p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit">
-                        Manajemen <span class="text-success">Pengguna</span>
+                        Manajemen <span class="text-success">User</span>
                     </h1>
                     <p class="text-secondary mb-0 max-w-xl">
                         Kelola akun dan hak akses pengguna sistem logistik.

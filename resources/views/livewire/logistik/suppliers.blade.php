@@ -50,7 +50,7 @@
                         <tr>
                             <th class="text-center py-3" style="width: 60px;">No.</th>
                             <x-sortable-th field="name" :sort="$sort" class="py-3">Nama Mitra Supplier</x-sortable-th>
-                            <x-sortable-th field="contact" :sort="$sort" class="py-3">Kontak Person</x-sortable-th>
+                            <x-sortable-th field="contact" :sort="$sort" class="py-3">Narahubung</x-sortable-th>
                             <x-sortable-th field="phone" :sort="$sort" class="py-3">No. Telepon</x-sortable-th>
                             <x-sortable-th field="address" :sort="$sort" class="py-3">Alamat</x-sortable-th>
                             <th class="text-end py-3 pe-4" style="width: 140px;">Aksi</th>
@@ -136,7 +136,7 @@
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label font-semibold text-body small">Kontak Person</label>
+                            <label class="form-label font-semibold text-body small">Narahubung</label>
                             <input type="text" wire:model="contact_person" class="form-control" placeholder="Nama perwakilan" />
                             @error('contact_person') <span class="text-danger small mt-1 d-block">{{ $message }}</span> @enderror
                         </div>

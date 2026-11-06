@@ -239,7 +239,7 @@
                 <div class="transaction-step-heading mb-4">
                     <span class="transaction-step-index" aria-hidden="true">02</span>
                     <div>
-                        <h2 class="h6 fw-bold mb-1">Sewa alat dari vendor</h2>
+                        <h2 class="h6 fw-bold mb-1">Sewa Alat Vendor</h2>
                         <p class="small text-secondary mb-0">Alat milik vendor dicatat sebagai biaya cluster, tanpa menambah stok gudang.</p>
                     </div>
                 </div>

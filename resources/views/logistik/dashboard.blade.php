@@ -77,7 +77,7 @@
                 <div>
                     <div class="d-flex align-items-center gap-2 mb-1">
                         <h5 class="fw-bold font-outfit text-body mb-0">Aktivitas Penggunaan Terbaru</h5>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 extra-small font-mono">{{ $recent_activities->count() }} Records</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 extra-small font-mono">{{ $recent_activities->count() }} Catatan</span>
                     </div>
                     <p class="text-secondary extra-small mb-0">Catatan alokasi material terbaru pada proyek pembangunan rumah.</p>
                 </div>

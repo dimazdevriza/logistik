@@ -23,7 +23,7 @@
                     @if(auth()->user()->role === 'admin')
                         <a href="{{ route('admin.users') }}" wire:navigate class="btn btn-success btn-sm rounded-3 d-inline-flex align-items-center gap-2">
                             <svg width="15" height="15" fill="currentColor" aria-hidden="true"><use href="#i-people"/></svg>
-                            <span>Kelola User</span>
+                            <span>Manajemen User</span>
                         </a>
                     @endif
                 </div>
@@ -192,7 +192,7 @@
                                     <svg width="15" height="15" fill="currentColor" aria-hidden="true"><use href="#i-journal-text"/></svg>
                                 </div>
                                 <h5 class="fw-bold font-outfit text-body mb-0">Aktivitas Material Terkini</h5>
-                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 extra-small font-mono">{{ $recent_activities->count() }} Records</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 extra-small font-mono">{{ $recent_activities->count() }} Catatan</span>
                             </div>
                             <p class="text-secondary extra-small mb-0">Catatan alokasi material keluar ke unit rumah proyek.</p>
                         </div>
@@ -368,7 +368,7 @@
 
                     <div class="row g-2">
                         @if (auth()->user()->role === 'admin')
-                            <div class="col-6"><a href="{{ route('admin.users') }}" wire:navigate class="btn btn-outline-secondary btn-sm w-100 text-start py-2">Kelola User</a></div>
+                            <div class="col-6"><a href="{{ route('admin.users') }}" wire:navigate class="btn btn-outline-secondary btn-sm w-100 text-start py-2">Manajemen User</a></div>
                         @endif
                         <div class="col-6"><a href="{{ route('logistik.houses') }}" wire:navigate class="btn btn-outline-secondary btn-sm w-100 text-start py-2">Unit Rumah</a></div>
                         <div class="col-6"><a href="{{ route('logistik.materials') }}" wire:navigate class="btn btn-outline-secondary btn-sm w-100 text-start py-2">Inventaris</a></div>

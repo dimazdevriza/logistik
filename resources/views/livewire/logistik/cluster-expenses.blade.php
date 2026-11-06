@@ -241,7 +241,7 @@
                             <strong class="font-mono text-warning">Rp {{ number_format($houseSubtotal, 0, ',', '.') }}</strong>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-end">{{ $houses->links() }}</div>
+                    <div class="mt-3">{{ $houses->links('vendor.livewire.bootstrap') }}</div>
                 </div>
 
                 <div class="cluster-public-work-table-panel">

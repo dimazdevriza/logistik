@@ -329,7 +329,7 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-end mb-5">{{ $materialUsages->links() }}</div>
+        <div class="mt-3 mb-5">{{ $materialUsages->links('vendor.livewire.bootstrap') }}</div>
 
         <!-- Material Loss Section -->
         <section aria-labelledby="material-loss-title">
@@ -364,7 +364,7 @@
                     </table>
                 </div>
             </div>
-            <div class="d-flex justify-content-end mt-2">{{ $materialLosses->links() }}</div>
+            <div class="mt-3">{{ $materialLosses->links('vendor.livewire.bootstrap') }}</div>
         </section>
     </div>
 

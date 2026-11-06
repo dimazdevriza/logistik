@@ -263,7 +263,7 @@
             </div>
 
             <div class="mt-3">
-                {{ $requests->links() }}
+                {{ $requests->links('vendor.livewire.bootstrap') }}
             </div>
         </div>
     </div>
