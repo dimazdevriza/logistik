@@ -104,27 +104,29 @@ class HouseCostsTest extends TestCase
         $headings = $export->headings();
         $headerRow = $headings[5];
 
-        $this->assertEquals('Status', $headerRow[5]);
-        $this->assertEquals('Bobot Kerja', $headerRow[6]);
-        $this->assertEquals('Bobot Bahan', $headerRow[7]);
-        $this->assertEquals('Jan', $headerRow[8]);
+        $this->assertEquals('Mandor', $headerRow[5]);
+        $this->assertEquals('Status', $headerRow[6]);
+        $this->assertEquals('Bobot Kerja', $headerRow[7]);
+        $this->assertEquals('Bobot Bahan', $headerRow[8]);
+        $this->assertEquals('Jan', $headerRow[9]);
 
         $formats = $export->columnFormats();
-        $this->assertEquals('0%', $formats['G']);
         $this->assertEquals('0%', $formats['H']);
-        $this->assertEquals('[$Rp-421] #,##0.00', $formats['I']);
+        $this->assertEquals('0%', $formats['I']);
+        $this->assertEquals('[$Rp-421] #,##0.00', $formats['J']);
 
         $mapped = $export->map($house);
-        $this->assertEquals('Pembangunan', $mapped[5]);
-        $this->assertEquals(0.45, $mapped[6]);
-        $this->assertEquals(0.0, $mapped[7]);
+        $this->assertEquals('-', $mapped[5]);
+        $this->assertEquals('Pembangunan', $mapped[6]);
+        $this->assertEquals(0.45, $mapped[7]);
+        $this->assertEquals(0.0, $mapped[8]);
 
-        // Verify AfterSheet aligns G and H center and positions drawing at center
+        // Verify AfterSheet aligns G, H, I center and J right and positions drawing at center
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setCellValue('A7', '1');
-        $sheet->setCellValue('G7', 0.45);
-        $sheet->setCellValue('H7', 0.0);
+        $sheet->setCellValue('H7', 0.45);
+        $sheet->setCellValue('I7', 0.0);
         foreach ($export->drawings() as $d) { $d->setWorksheet($sheet); }
 
         $events = $export->registerEvents();
@@ -133,6 +135,7 @@ class HouseCostsTest extends TestCase
 
         $this->assertEquals('center', $sheet->getStyle('G7')->getAlignment()->getHorizontal());
         $this->assertEquals('center', $sheet->getStyle('H7')->getAlignment()->getHorizontal());
-        $this->assertEquals('right', $sheet->getStyle('I7')->getAlignment()->getHorizontal());
+        $this->assertEquals('center', $sheet->getStyle('I7')->getAlignment()->getHorizontal());
+        $this->assertEquals('right', $sheet->getStyle('J7')->getAlignment()->getHorizontal());
     }
 }

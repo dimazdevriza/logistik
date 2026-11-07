@@ -104,6 +104,7 @@ class HouseUnitsSheetImport implements ToCollection, WithHeadingRow
                 $code = $rowData['kode'] ?? $rowData['koderumah'] ?? $rowData['housecode'] ?? null;
                 $name = $rowData['namarumah'] ?? $rowData['nama'] ?? $rowData['blok'] ?? $rowData['unit'] ?? $rowData['namablok'] ?? null;
                 $type = $rowData['tipe'] ?? $rowData['tiperumah'] ?? $rowData['type'] ?? 'Standar';
+                $mandorName = trim((string) ($rowData['mandor'] ?? $rowData['namamandor'] ?? $rowData['mandorname'] ?? ''));
                 $clusterName = trim((string) ($rowData['cluster'] ?? $rowData['namacluster'] ?? ''));
                 $cluster = $this->parent->clusterId !== null
                     ? Cluster::findOrFail($this->parent->clusterId)
@@ -207,6 +208,7 @@ class HouseUnitsSheetImport implements ToCollection, WithHeadingRow
                     $house->update([
                         'name' => $name,
                         'type' => $type ?: $house->type,
+                        'mandor_name' => $mandorName ?: $house->mandor_name,
                         'status' => $nextStatus,
                         'cluster_id' => $this->parent->clusterId ?? $cluster?->id ?? $house->cluster_id,
                         'start_date' => $startDate ?: $house->start_date,
@@ -233,6 +235,7 @@ class HouseUnitsSheetImport implements ToCollection, WithHeadingRow
                         'house_code' => $code,
                         'name' => $name,
                         'type' => $type,
+                        'mandor_name' => $mandorName ?: null,
                         'status' => $status ?? 'perencanaan',
                         'cluster_id' => $this->parent->clusterId ?? $cluster?->id,
                         'start_date' => $startDate,

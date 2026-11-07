@@ -121,6 +121,7 @@ class Houses extends Component
 
     public $name = '';
     public $type = '';
+    public $mandor_name = '';
     public $status = 'perencanaan';
     public $material_budget = '';
     public $cluster_id = '';
@@ -140,6 +141,7 @@ class Houses extends Component
         $this->houseId = null;
         $this->name = '';
         $this->type = '';
+        $this->mandor_name = '';
         $this->status = 'perencanaan';
         $this->material_budget = '';
         $this->cluster_id = '';
@@ -275,6 +277,7 @@ class Houses extends Component
         return [
             'name' => 'required|string|max:255',
             'type' => $this->isPublicWork ? 'nullable|string|max:100' : 'required|string|max:100',
+            'mandor_name' => 'nullable|string|max:255',
             'status' => 'required|in:perencanaan,pembangunan,selesai',
             'cluster_id' => 'nullable|exists:clusters,id',
             'cluster_name' => 'nullable|string|max:255',
@@ -343,6 +346,7 @@ class Houses extends Component
         $this->houseId = $house->id;
         $this->name = $house->name;
         $this->type = $house->type;
+        $this->mandor_name = $house->mandor_name ?? '';
         $this->status = $house->status;
         $this->material_budget = $house->material_budget ? (string) $house->material_budget : '';
         $this->cluster_id = $house->cluster_id ?? '';
@@ -408,6 +412,7 @@ class Houses extends Component
             'category' => $category,
             'name' => $this->name,
             'type' => $this->isPublicWork ? 'Pekerjaan Umum' : $this->type,
+            'mandor_name' => trim((string) $this->mandor_name) ?: null,
             'status' => $this->status,
             'cluster_id' => $resolvedClusterId,
             'start_date' => $this->start_date ?: null,
@@ -536,6 +541,7 @@ class Houses extends Component
             'category' => House::CATEGORY_HOUSE,
             'name' => trim($row['name']),
             'type' => trim($row['type']),
+            'mandor_name' => trim((string) $this->mandor_name) ?: null,
             'status' => $validated['status'],
             'material_budget' => $budget,
             'physical_progress' => 0.0,

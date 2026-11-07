@@ -103,6 +103,7 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
                 'Nama / Blok',
                 'Cluster',
                 'Tipe',
+                'Mandor',
                 'Status',
                 'Bobot Kerja',
                 'Bobot Bahan',
@@ -160,6 +161,7 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
                 $house->name,
                 $house->cluster?->name ?? 'Tanpa Cluster',
                 $house->type,
+                $house->mandor_name ?: '-',
                 ucfirst($house->status),
                 $bobotKerja,
                 $bobotBahan,
@@ -175,9 +177,8 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
     public function columnFormats(): array
     {
         return [
-            'G' => '0%',
             'H' => '0%',
-            'I' => '[$Rp-421] #,##0.00',
+            'I' => '0%',
             'J' => '[$Rp-421] #,##0.00',
             'K' => '[$Rp-421] #,##0.00',
             'L' => '[$Rp-421] #,##0.00',
@@ -191,21 +192,22 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
             'T' => '[$Rp-421] #,##0.00',
             'U' => '[$Rp-421] #,##0.00',
             'V' => '[$Rp-421] #,##0.00',
+            'W' => '[$Rp-421] #,##0.00',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->mergeCells('A1:V1');
-        $sheet->mergeCells('A2:V2');
-        $sheet->mergeCells('A3:V3');
-        $sheet->mergeCells('A4:V4');
+        $sheet->mergeCells('A1:W1');
+        $sheet->mergeCells('A2:W2');
+        $sheet->mergeCells('A3:W3');
+        $sheet->mergeCells('A4:W4');
         $sheet->getRowDimension(1)->setRowHeight(52);
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
-        $sheet->getStyle('A1:V4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1:W4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        $sheet->getStyle('A6:V6')->applyFromArray([
+        $sheet->getStyle('A6:W6')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
@@ -232,7 +234,7 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
                 $sheet = $event->sheet->getDelegate();
                 $highestRow = max(6, $sheet->getHighestRow());
 
-                $sheet->getStyle("A6:V{$highestRow}")->applyFromArray([
+                $sheet->getStyle("A6:W{$highestRow}")->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -240,36 +242,36 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
                         ],
                     ],
                 ]);
-                $sheet->getStyle('A6:V6')->getBorders()->getAllBorders()->getColor()->setRGB('000000');
+                $sheet->getStyle('A6:W6')->getBorders()->getAllBorders()->getColor()->setRGB('000000');
 
                 if ($highestRow >= 7) {
                     $sheet->getStyle("A7:A{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("B7:B{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("F7:F{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("G7:H{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("I7:V{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                    $sheet->getStyle("G7:G{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle("H7:I{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle("J7:W{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                 }
 
                 // Add summary footer row
                 $totalRow = $highestRow + 1;
-                $sheet->setCellValue("H{$totalRow}", 'TOTAL:');
-                foreach (range('I', 'V') as $col) {
+                $sheet->setCellValue("I{$totalRow}", 'TOTAL:');
+                foreach (range('J', 'W') as $col) {
                     $sheet->setCellValue("{$col}{$totalRow}", $highestRow >= 7 ? "=SUM({$col}7:{$col}{$highestRow})" : 0);
                 }
 
-                $sheet->getStyle("H{$totalRow}:V{$totalRow}")->applyFromArray([
+                $sheet->getStyle("I{$totalRow}:W{$totalRow}")->applyFromArray([
                     'font' => ['bold' => true],
                 ]);
-                $sheet->getStyle("H{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle("I{$totalRow}:V{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle("I{$totalRow}:V{$totalRow}")->getNumberFormat()->setFormatCode('[$Rp-421] #,##0.00');
+                $sheet->getStyle("I{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("J{$totalRow}:W{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("J{$totalRow}:W{$totalRow}")->getNumberFormat()->setFormatCode('[$Rp-421] #,##0.00');
 
                 // Center header logo across final calculated column widths
                 $sheet->calculateColumnWidths();
                 $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
                 $columnWidths = [];
                 $totalWidth = 0;
-                for ($column = 1; $column <= 22; $column++) {
+                for ($column = 1; $column <= 23; $column++) {
                     $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
                     $columnWidths[] = $width;
                     $totalWidth += $width;

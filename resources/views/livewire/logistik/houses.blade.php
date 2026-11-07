@@ -113,7 +113,12 @@
                             <td class="fw-bold text-body data-key-name" title="{{ $house->name }}">{{ $house->name }}</td>
                             <td class="text-secondary small data-cell-truncate" title="{{ $house->cluster?->name ?? 'Belum dikelompokkan' }}">{{ $house->cluster?->name ?? '-' }}</td>
                             @unless ($isPublicWork)
-                                <td class="text-secondary small data-cell-truncate" title="{{ $house->type ?? '-' }}">{{ $house->type ?: '-' }}</td>
+                                <td class="text-secondary small data-cell-truncate" title="{{ $house->type ?? '-' }}">
+                                    {{ $house->type ?: '-' }}
+                                    @if ($house->mandor_name)
+                                        <span class="d-block extra-small text-secondary font-sans opacity-75">Mandor: {{ $house->mandor_name }}</span>
+                                    @endif
+                                </td>
                             @endunless
                             <td>
                                 @php
@@ -268,6 +273,11 @@
                                 @error('start_date') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
                             </div>
                         </div>
+                        <div class="mt-3">
+                            <label for="pw-mandor" class="form-label font-semibold">Mandor / Penanggung Jawab</label>
+                            <input id="pw-mandor" type="text" wire:model="mandor_name" class="form-control" placeholder="Nama mandor atau penanggung jawab (opsional)" />
+                            @error('mandor_name') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
                     @else
                     @if (!$editMode)
                         <div class="mb-3">
@@ -312,8 +322,13 @@
                             <input id="house-type" type="text" wire:model="type" class="form-control" placeholder="Tipe 36/72" />
                             @error('type') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
                         </div>
+                        <div class="col-md-6">
+                            <label for="house-mandor" class="form-label font-semibold">Mandor Lapangan</label>
+                            <input id="house-mandor" type="text" wire:model="mandor_name" class="form-control" placeholder="Nama mandor (opsional)" />
+                            @error('mandor_name') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
                         @if ($editMode)
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <label for="house-status" class="form-label font-semibold">Status</label>
                                 <select id="house-status" wire:model="status" class="form-select">
                                     <option value="perencanaan">Perencanaan</option>

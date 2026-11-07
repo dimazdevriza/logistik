@@ -29,7 +29,12 @@
                             <span class="badge bg-secondary-subtle text-secondary font-mono fs-6 house-detail-code">{{ $house->house_code }}</span>
                         @endif
                     </div>
-                    <p class="text-secondary mb-0 mt-1">{{ $house->isPublicWork() ? 'Cluster: ' . ($house->cluster?->name ?? 'Tanpa Cluster') : 'Tipe Unit: ' . ($house->type ?: '-') }}</p>
+                    <p class="text-secondary mb-0 mt-1">
+                        {{ $house->isPublicWork() ? 'Cluster: ' . ($house->cluster?->name ?? 'Tanpa Cluster') : 'Tipe Unit: ' . ($house->type ?: '-') }}
+                        @if ($house->mandor_name)
+                            <span class="ms-2">· Mandor: <strong>{{ $house->mandor_name }}</strong></span>
+                        @endif
+                    </p>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">

@@ -18,6 +18,7 @@ class House extends Model
         'house_code',
         'name',
         'type',
+        'mandor_name',
         'status',
         'material_budget',
         'physical_progress',
