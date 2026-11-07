@@ -103,6 +103,7 @@ class Houses extends Component
                 $direction
             ),
             'type' => 'houses.type',
+            'mandor' => 'houses.mandor_name',
             'status' => 'houses.status',
             'cost' => fn ($query, $direction) => $query->orderBy(
                 MaterialUsage::selectRaw('COALESCE(SUM(total_cost), 0)')
@@ -674,6 +675,7 @@ class Houses extends Component
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")
+                    ->orWhere('mandor_name', 'like', "%{$this->search}%")
                     ->orWhere('house_code', 'like', "%{$this->search}%")
                     ->orWhereHas('cluster', fn ($cluster) => $cluster->where('name', 'like', "%{$this->search}%"));
             }))

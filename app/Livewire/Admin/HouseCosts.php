@@ -64,6 +64,7 @@ class HouseCosts extends Component
             'name' => 'houses.name',
             'code' => 'houses.house_code',
             'type' => 'houses.type',
+            'mandor' => 'houses.mandor_name',
             'status' => 'houses.status',
             'progress' => 'houses.physical_progress',
             'year_total' => fn ($query, $direction) => $query->orderBy(
@@ -128,6 +129,7 @@ class HouseCosts extends Component
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")
+                    ->orWhere('mandor_name', 'like', "%{$this->search}%")
                     ->orWhere('house_code', 'like', "%{$this->search}%")
                     ->orWhereHas('cluster', fn ($cluster) => $cluster->where('name', 'like', "%{$this->search}%"));
             }))

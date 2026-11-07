@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Logistik;
 
+use App\Models\Cluster;
 use App\Models\House;
 use App\Models\ClusterExpense;
 use App\Models\Material;
@@ -41,6 +42,16 @@ class HouseDetail extends Component
     public bool $showStageModal = false;
     public array $editableStages = [];
     public $copyStageHouseId = '';
+
+    // Edit house modal
+    public bool $showEditModal = false;
+    public string $editName = '';
+    public string $editType = '';
+    public string $editMandorName = '';
+    public ?int $editClusterId = null;
+    public string $editStartDate = '';
+    public string $editTargetEndDate = '';
+    public string $editMaterialBudget = '';
 
     public function mount(House $house)
     {
@@ -399,5 +410,103 @@ class HouseDetail extends Component
         return response()->streamDownload(function () use ($export) {
             echo Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX);
         }, $filename);
+    }
+
+    public function openEditModal(): void
+    {
+        $user = auth()->user();
+        abort_unless($user && $this->house->isAccessibleBy($user), 403);
+
+        $this->editName = $this->house->name;
+        $this->editType = $this->house->type ?? '';
+        $this->editMandorName = $this->house->mandor_name ?? '';
+        $this->editClusterId = $this->house->cluster_id;
+        $this->editStartDate = $this->house->start_date?->format('Y-m-d') ?? '';
+        $this->editTargetEndDate = $this->house->target_end_date?->format('Y-m-d') ?? '';
+        $this->editMaterialBudget = $this->house->material_budget !== null ? (string) $this->house->material_budget : '';
+
+        $this->resetValidation();
+        $this->showEditModal = true;
+    }
+
+    public function saveHouse(): void
+    {
+        $user = auth()->user();
+        abort_unless($user && $this->house->isAccessibleBy($user), 403);
+
+        $rules = [
+            'editName' => 'required|string|max:255',
+            'editMandorName' => 'nullable|string|max:255',
+            'editStartDate' => 'nullable|date',
+        ];
+
+        if (! $this->house->isPublicWork()) {
+            $rules['editType'] = 'required|string|max:100';
+            $rules['editTargetEndDate'] = 'nullable|date|after_or_equal:editStartDate';
+            if (in_array($user->role, ['admin', 'logistik'], true)) {
+                $rules['editMaterialBudget'] = 'nullable|numeric|min:0|max:999999999999';
+            }
+        }
+
+        if ($this->canPickCluster()) {
+            $rules['editClusterId'] = $this->house->isPublicWork()
+                ? 'required|exists:clusters,id'
+                : 'nullable|exists:clusters,id';
+        }
+
+        $this->validate($rules, [], [
+            'editName' => $this->house->isPublicWork() ? 'nama pekerjaan' : 'nama / blok rumah',
+            'editType' => 'tipe unit',
+            'editMandorName' => 'nama mandor',
+            'editStartDate' => 'tanggal mulai',
+            'editTargetEndDate' => 'target selesai',
+            'editMaterialBudget' => 'anggaran material',
+            'editClusterId' => 'cluster',
+        ]);
+
+        $data = [
+            'name' => $this->editName,
+            'mandor_name' => trim((string) $this->editMandorName) ?: null,
+            'start_date' => $this->editStartDate ?: null,
+        ];
+
+        if (! $this->house->isPublicWork()) {
+            $data['type'] = $this->editType;
+            $data['target_end_date'] = $this->editTargetEndDate ?: null;
+            if (in_array($user->role, ['admin', 'logistik'], true)) {
+                $data['material_budget'] = ($this->editMaterialBudget !== '' && $this->editMaterialBudget !== null)
+                    ? (float) $this->editMaterialBudget
+                    : null;
+            }
+        }
+
+        if ($this->canPickCluster()) {
+            $data['cluster_id'] = $this->editClusterId ?: null;
+        }
+
+        $this->house->update($data);
+        $this->house->refresh();
+        $this->showEditModal = false;
+        session()->flash('success', ($this->house->isPublicWork() ? 'Pekerjaan umum' : 'Rumah').' berhasil diperbarui.');
+    }
+
+    public function canPickCluster(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user && ($user->canAccessAllClusters() || count($user->assignedClusterIds()) > 1));
+    }
+
+    public function availableClusters()
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return collect();
+        }
+        if ($user->canAccessAllClusters()) {
+            return Cluster::orderBy('name')->get();
+        }
+
+        return Cluster::whereIn('id', $user->assignedClusterIds())->orderBy('name')->get();
     }
 }

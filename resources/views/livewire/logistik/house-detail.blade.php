@@ -46,6 +46,12 @@
                             </svg>
                             <span>Ekspor Excel</span>
                         </button>
+                        <button type="button" wire:click="openEditModal" class="btn btn-utility font-semibold">
+                            <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+                            </svg>
+                            <span>Edit</span>
+                        </button>
                     @endif
                     @if($house->status !== 'selesai')
                         <a href="{{ route('logistik.house-finish', $house) }}" wire:navigate class="btn btn-warning font-semibold">{{ $house->isPublicWork() ? 'Selesaikan Pekerjaan' : 'Selesaikan Rumah' }}</a>
@@ -55,6 +61,13 @@
                 </div>
             </div>
         </div>
+
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
 
         <!-- Bento Stats Grid -->
         <div class="row g-4 mb-4">
@@ -624,4 +637,89 @@
     @endteleport
     @endif
     @endunless
+
+    <!-- Edit House Modal -->
+    @if($showEditModal)
+    @teleport('body')
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog" wire:keydown.escape.window="$set('showEditModal', false)">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title font-outfit fw-bold">{{ $house->isPublicWork() ? 'Edit Pekerjaan Umum' : 'Edit Rumah' }}</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showEditModal', false)" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label for="detail-house-name" class="form-label font-semibold">{{ $house->isPublicWork() ? 'Nama Pekerjaan' : 'Nama / Blok Rumah' }}</label>
+                        <input id="detail-house-name" type="text" wire:model="editName" class="form-control" />
+                        @error('editName') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                    </div>
+
+                    @unless ($house->isPublicWork())
+                        <div class="mb-3">
+                            <label for="detail-house-type" class="form-label font-semibold">Tipe Unit</label>
+                            <input id="detail-house-type" type="text" wire:model="editType" class="form-control" placeholder="Contoh: Tipe 36/72" />
+                            @error('editType') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
+                    @endunless
+
+                    <div class="mb-3">
+                        <label for="detail-house-mandor" class="form-label font-semibold">Mandor / Penanggung Jawab</label>
+                        <input id="detail-house-mandor" type="text" wire:model="editMandorName" class="form-control" placeholder="Nama mandor (opsional)" />
+                        @error('editMandorName') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                    </div>
+
+                    @if ($this->canPickCluster())
+                        <div class="mb-3">
+                            <label for="detail-house-cluster" class="form-label font-semibold">Cluster</label>
+                            <select id="detail-house-cluster" wire:model="editClusterId" class="form-select">
+                                @unless ($house->isPublicWork())
+                                    <option value="">Tanpa Cluster</option>
+                                @endunless
+                                @foreach ($this->availableClusters() as $cl)
+                                    <option value="{{ $cl->id }}">{{ $cl->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('editClusterId') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
+                    @endif
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="detail-house-start-date" class="form-label font-semibold">Tanggal Mulai</label>
+                            <input id="detail-house-start-date" type="date" wire:model="editStartDate" class="form-control" />
+                            @error('editStartDate') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
+                        @unless ($house->isPublicWork())
+                            <div class="col-md-6">
+                                <label for="detail-house-target-end-date" class="form-label font-semibold">Target Selesai</label>
+                                <input id="detail-house-target-end-date" type="date" wire:model="editTargetEndDate" class="form-control" />
+                                @error('editTargetEndDate') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                            </div>
+                        @endunless
+                    </div>
+
+                    @if (!$house->isPublicWork() && in_array(auth()->user()->role, ['admin', 'logistik'], true))
+                        <div class="mt-3">
+                            <label for="detail-house-budget" class="form-label font-semibold">Anggaran Material (RAP) <span class="text-secondary fw-normal small">(Opsional)</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text font-mono">Rp</span>
+                                <input id="detail-house-budget" type="number" step="any" min="0" wire:model="editMaterialBudget" class="form-control font-mono" placeholder="0" />
+                            </div>
+                            @error('editMaterialBudget') <span class="text-danger small" role="alert">{{ $message }}</span> @enderror
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary fw-semibold" wire:click="$set('showEditModal', false)">Batal</button>
+                    <button type="button" class="btn btn-success fw-semibold" wire:click="saveHouse" wire:loading.attr="disabled" wire:target="saveHouse">
+                        <span wire:loading.remove wire:target="saveHouse">Perbarui</span>
+                        <span wire:loading wire:target="saveHouse">Menyimpan...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endteleport
+    @endif
 </div>

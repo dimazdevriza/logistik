@@ -131,6 +131,7 @@
                                         <x-sortable-th field="name" :sort="$sort" class="text-secondary py-3 data-key-name">Rumah</x-sortable-th>
                                         <th class="text-secondary py-3">Cluster</th>
                                         <x-sortable-th field="type" :sort="$sort" class="text-secondary py-3">Tipe</x-sortable-th>
+                                        <x-sortable-th field="mandor" :sort="$sort" class="text-secondary py-3">Mandor</x-sortable-th>
                                         <x-sortable-th field="status" :sort="$sort" class="text-secondary py-3 text-center">Status</x-sortable-th>
                                         <x-sortable-th field="progress" :sort="$sort" class="text-secondary py-3 text-start" style="min-width: 140px;">Bobot (Fisik / Bahan)</x-sortable-th>
                                         @php
@@ -146,7 +147,7 @@
                                 </thead>
                                 <tbody>
                                     @if ($houses->isEmpty())
-                                        <tr><td colspan="22" class="house-cost-empty text-center py-5 text-secondary">{{ $search || $filterStatus ? 'Tidak ada rumah yang cocok dengan filter.' : 'Belum ada rumah di cluster ini.' }}</td></tr>
+                                        <tr><td colspan="23" class="house-cost-empty text-center py-5 text-secondary">{{ $search || $filterStatus ? 'Tidak ada rumah yang cocok dengan filter.' : 'Belum ada rumah di cluster ini.' }}</td></tr>
                                     @else
                                     @foreach ($houses as $house)
                                         @php
@@ -163,6 +164,7 @@
                                             <td data-label="Rumah" class="fw-bold text-body data-key-name" title="{{ $house->name }}"><span class="house-cost-cell-value">{{ $house->name }}</span></td>
                                             <td data-label="Cluster" class="text-secondary small"><span class="house-cost-cell-value">{{ $house->cluster?->name ?? 'Tanpa Cluster' }}</span></td>
                                             <td data-label="Tipe" class="text-secondary small"><span class="house-cost-cell-value">{{ $house->type ?: '-' }}</span></td>
+                                            <td data-label="Mandor" class="text-secondary small data-cell-truncate" title="{{ $house->mandor_name ?? '-' }}"><span class="house-cost-cell-value">{{ $house->mandor_name ?: '-' }}</span></td>
                                             <td data-label="Status" class="text-center"><span class="badge {{ $statusClasses[$house->status] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($house->status) }}</span></td>
                                             <td data-label="Bobot">
                                                 @php

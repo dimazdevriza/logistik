@@ -92,6 +92,7 @@
                             <x-sortable-th field="cluster" :sort="$sort">Cluster</x-sortable-th>
                             @unless ($isPublicWork)
                                 <x-sortable-th field="type" :sort="$sort">Tipe</x-sortable-th>
+                                <x-sortable-th field="mandor" :sort="$sort">Mandor</x-sortable-th>
                             @endunless
                             <x-sortable-th field="status" :sort="$sort">Status</x-sortable-th>
                             @unless ($isPublicWork)
@@ -115,9 +116,9 @@
                             @unless ($isPublicWork)
                                 <td class="text-secondary small data-cell-truncate" title="{{ $house->type ?? '-' }}">
                                     {{ $house->type ?: '-' }}
-                                    @if ($house->mandor_name)
-                                        <span class="d-block extra-small text-secondary font-sans opacity-75">Mandor: {{ $house->mandor_name }}</span>
-                                    @endif
+                                </td>
+                                <td class="text-secondary small data-cell-truncate" title="{{ $house->mandor_name ?? '-' }}">
+                                    {{ $house->mandor_name ?: '-' }}
                                 </td>
                             @endunless
                             <td>
@@ -163,7 +164,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="{{ $isPublicWork ? 8 : 11 }}" class="text-center py-4 text-secondary">{{ $isPublicWork ? 'Belum ada data pekerjaan umum.' : 'Belum ada data rumah.' }}</td>
+                            <td colspan="{{ $isPublicWork ? 8 : 12 }}" class="text-center py-4 text-secondary">{{ $isPublicWork ? 'Belum ada data pekerjaan umum.' : 'Belum ada data rumah.' }}</td>
                         </tr>
                         @endforelse
                     </tbody>
