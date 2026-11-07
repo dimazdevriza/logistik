@@ -228,12 +228,8 @@
                         </span>
                     </div>
 
-                    <!-- Action buttons: Theme, Settings & Logout on far right -->
+                    <!-- Action buttons: Settings & Logout on far right -->
                     <div class="d-flex align-items-center gap-1 sidebar-label flex-shrink-0">
-                        <button type="button" @click="toggleTheme()" class="btn btn-icon text-secondary p-0 rounded-2 hover-bg d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" :title="theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'" :aria-label="theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'">
-                            <svg x-show="theme === 'dark'" width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-sun"/></svg>
-                            <svg x-show="theme !== 'dark'" width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-moon"/></svg>
-                        </button>
                         <a href="{{ route('profile.edit') }}" class="btn btn-icon text-secondary p-0 rounded-2 hover-bg d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Pengaturan" aria-label="Pengaturan">
                             <svg width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-gear"/></svg>
                         </a>
@@ -263,10 +259,6 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-2">
-                        <button type="button" @click="toggleTheme()" class="btn btn-icon text-secondary p-0 rounded-2 hover-bg d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" :title="theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'" :aria-label="theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'">
-                            <svg x-show="theme === 'dark'" width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-sun"/></svg>
-                            <svg x-show="theme !== 'dark'" width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-moon"/></svg>
-                        </button>
                         <button type="button" class="btn p-0 border-0" @click="mobileOpen = !mobileOpen" aria-label="Buka atau tutup menu navigasi" aria-controls="mobile-navigation-dropdown" :aria-expanded="mobileOpen.toString()">
                             <span class="d-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success fw-bold extra-small" style="width: 32px; height: 32px;">
                                 {{ $user?->initials() }}
@@ -315,10 +307,6 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                            <button type="button" @click="toggleTheme()" class="btn btn-icon text-secondary p-1.5 rounded-2 hover-bg border-0 bg-transparent" :title="theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'" :aria-label="theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'">
-                                <svg x-show="theme === 'dark'" width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-sun"/></svg>
-                                <svg x-show="theme !== 'dark'" width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-moon"/></svg>
-                            </button>
                             <a href="{{ route('profile.edit') }}" class="btn btn-icon text-secondary p-1.5 rounded-2 hover-bg" title="Pengaturan" aria-label="Pengaturan" @click="mobileOpen = false">
                                 <svg width="16" height="16" fill="currentColor" aria-hidden="true"><use href="#i-gear"/></svg>
                             </a>
