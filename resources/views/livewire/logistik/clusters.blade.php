@@ -26,18 +26,57 @@
             @php
                 $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
                 $monthNamesFull = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                $chartMaximum = (float) max($monthlyTotals ?: [0]);
+                $rawMax = (float) max($monthlyTotals ?: [0]);
+                if ($rawMax <= 0) {
+                    $chartMaximum = 0.0;
+                    $chartAxisTicks = [];
+                    $chartGridlinesY = [];
+                } else {
+                    if ($rawMax <= 40_000_000) {
+                        $step = 10_000_000;
+                    } elseif ($rawMax <= 100_000_000) {
+                        $step = 20_000_000;
+                    } elseif ($rawMax <= 250_000_000) {
+                        $step = 50_000_000;
+                    } else {
+                        $step = (float) (ceil($rawMax / 4 / 10_000_000) * 10_000_000);
+                    }
+
+                    $chartMaximum = (float) (ceil($rawMax / $step) * $step);
+                    $stepCount = (int) max(1, round($chartMaximum / $step));
+
+                    $chartAxisTicks = [];
+                    $chartGridlinesY = [];
+                    for ($i = $stepCount; $i >= 0; $i--) {
+                        $amount = (float) ($i * $step);
+                        $chartAxisTicks[] = $amount;
+                        $y = 4 + (1 - ($amount / $chartMaximum)) * 92;
+                        $chartGridlinesY[] = round($y, 2);
+                    }
+                }
+
                 $chartPoints = [];
                 foreach ($monthlyTotals as $monthNumber => $monthAmount) {
                     $x = 3 + (($monthNumber - 1) / 11 * 94);
                     $y = $chartMaximum > 0 ? 4 + (1 - ($monthAmount / $chartMaximum)) * 92 : 96;
                     $chartPoints[] = round($x * 10, 2).','.round($y, 2);
                 }
-                $formatChartAmount = static fn (float $amount): string => $amount >= 1_000_000
-                    ? number_format($amount / 1_000_000, 1, ',', '.').' jt'
-                    : ($amount >= 1_000
-                        ? number_format($amount / 1_000, 1, ',', '.').' rb'
-                        : number_format($amount, 0, ',', '.'));
+                $formatChartAmount = static function (float $amount): string {
+                    if ($amount <= 0) {
+                        return '0';
+                    }
+                    if ($amount >= 1_000_000) {
+                        $inMillions = $amount / 1_000_000;
+                        $decimals = fmod($inMillions, 1) === 0.0 ? 0 : 1;
+                        return number_format($inMillions, $decimals, ',', '.').' jt';
+                    }
+                    if ($amount >= 1_000) {
+                        $inThousands = $amount / 1_000;
+                        $decimals = fmod($inThousands, 1) === 0.0 ? 0 : 1;
+                        return number_format($inThousands, $decimals, ',', '.').' rb';
+                    }
+                    return number_format($amount, 0, ',', '.');
+                };
             @endphp
 
             <div class="row g-4 mb-4 cluster-cost-overview-row">
@@ -53,15 +92,15 @@
                         @if ($chartMaximum > 0)
                             <div class="cluster-cost-growth-chart" role="list" aria-label="Total biaya cluster per bulan tahun {{ $selectedYear }}" x-data="{ hoveredMonth: null }">
                                 <div class="cluster-cost-growth-scale" aria-hidden="true">
-                                    @foreach ([$chartMaximum, $chartMaximum / 2, 0] as $axisAmount)
+                                    @foreach ($chartAxisTicks as $axisAmount)
                                         <span>Rp {{ $formatChartAmount((float) $axisAmount) }}</span>
                                     @endforeach
                                 </div>
                                 <div class="cluster-cost-growth-plot">
                                     <svg class="cluster-cost-growth-svg" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                                        <line x1="0" y1="4" x2="1000" y2="4" class="cluster-cost-growth-gridline" />
-                                        <line x1="0" y1="50" x2="1000" y2="50" class="cluster-cost-growth-gridline" />
-                                        <line x1="0" y1="96" x2="1000" y2="96" class="cluster-cost-growth-gridline" />
+                                        @foreach ($chartGridlinesY as $gridY)
+                                            <line x1="0" y1="{{ $gridY }}" x2="1000" y2="{{ $gridY }}" class="cluster-cost-growth-gridline" />
+                                        @endforeach
                                         <polyline points="{{ implode(' ', $chartPoints) }}" class="cluster-cost-growth-line" />
                                     </svg>
                                     <div class="cluster-cost-growth-columns" @mouseleave="hoveredMonth = null" aria-hidden="true">
