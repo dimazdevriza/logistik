@@ -14,37 +14,21 @@ class ClusterCostsExport implements WithMultipleSheets
 
     public function sheets(): array
     {
-        $usedTitles = [];
-        $sheets = [new HouseListExport(
-            year: (int) now()->year,
-            clusterScope: (int) $this->cluster->id,
-            sheetTitle: $this->sheetTitle($this->cluster->name, $usedTitles),
-            reportTitle: 'Laporan Biaya Cluster: '.$this->cluster->name,
-            category: null,
-        )];
+        $clusterTitle = mb_substr(preg_replace('/[\\\\\/?*\[\]:]/u', ' ', trim($this->cluster->name)), 0, 31);
+        $clusterTitle = trim(preg_replace('/\s+/u', ' ', $clusterTitle), " '\"") ?: 'Cluster';
 
-        foreach ($this->cluster->allUnits()->orderBy('name')->orderBy('id')->get() as $house) {
-            $sheets[] = new ClusterCostsSheet($this->cluster, $house, $this->sheetTitle($house->name, $usedTitles));
-        }
-
-        return $sheets;
-    }
-
-    private function sheetTitle(string $name, array &$usedTitles): string
-    {
-        $base = preg_replace('/[\\\\\/?*\[\]:]/u', ' ', trim($name));
-        $base = trim(preg_replace('/\s+/u', ' ', $base), " '\"");
-        $base = mb_substr($base !== '' ? $base : 'Biaya', 0, 31);
-        $title = $base;
-        $suffixNumber = 2;
-
-        while (in_array(mb_strtolower($title), $usedTitles, true)) {
-            $suffix = ' ('.$suffixNumber++.')';
-            $title = mb_substr($base, 0, 31 - mb_strlen($suffix)).$suffix;
-        }
-
-        $usedTitles[] = mb_strtolower($title);
-
-        return $title;
+        return [
+            new HouseListExport(
+                year: (int) now()->year,
+                clusterScope: (int) $this->cluster->id,
+                sheetTitle: $clusterTitle,
+                reportTitle: 'Laporan Biaya Cluster: '.$this->cluster->name,
+                category: null,
+            ),
+            new ClusterMaterialExport($this->cluster),
+            new ClusterToolExport($this->cluster),
+            new ClusterVendorServiceExport($this->cluster),
+            new ClusterVendorRentalExport($this->cluster),
+        ];
     }
 }
