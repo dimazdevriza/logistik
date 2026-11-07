@@ -1994,14 +1994,119 @@ html.is-rail-initial .user-profile-card > div,
     vector-effect: non-scaling-stroke;
 }
 
+.cluster-cost-growth-columns {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    z-index: 2;
+}
+
+.cluster-cost-growth-col {
+    flex: 1 1 0;
+    height: 100%;
+    cursor: pointer;
+}
+
+.cluster-cost-growth-point-wrapper {
+    position: absolute;
+    width: 0;
+    height: 0;
+    z-index: 4;
+}
+
+.cluster-cost-growth-point-wrapper:focus {
+    outline: none;
+}
+
 .cluster-cost-growth-point {
     position: absolute;
+    top: 0;
+    left: 0;
     width: 0.6rem;
     height: 0.6rem;
     transform: translate(-50%, -50%);
     border: 2px solid var(--color-leaf-green);
     border-radius: 50%;
     background-color: var(--bs-body-bg);
+    transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+}
+
+.cluster-cost-growth-point::before {
+    content: '';
+    position: absolute;
+    inset: -0.65rem;
+    border-radius: 50%;
+}
+
+.cluster-cost-growth-point-wrapper.is-active .cluster-cost-growth-point,
+.cluster-cost-growth-point-wrapper:focus-visible .cluster-cost-growth-point {
+    transform: translate(-50%, -50%) scale(1.6);
+    background-color: var(--color-leaf-green);
+    border-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(31, 155, 58, 0.35);
+}
+
+.cluster-cost-growth-tooltip {
+    position: absolute;
+    z-index: 20;
+    pointer-events: none;
+    background-color: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.65rem;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+    text-align: center;
+    line-height: 1.25;
+}
+
+[data-bs-theme="dark"] .cluster-cost-growth-tooltip {
+    background-color: #161b17;
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.cluster-cost-growth-tooltip-month {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+    margin-bottom: 0.15rem;
+    letter-spacing: 0.01em;
+}
+
+.cluster-cost-growth-tooltip-amount {
+    font-family: var(--bs-font-monospace);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-leaf-green);
+    letter-spacing: -0.01em;
+}
+
+.cluster-cost-growth-point-wrapper.placement-top .cluster-cost-growth-tooltip {
+    bottom: 0.75rem;
+}
+
+.cluster-cost-growth-point-wrapper.placement-bottom .cluster-cost-growth-tooltip {
+    top: 0.75rem;
+}
+
+.cluster-cost-growth-point-wrapper.align-center .cluster-cost-growth-tooltip {
+    left: 0;
+    transform: translateX(-50%);
+}
+
+.cluster-cost-growth-point-wrapper.align-start .cluster-cost-growth-tooltip {
+    left: -0.3rem;
+    transform: none;
+    text-align: left;
+}
+
+.cluster-cost-growth-point-wrapper.align-end .cluster-cost-growth-tooltip {
+    right: -0.3rem;
+    left: auto;
+    transform: none;
+    text-align: right;
 }
 
 .cluster-cost-growth-months {
@@ -2014,6 +2119,15 @@ html.is-rail-initial .user-profile-card > div,
     font-size: 0.7rem;
     line-height: 1.2;
     text-align: center;
+}
+
+.cluster-cost-growth-month-label {
+    transition: color 0.15s ease, font-weight 0.15s ease;
+}
+
+.cluster-cost-growth-month-label.is-active {
+    color: var(--bs-body-color);
+    font-weight: 700;
 }
 
 .cluster-cost-growth-empty {

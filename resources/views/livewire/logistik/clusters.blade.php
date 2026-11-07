@@ -51,7 +51,7 @@
                         </div>
 
                         @if ($chartMaximum > 0)
-                            <div class="cluster-cost-growth-chart" role="list" aria-label="Total biaya cluster per bulan tahun {{ $selectedYear }}">
+                            <div class="cluster-cost-growth-chart" role="list" aria-label="Total biaya cluster per bulan tahun {{ $selectedYear }}" x-data="{ hoveredMonth: null }">
                                 <div class="cluster-cost-growth-scale" aria-hidden="true">
                                     @foreach ([$chartMaximum, $chartMaximum / 2, 0] as $axisAmount)
                                         <span>Rp {{ $formatChartAmount((float) $axisAmount) }}</span>
@@ -64,17 +64,41 @@
                                         <line x1="0" y1="96" x2="1000" y2="96" class="cluster-cost-growth-gridline" />
                                         <polyline points="{{ implode(' ', $chartPoints) }}" class="cluster-cost-growth-line" />
                                     </svg>
+                                    <div class="cluster-cost-growth-columns" @mouseleave="hoveredMonth = null" aria-hidden="true">
+                                        @foreach ($monthlyTotals as $monthNumber => $monthAmount)
+                                            <div class="cluster-cost-growth-col"
+                                                 @mouseenter="hoveredMonth = {{ $monthNumber }}"
+                                                 @mousemove="hoveredMonth = {{ $monthNumber }}"
+                                                 :class="{ 'is-active': hoveredMonth === {{ $monthNumber }} }"></div>
+                                        @endforeach
+                                    </div>
                                     @foreach ($monthlyTotals as $monthNumber => $monthAmount)
                                         @php
                                             $pointX = 3 + (($monthNumber - 1) / 11 * 94);
                                             $pointY = $chartMaximum > 0 ? 4 + (1 - ($monthAmount / $chartMaximum)) * 92 : 96;
+                                            $alignClass = $monthNumber <= 2 ? 'align-start' : ($monthNumber >= 11 ? 'align-end' : 'align-center');
+                                            $placementClass = $pointY < 28 ? 'placement-bottom' : 'placement-top';
                                         @endphp
-                                        <span class="cluster-cost-growth-point" style="left: {{ $pointX }}%; top: {{ $pointY }}%;" role="listitem" aria-label="{{ $monthNamesFull[$monthNumber - 1] }}: Rp {{ number_format($monthAmount, 0, ',', '.') }}" title="{{ $monthNamesFull[$monthNumber - 1] }}: Rp {{ number_format($monthAmount, 0, ',', '.') }}"></span>
+                                        <div class="cluster-cost-growth-point-wrapper {{ $alignClass }} {{ $placementClass }}"
+                                             style="left: {{ $pointX }}%; top: {{ $pointY }}%;"
+                                             :class="{ 'is-active': hoveredMonth === {{ $monthNumber }} }"
+                                             @mouseenter="hoveredMonth = {{ $monthNumber }}"
+                                             @focus="hoveredMonth = {{ $monthNumber }}"
+                                             @blur="hoveredMonth = null"
+                                             tabindex="0"
+                                             role="listitem"
+                                             aria-label="{{ $monthNamesFull[$monthNumber - 1] }}: Rp {{ number_format($monthAmount, 0, ',', '.') }}">
+                                            <span class="cluster-cost-growth-point"></span>
+                                            <div class="cluster-cost-growth-tooltip" role="tooltip" aria-hidden="true" x-show="hoveredMonth === {{ $monthNumber }}" x-cloak>
+                                                <div class="cluster-cost-growth-tooltip-month">{{ $monthNamesFull[$monthNumber - 1] }} {{ $selectedYear }}</div>
+                                                <div class="cluster-cost-growth-tooltip-amount">Rp {{ number_format($monthAmount, 0, ',', '.') }}</div>
+                                            </div>
+                                        </div>
                                     @endforeach
                                 </div>
                                 <div class="cluster-cost-growth-months" aria-hidden="true">
-                                    @foreach ($monthNames as $monthName)
-                                        <span>{{ $monthName }}</span>
+                                    @foreach ($monthNames as $monthIndex => $monthName)
+                                        <span class="cluster-cost-growth-month-label" :class="{ 'is-active': hoveredMonth === {{ $monthIndex + 1 }} }">{{ $monthName }}</span>
                                     @endforeach
                                 </div>
                             </div>
