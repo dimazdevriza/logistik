@@ -2,9 +2,12 @@
 
 namespace App\Livewire\Logistik;
 
-use App\Models\House;
+use App\Imports\MaterialImport;
+use App\Imports\ToolImport;
 use App\Models\Cluster;
 use App\Models\ClusterExpense;
+use App\Models\House;
+use App\Models\ImportBatch;
 use App\Models\Material;
 use App\Models\MaterialUsage as MaterialUsageModel;
 use App\Models\StockIn;
@@ -12,8 +15,8 @@ use App\Models\Supplier;
 use App\Models\Tool;
 use App\Models\ToolReturnLog;
 use App\Models\ToolUsage as ToolUsageModel;
-use App\Models\Warehouse;
 use App\Models\ToolWarehouseBalance;
+use App\Models\Warehouse;
 use App\Support\MaterialAllocationRecorder;
 use App\Support\SpreadsheetBatchRecorder;
 use App\Support\ToolInventory;
@@ -25,6 +28,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TransaksiLogistik extends Component
 {
@@ -150,6 +154,15 @@ class TransaksiLogistik extends Component
     public bool $showReturnConfirmation = false;
 
     public array $returnConfirmationData = [];
+
+    // Import Modal State
+    public bool $showImportModal = false;
+
+    public string $importType = 'material';
+
+    public $importFile = null;
+
+    public ?array $importResultSummary = null;
 
     protected function materialRules(): array
     {
@@ -1612,6 +1625,83 @@ class TransaksiLogistik extends Component
         $this->noticeHistoryType = $historyType;
         $this->noticeSequence++;
         session()->flash('success', $message);
+    }
+
+    public function openImportModal(string $type = 'material'): void
+    {
+        $this->importType = in_array($type, ['material', 'tool'], true) ? $type : 'material';
+        $this->importFile = null;
+        $this->importResultSummary = null;
+        $this->resetValidation();
+        $this->showImportModal = true;
+    }
+
+    public function updatedImportType(): void
+    {
+        $this->importFile = null;
+        $this->importResultSummary = null;
+        $this->resetValidation();
+    }
+
+    public function importExcel(): void
+    {
+        if (! in_array(auth()->user()->role, ['admin', 'logistik', 'pengawas'], true)) {
+            return;
+        }
+
+        $this->validate([
+            'importType' => 'required|in:material,tool',
+            'importFile' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ], [
+            'importFile.required' => 'Pilih berkas Excel (.xlsx / .xls) terlebih dahulu.',
+            'importFile.mimes' => 'Berkas harus berupa format Excel (.xlsx, .xls) atau CSV.',
+            'importFile.max' => 'Ukuran berkas maksimal 10MB.',
+        ]);
+
+        try {
+            if ($this->importType === 'tool') {
+                $import = ImportBatch::run('tool', $this->importFile, function (string $path) {
+                    $import = new ToolImport($path);
+                    Excel::import($import, $path);
+
+                    return $import;
+                });
+
+                $this->importResultSummary = [
+                    'type' => 'tool',
+                    'totalRows' => $import->totalRows,
+                    'successfulRows' => $import->successfulRows,
+                    'skippedRows' => $import->skippedRows,
+                    'itemsImported' => $import->toolsImported,
+                    'transactionsImported' => $import->transactionsImported,
+                    'logs' => $import->rowLogs,
+                ];
+            } else {
+                $import = ImportBatch::run('material', $this->importFile, function (string $path) {
+                    $import = new MaterialImport($path);
+                    Excel::import($import, $path);
+
+                    return $import;
+                });
+
+                $this->importResultSummary = [
+                    'type' => 'material',
+                    'totalRows' => $import->totalRows,
+                    'successfulRows' => $import->successfulRows,
+                    'skippedRows' => $import->skippedRows,
+                    'itemsImported' => $import->materialsImported,
+                    'transactionsImported' => $import->transactionsImported,
+                    'logs' => $import->rowLogs,
+                ];
+            }
+
+            $this->showSuccess(
+                "Proses validasi & impor selesai: {$this->importResultSummary['successfulRows']} dari {$this->importResultSummary['totalRows']} baris data berhasil diproses.",
+                $this->importType === 'tool' ? 'tool' : 'material'
+            );
+        } catch (\Throwable $e) {
+            $this->addError('importFile', 'Gagal memproses berkas Excel: '.$e->getMessage());
+        }
     }
 
     public function render()

@@ -115,13 +115,21 @@
                     <h1 class="display-5 fw-black text-body mb-2 font-outfit transaction-title">Buat alokasi <span class="text-success">lapangan</span></h1>
                     <p class="text-secondary mb-0 max-w-xl transaction-intro">Pilih alur, tentukan target alokasi, lalu periksa dampaknya sebelum disimpan.</p>
                 </div>
-                <p class="transaction-header-note" x-show="activeTab !== 'spreadsheet'" x-cloak>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 3 4.5 7v10L12 21l7.5-4V7L12 3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                        <path d="m4.8 7.2 7.2 4 7.2-4M12 11.2V21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                    </svg>
-                    <span x-text="activeTab === 'rental' ? 'Sewa vendor tercatat sebagai biaya cluster, tanpa mengubah stok gudang.' : (activeTab === 'vendor-service' ? 'Catat pekerjaan vendor pada cluster atau satu unit.' : (activeTab === 'return' ? 'Pengembalian langsung memperbarui pinjaman dan saldo gudang.' : ('Material langsung masuk ke biaya ' + targetUnitLabel + ' dan alat tercatat sebagai pinjaman ' + targetUnitLabel + '.')))"></span>
-                </p>
+                <div class="d-flex flex-column align-items-lg-end gap-2">
+                    <div class="d-flex gap-2">
+                        <button type="button" wire:click="openImportModal('material')" class="btn btn-hero-action">
+                            <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
+                            <span>Impor</span>
+                        </button>
+                    </div>
+                    <p class="transaction-header-note mb-0" x-show="activeTab !== 'spreadsheet'" x-cloak>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 3 4.5 7v10L12 21l7.5-4V7L12 3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                            <path d="m4.8 7.2 7.2 4 7.2-4M12 11.2V21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                        </svg>
+                        <span x-text="activeTab === 'rental' ? 'Sewa vendor tercatat sebagai biaya cluster, tanpa mengubah stok gudang.' : (activeTab === 'vendor-service' ? 'Catat pekerjaan vendor pada cluster atau satu unit.' : (activeTab === 'return' ? 'Pengembalian langsung memperbarui pinjaman dan saldo gudang.' : ('Material langsung masuk ke biaya ' + targetUnitLabel + ' dan alat tercatat sebagai pinjaman ' + targetUnitLabel + '.')))"></span>
+                    </p>
+                </div>
             </div>
         </header>
 
@@ -2235,6 +2243,161 @@
             <button type="button" class="btn btn-success fw-semibold" wire:click="saveReturn" wire:loading.attr="disabled" wire:target="saveReturn"><span wire:loading.remove wire:target="saveReturn">Simpan pengembalian</span><span wire:loading wire:target="saveReturn">Menyimpan pengembalian…</span></button>
         </footer>
     </dialog>
+    @endteleport
+    @endif
+
+    @if($showImportModal)
+    @teleport('body')
+    <div
+        class="modal fade show d-block"
+        tabindex="-1"
+        style="background-color: rgba(0,0,0,0.5);"
+        aria-modal="true"
+        role="dialog"
+        aria-labelledby="alokasi-import-title"
+        x-data="{
+            close() { $wire.set('showImportModal', false) }
+        }"
+        @keydown.escape.stop="close()"
+    >
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-bottom">
+                    <h5 id="alokasi-import-title" class="modal-title font-outfit fw-bold d-flex align-items-center gap-2">
+                        <svg width="20" height="20" fill="currentColor" class="text-primary" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
+                        Impor Data Alokasi & Inventaris
+                    </h5>
+                    <button type="button" class="btn-close" x-on:click="close()" aria-label="Tutup dialog impor"></button>
+                </div>
+                <div class="modal-body py-4">
+                    @if(!$importResultSummary)
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase text-secondary">Pilih Jenis Data Impor</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" wire:click="$set('importType', 'material')" class="btn {{ $importType === 'material' ? 'btn-success' : 'btn-outline-secondary' }} flex-fill fw-semibold">
+                                    Material (Barang Masuk & Keluar)
+                                </button>
+                                <button type="button" wire:click="$set('importType', 'tool')" class="btn {{ $importType === 'tool' ? 'btn-success' : 'btn-outline-secondary' }} flex-fill fw-semibold">
+                                    Alat Kerja (Alat Masuk & Keluar)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-body-tertiary p-3 rounded-3 mb-3 border">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="fw-bold extra-small text-uppercase text-body-secondary mb-0">
+                                    Panduan Kolom Excel ({{ $importType === 'tool' ? 'Alat Kerja' : 'Material' }})
+                                </h6>
+                                <a href="{{ asset($importType === 'tool' ? 'sample_tool_import.xlsx' : 'sample_material_import.xlsx') }}" download class="btn btn-outline-success btn-sm py-1 px-2.5 extra-small fw-semibold d-inline-flex align-items-center gap-1">
+                                    <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
+                                    <span>Unduh Format Contoh (.xlsx)</span>
+                                </a>
+                            </div>
+                            @if($importType === 'tool')
+                                <ul class="extra-small text-body-secondary mb-0 ps-3">
+                                    <li><strong>Multi-Sheet (Rekomendasi):</strong> Mendukung sheet <code>ALAT MASUK</code> dan <code>ALAT KELUAR</code> sekaligus dalam satu berkas Excel.</li>
+                                    <li><strong>Sheet ALAT MASUK:</strong> <code>No</code>, <code>Tanggal</code>, <code>Tipe</code>, <code>Kode Alat</code>, <code>Nama Alat</code>, <code>Kategori</code>, <code>Kondisi</code>, <code>Gudang</code>, <code>Jumlah</code>, <code>Harga Satuan</code>, <code>Total Biaya</code>, <code>Pencatat</code></li>
+                                    <li><strong>Sheet ALAT KELUAR:</strong> <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Penanggung Jawab</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Alat</code>, <code>Nama Alat</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code>, <code>Kode Transaksi</code></li>
+                                </ul>
+                            @else
+                                <ul class="extra-small text-body-secondary mb-0 ps-3">
+                                    <li><strong>Multi-Sheet (Rekomendasi):</strong> Mendukung sheet <code>BARANG MASUK</code> dan <code>BARANG KELUAR</code> sekaligus dalam satu berkas Excel.</li>
+                                    <li><strong>Sheet BARANG MASUK:</strong> <code>No</code>, <code>Tanggal</code>, <code>Tipe</code>, <code>Kode Barang</code>, <code>Nama Material</code>, <code>Satuan</code>, <code>Supplier</code>, <code>Jumlah</code>, <code>Harga Satuan</code>, <code>Total Biaya</code>, <code>Pencatat</code></li>
+                                    <li><strong>Sheet BARANG KELUAR:</strong> <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Pencatat</code>, <code>Pengambil</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Barang</code>, <code>Nama Barang</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code></li>
+                                </ul>
+                            @endif
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Pilih Berkas Excel / CSV</label>
+                            <input type="file" wire:model="importFile" class="form-control" accept=".xlsx,.xls,.csv" />
+                            @error('importFile') <span class="text-danger small fw-semibold d-block mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div wire:loading wire:target="importFile" class="text-primary small fw-semibold">
+                            <div class="spinner-border spinner-border-sm me-1" role="status"></div> Mengunggah berkas...
+                        </div>
+                    @else
+                        <div class="alert alert-success d-flex align-items-center gap-3 mb-3">
+                            <div class="fs-3 text-success" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m3.97-9.03-4.5 4.5a.75.75 0 0 1-1.06 0l-2-2a.75.75 0 0 1 1.06-1.06L6.94 9.88l3.97-3.97a.75.75 0 0 1 1.06 1.06"/></svg></div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Validasi Impor Selesai!</h6>
+                                <p class="mb-0 small">Seluruh baris data telah diproses dan divalidasi ke database.</p>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3 text-center">
+                            <div class="col-3">
+                                <div class="p-2 border rounded bg-body-tertiary">
+                                    <span class="d-block text-secondary extra-small fw-bold text-uppercase">Total Baris</span>
+                                    <span class="fs-5 fw-bold text-body">{{ $importResultSummary['totalRows'] }}</span>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="p-2 border rounded bg-success-subtle text-success">
+                                    <span class="d-block extra-small fw-bold text-uppercase">Sukses Diproses</span>
+                                    <span class="fs-5 fw-bold">{{ $importResultSummary['successfulRows'] }}</span>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="p-2 border rounded bg-warning-subtle text-warning">
+                                    <span class="d-block extra-small fw-bold text-uppercase">{{ ($importResultSummary['type'] ?? 'material') === 'tool' ? 'Alat Baru' : 'Item Baru' }}</span>
+                                    <span class="fs-5 fw-bold">{{ $importResultSummary['itemsImported'] }}</span>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="p-2 border rounded bg-info-subtle text-info">
+                                    <span class="d-block extra-small fw-bold text-uppercase">Log Transaksi</span>
+                                    <span class="fs-5 fw-bold">{{ $importResultSummary['transactionsImported'] }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold extra-small text-uppercase text-secondary mb-2">Rincian Status per Baris</h6>
+                        <div class="table-responsive border rounded" style="max-height: 250px; overflow-y: auto;">
+                            <table class="table table-sm table-striped align-middle mb-0 extra-small">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 60px;">Baris Data</th>
+                                        <th>Item</th>
+                                        <th>Status Validasi</th>
+                                        <th>Keterangan Sistem</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($importResultSummary['logs'] as $log)
+                                        <tr>
+                                            <td class="fw-mono text-center">#{{ max(1, (int) $log['row'] - 1) }}</td>
+                                            <td class="fw-semibold">{{ $log['item'] }}</td>
+                                            <td>
+                                                @if($log['status'] === 'success')
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle">VALID & DIPROSES</span>
+                                                @else
+                                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">DILEWATI</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-secondary">{{ $log['message'] }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer border-top bg-body-tertiary rounded-bottom-4">
+                    @if(!$importResultSummary)
+                        <button type="button" class="btn btn-secondary fw-semibold" x-on:click="close()">Batal</button>
+                        <button type="button" class="btn btn-primary fw-semibold" wire:click="importExcel" wire:loading.attr="disabled">
+                            <svg width="14" height="14" fill="currentColor" class="me-1" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V10.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
+                            Proses & Validasi Import
+                        </button>
+                    @else
+                        <button type="button" class="btn btn-success fw-semibold px-4" x-on:click="close()">Tutup & Selesai</button>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
     @endteleport
     @endif
 </div>

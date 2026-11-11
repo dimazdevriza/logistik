@@ -553,11 +553,10 @@
                                 </a>
                             </div>
                             <ul class="extra-small text-body-secondary mb-0 ps-3">
-                                <li><strong>Format A.KELUAR:</strong> <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Penanggung Jawab</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Alat</code>, <code>Nama Alat</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code>, <code>Kode Transaksi</code></li>
-                                <li><strong>Format lama:</strong> inventaris dengan <code>Kode</code>, <code>Nama Alat</code>, <code>Kategori</code>, <code>Kondisi</code>, <code>Total Qty</code>, <code>Harga Beli</code>, dan <code>Gudang</code>, serta transaksi opsional. Isi <code>Gudang</code> jika ada lebih dari satu gudang.</li>
-                                <li><strong>Catatan Peminjaman:</strong> Tambahkan kolom <code>Jenis</code> (pinjam/kembali), <code>Unit Rumah</code> (mis. Blok B-04), <code>Tanggal</code>, <code>Catatan</code></li>
-                                <li><strong>Tanggal dan kode:</strong> tanggal wajib untuk transaksi. <code>Kode Transaksi</code> opsional, gunakan kode baru hanya untuk transaksi baru yang sama persis.</li>
-                                <li><strong>Workbook lama:</strong> pisahkan data alat dari material dan petakan gudang serta tanggal sebelum menyiapkan satu sheet sesuai format impor.</li>
+                                <li><strong>Multi-Sheet (Rekomendasi):</strong> Mendukung sheet <code>ALAT MASUK</code> dan <code>ALAT KELUAR</code> sekaligus dalam satu berkas Excel.</li>
+                                <li><strong>Sheet ALAT MASUK:</strong> <code>No</code>, <code>Tanggal</code>, <code>Tipe</code>, <code>Kode Alat</code>, <code>Nama Alat</code>, <code>Kategori</code>, <code>Kondisi</code>, <code>Gudang</code>, <code>Jumlah</code>, <code>Harga Satuan</code>, <code>Total Biaya</code>, <code>Pencatat</code></li>
+                                <li><strong>Sheet ALAT KELUAR:</strong> <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Penanggung Jawab</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Alat</code>, <code>Nama Alat</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code>, <code>Kode Transaksi</code></li>
+                                <li><strong>Catatan Peminjaman & Pengembalian:</strong> Gunakan kolom <code>Tipe</code> / <code>Jenis</code> (<code>pinjam</code> / <code>kembali</code>) dan <code>Blok Rumah</code> (mis. Blok B-04).</li>
                             </ul>
                         </div>
 

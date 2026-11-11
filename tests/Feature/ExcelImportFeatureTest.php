@@ -357,9 +357,30 @@ class ExcelImportFeatureTest extends TestCase
 
     public function test_tool_livewire_import_modal()
     {
+        $filePath = public_path('sample_tool_import.xlsx');
+        $this->assertFileExists($filePath);
+
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+        $this->assertSame(['ALAT MASUK', 'ALAT KELUAR'], $spreadsheet->getSheetNames());
+
+        $sheetMasuk = $spreadsheet->getSheetByName('ALAT MASUK');
+        $sheetKeluar = $spreadsheet->getSheetByName('ALAT KELUAR');
+
+        $this->assertSame('1FA33A', $sheetMasuk->getStyle('A4')->getFill()->getStartColor()->getRGB());
+        $this->assertSame('1FA33A', $sheetKeluar->getStyle('A4')->getFill()->getStartColor()->getRGB());
+        $this->assertCount(1, $sheetMasuk->getDrawingCollection());
+        $this->assertCount(1, $sheetKeluar->getDrawingCollection());
+        $this->assertNull($sheetMasuk->getCell('A5')->getValue());
+        $this->assertNull($sheetKeluar->getCell('A5')->getValue());
+
         Livewire::test(Tools::class)
             ->call('openImportModal')
             ->assertSet('showImportModal', true);
+
+        Livewire::test(\App\Livewire\Logistik\TransaksiLogistik::class)
+            ->call('openImportModal', 'tool')
+            ->assertSet('showImportModal', true)
+            ->assertSet('importType', 'tool');
     }
 
     public function test_house_template_import_processes_all_sheets()

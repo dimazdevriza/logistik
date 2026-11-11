@@ -6,18 +6,21 @@ use App\Models\Category;
 use App\Models\Tool;
 use App\Models\ToolReturnLog;
 use App\Models\ToolUsage;
-use App\Support\ToolInventory;
 use App\Support\ImportHouseIdentity;
 use App\Support\ImportTransaction;
 use App\Support\ImportWarehouse;
+use App\Support\ToolInventory;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Concerns\SkipsUnknownSheets;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
-class ToolImport implements ToCollection, WithHeadingRow
+class ToolImport implements SkipsUnknownSheets, ToCollection, WithHeadingRow, WithMultipleSheets
 {
     public int $totalRows = 0;
 
@@ -31,25 +34,174 @@ class ToolImport implements ToCollection, WithHeadingRow
 
     public array $rowLogs = [];
 
+    private const MASUK_SHEETS = [
+        'alat masuk',
+        'barang masuk',
+        'a.masuk',
+        'rincian masuk',
+        'masuk',
+    ];
+
+    private const KELUAR_SHEETS = [
+        'alat keluar',
+        'barang keluar',
+        'a.keluar',
+        'peminjaman alat',
+        'peminjaman',
+        'pengeluaran',
+    ];
+
+    public function __construct(public ?string $filePath = null) {}
+
+    public function sheets(): array
+    {
+        if ($detected = $this->detectSheetsInFile()) {
+            return $detected;
+        }
+
+        return [
+            'ALAT MASUK' => new ToolSheetImport($this, 'masuk'),
+            'Alat Masuk' => new ToolSheetImport($this, 'masuk'),
+            'A.MASUK' => new ToolSheetImport($this, 'masuk'),
+            'BARANG MASUK' => new ToolSheetImport($this, 'masuk'),
+            'ALAT KELUAR' => new ToolSheetImport($this, 'keluar'),
+            'Alat Keluar' => new ToolSheetImport($this, 'keluar'),
+            'A.KELUAR' => new ToolSheetImport($this, 'keluar'),
+            'a.keluar' => new ToolSheetImport($this, 'keluar'),
+            'Peminjaman Alat' => new ToolSheetImport($this, 'keluar'),
+            'BARANG KELUAR' => new ToolSheetImport($this, 'keluar'),
+            0 => new ToolSheetImport($this, 'auto'),
+        ];
+    }
+
+    public function onUnknownSheet($sheetName) {}
+
+    private static function classifySheet(string $name, bool $partial = false): ?string
+    {
+        $lower = strtolower(trim($name));
+        if (in_array($lower, self::MASUK_SHEETS, true) || ($partial && str_contains($lower, 'masuk'))) {
+            return 'masuk';
+        }
+        if (in_array($lower, self::KELUAR_SHEETS, true) || ($partial && (str_contains($lower, 'keluar') || str_contains($lower, 'peminjaman')))) {
+            return 'keluar';
+        }
+
+        return null;
+    }
+
+    public function detectSheetsInFile(): array
+    {
+        if (! $this->filePath || ! file_exists($this->filePath)) {
+            return [];
+        }
+
+        try {
+            $reader = IOFactory::createReaderForFile($this->filePath);
+            $names = method_exists($reader, 'listWorksheetNames') ? $reader->listWorksheetNames($this->filePath) : [];
+            if (empty($names)) {
+                return [];
+            }
+
+            $sheets = [];
+            foreach (['masuk', 'keluar'] as $targetType) {
+                foreach ($names as $name) {
+                    if (self::classifySheet($name) === $targetType) {
+                        $sheets[$name] = new ToolSheetImport($this, $targetType);
+                        break;
+                    }
+                }
+            }
+
+            if (empty($sheets)) {
+                foreach ($names as $name) {
+                    if ($type = self::classifySheet($name, true)) {
+                        $sheets[$name] = new ToolSheetImport($this, $type);
+                    }
+                }
+            }
+
+            return $sheets ?: [$names[0] => new ToolSheetImport($this, 'auto')];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     public function collection(Collection $rows)
+    {
+        $this->processCollection($rows, 'auto');
+    }
+
+    public function processCollection(Collection $rows, string $sheetType = 'auto')
     {
         if ($rows->isEmpty()) {
             return;
         }
 
         $userId = Auth::id() ?? 1;
-        DB::transaction(function () use ($rows, $userId) {
+        DB::transaction(function () use ($rows, $userId, $sheetType) {
+            $customHeaders = null;
             foreach ($rows as $index => $row) {
                 $rowNum = $index + 2;
 
                 // Convert row to array & sanitize keys to lower case trimmed without separators
                 $rowData = [];
+                $rawValues = [];
                 foreach ($row as $key => $val) {
-                    $cleanKey = strtolower(str_replace(['_', ' ', '/', '-', '.'], '', trim((string) $key)));
-                    $rowData[$cleanKey] = is_string($val) ? trim($val) : $val;
+                    $cleanKey = strtolower(str_replace(['_', ' ', '/', '-', '.', '(', ')'], '', trim((string) $key)));
+                    $trimmedVal = is_string($val) ? trim($val) : $val;
+                    $rowData[$cleanKey] = $trimmedVal;
+                    $rawValues[] = $trimmedVal;
                 }
 
-                $isKeluarFormat = array_key_exists('volume', $rowData)
+                $nonEmptyCount = count(array_filter($rawValues, static fn ($v) => $v !== null && trim((string) $v) !== ''));
+                if ($nonEmptyCount === 0) {
+                    continue;
+                }
+
+                if ($customHeaders !== null) {
+                    $rowData = [];
+                    foreach ($customHeaders as $colIdx => $headerKey) {
+                        if ($headerKey !== '') {
+                            $rowData[$headerKey] = $rawValues[$colIdx] ?? null;
+                        }
+                    }
+                } else {
+                    $normalizedVals = array_map(
+                        static fn ($v) => is_string($v) ? strtolower(str_replace(['_', ' ', '/', '-', '.', '(', ')'], '', $v)) : '',
+                        $rawValues
+                    );
+                    if (
+                        (in_array('tanggal', $normalizedVals, true) || in_array('no', $normalizedVals, true))
+                        && (in_array('kodealat', $normalizedVals, true) || in_array('namaalat', $normalizedVals, true) || in_array('kode', $normalizedVals, true))
+                    ) {
+                        $customHeaders = $normalizedVals;
+
+                        continue;
+                    }
+                    $firstCell = strtolower(trim((string) ($rawValues[0] ?? '')));
+                    if ($firstCell === '' || str_starts_with($firstCell, 'format impor') || str_starts_with($firstCell, 'laporan') || str_starts_with($firstCell, 'catatan alat') || str_starts_with($firstCell, 'diekspor pada') || str_starts_with($firstCell, 'filter aktif') || str_starts_with($firstCell, 'proyek:')) {
+                        if ($nonEmptyCount <= 1) {
+                            continue;
+                        }
+                    }
+                }
+
+                // Detect and silently skip template guide row (*DI ISI / *LINK) or export footer row (TOTAL / Total Biaya)
+                $isGuideRow = false;
+                foreach ($rawValues as $val) {
+                    if (is_string($val) && in_array(strtolower(trim($val)), ['*di isi', '*link', 'total', 'total biaya'], true)) {
+                        $isGuideRow = true;
+                        break;
+                    }
+                }
+                if ($isGuideRow) {
+                    $this->skippedRows++;
+
+                    continue;
+                }
+
+                $isKeluarFormat = $sheetType === 'keluar'
+                    || array_key_exists('volume', $rowData)
                     || array_key_exists('blokrumah', $rowData)
                     || array_key_exists('keteranganpekerjaan', $rowData);
                 $normalizeText = static function ($value) {
@@ -57,7 +209,7 @@ class ToolImport implements ToCollection, WithHeadingRow
                         return null;
                     }
                     $value = is_string($value) ? trim($value) : $value;
-                    if (is_string($value) && in_array(strtolower($value), ['', '-', '—', '*di isi', '*link', '0'], true)) {
+                    if (is_string($value) && (str_starts_with($value, '=') || in_array(strtolower($value), ['', '-', '—', '*di isi', '*link', '0'], true))) {
                         return null;
                     }
 
@@ -67,25 +219,25 @@ class ToolImport implements ToCollection, WithHeadingRow
                 // Field extraction
                 $code = $normalizeText($rowData['kode'] ?? $rowData['kodealat'] ?? $rowData['kodebarang'] ?? null);
                 $name = $normalizeText($rowData['namaalat'] ?? $rowData['namabarang'] ?? $rowData['nama'] ?? $rowData['alat'] ?? null);
-                $categoryName = $normalizeText($rowData['kategori'] ?? ($isKeluarFormat ? 'Alat Umum' : null));
+                $categoryName = $normalizeText($rowData['kategori'] ?? (($isKeluarFormat || $sheetType === 'masuk') ? 'Alat Umum' : null));
                 $condition = match (strtolower((string) ($rowData['kondisi'] ?? 'baik'))) {
                     'rusak', 'perbaikan', 'repair', 'broken' => 'rusak',
                     'hilang', 'lost' => 'hilang',
                     default => 'baik',
                 };
 
-                $totalQty = max(1, intval($isKeluarFormat
-                    ? ($rowData['volume'] ?? 1)
-                    : ($rowData['totalqty'] ?? $rowData['total'] ?? $rowData['jumlah'] ?? 1)));
-                $availableQty = intval($rowData['tersedia'] ?? $rowData['stok'] ?? $totalQty);
-                $purchasePrice = floatval($rowData['hargabeli'] ?? $rowData['hargasatuan'] ?? $rowData['harga'] ?? 0);
+                $totalQty = max(1, (int) MaterialImport::parseNumber($isKeluarFormat
+                    ? ($rowData['volume'] ?? $rowData['jumlah'] ?? 1)
+                    : ($rowData['totalqty'] ?? $rowData['total'] ?? $rowData['jumlah'] ?? $rowData['volume'] ?? 1)));
+                $availableQty = (int) MaterialImport::parseNumber($rowData['tersedia'] ?? $rowData['stok'] ?? $totalQty);
+                $purchasePrice = MaterialImport::parseNumber($rowData['hargabeli'] ?? $rowData['hargasatuan'] ?? $rowData['harga'] ?? 0);
 
                 // Transaction data (Checkout / Return)
-                $txType = strtolower((string) ($rowData['jenis'] ?? $rowData['tipe'] ?? $rowData['tipetransaksi'] ?? ($isKeluarFormat ? 'pinjam' : '')));
-                $isIncoming = in_array($txType, ['masuk', 'restock', 'in', 'penerimaan', 'receipt'], true);
+                $txType = strtolower((string) ($rowData['jenis'] ?? $rowData['tipe'] ?? $rowData['tipetransaksi'] ?? ($isKeluarFormat ? 'pinjam' : ($sheetType === 'masuk' ? 'masuk' : ''))));
+                $isIncoming = $sheetType === 'masuk' || in_array($txType, ['masuk', 'alat masuk', 'barang masuk', 'restock', 'in', 'penerimaan', 'receipt'], true);
                 $houseName = $normalizeText($rowData['unitrumah'] ?? $rowData['rumah'] ?? $rowData['unit'] ?? $rowData['peminjam'] ?? $rowData['blokrumah'] ?? null);
                 $clusterName = $normalizeText($rowData['cluster'] ?? $rowData['namacluster'] ?? null);
-                $txNotes = $normalizeText($rowData['catatan'] ?? $rowData['keterangan'] ?? $rowData['keteranganpekerjaan'] ?? null) ?? 'Import dari Excel';
+                $txNotes = $normalizeText($rowData['catatan'] ?? $rowData['keterangan'] ?? $rowData['keteranganpekerjaan'] ?? null) ?? ($sheetType === 'masuk' ? 'Stok Masuk dari Excel' : 'Import dari Excel');
                 $txDateRaw = $rowData['tanggal'] ?? $rowData['waktu'] ?? $rowData['waktumasuk'] ?? $rowData['waktuterima'] ?? $rowData['tanggalmasuk'] ?? $rowData['tanggalterima'] ?? $rowData['0'] ?? $rowData[''] ?? null;
                 $transactionCodeInput = $normalizeText($rowData['kodetransaksi'] ?? null);
 
@@ -101,12 +253,14 @@ class ToolImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
-                $warehouseId = ImportWarehouse::resolve($rowData, $rowNum, (string) ($name ?: $code));
+                $isReturn = in_array($txType, ['kembali', 'return', 'pengembalian'], true);
+                $isCheckout = ($sheetType === 'keluar' && ! $isReturn)
+                    || in_array($txType, ['pinjam', 'checkout', 'peminjaman', 'keluar', 'alat keluar', 'barang keluar'], true)
+                    || ($houseName && ! $isReturn && ! $isIncoming);
+
+                $warehouseId = ImportWarehouse::resolve($rowData, $rowNum, (string) ($name ?: $code), $isCheckout || $isReturn || $isIncoming);
 
                 $this->totalRows++;
-                $isReturn = in_array($txType, ['kembali', 'return', 'pengembalian'], true);
-                $isCheckout = in_array($txType, ['pinjam', 'checkout', 'peminjaman', 'keluar'], true)
-                    || ($houseName && ! $isReturn);
                 $txDate = ($isCheckout || $isReturn || $isIncoming)
                     ? ImportTransaction::date($txDateRaw, $rowNum, (string) ($name ?: $code))
                     : null;
@@ -159,6 +313,12 @@ class ToolImport implements ToCollection, WithHeadingRow
                         'received_date' => $isIncoming ? $txDate : null,
                         'recorded_by_id' => $userId,
                     ]);
+                    ToolInventory::ensureBalance(
+                        $tool,
+                        (int) $warehouseId,
+                        $tool->available_qty,
+                        $tool->qty_broken,
+                    );
                     $this->toolsImported++;
                     $isNewTool = true;
                 } else {
@@ -346,5 +506,18 @@ class ToolImport implements ToCollection, WithHeadingRow
             'item' => $item,
             'message' => 'Transaksi sudah tercatat. Stok tidak diubah.',
         ];
+    }
+}
+
+class ToolSheetImport implements ToCollection, WithHeadingRow
+{
+    public function __construct(
+        private ToolImport $parent,
+        private string $sheetType = 'auto',
+    ) {}
+
+    public function collection(Collection $rows)
+    {
+        $this->parent->processCollection($rows, $this->sheetType);
     }
 }

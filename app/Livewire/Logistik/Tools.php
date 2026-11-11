@@ -519,7 +519,7 @@ class Tools extends Component
 
         try {
             $import = ImportBatch::run('tool', $this->importFile, function (string $path) {
-                $import = new ToolImport;
+                $import = new ToolImport($path);
                 Excel::import($import, $path);
 
                 return $import;
