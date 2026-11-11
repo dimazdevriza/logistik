@@ -118,7 +118,7 @@ class ToolInventoryExport implements FromQuery, WithHeadings, WithMapping, WithS
         $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
         $sheet->getStyle('A1:I4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        // Header Styling (Rule 2: Dark Slate Grey #334155)
+        // Header Styling (D'Royal Village Green #1FA33A)
         $headerStyle = [
             'font' => [
                 'bold' => true,
@@ -126,7 +126,7 @@ class ToolInventoryExport implements FromQuery, WithHeadings, WithMapping, WithS
             ],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '334155'],
+                'startColor' => ['rgb' => '1FA33A'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,

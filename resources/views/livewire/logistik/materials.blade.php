@@ -726,10 +726,10 @@
                                 </a>
                             </div>
                             <ul class="extra-small text-body-secondary mb-0 ps-3">
-                                <li><strong>Format M.KELUAR:</strong> <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Penanggung Jawab</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Barang</code>, <code>Nama Barang</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code>, <code>Kode Transaksi</code></li>
-                                <li><strong>Format lama:</strong> inventaris dengan <code>Nama Material</code>, <code>Kategori</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Sisa Stok</code>, <code>Supplier</code>, dan <code>Gudang</code>, serta transaksi opsional. Isi <code>Gudang</code> jika ada lebih dari satu gudang.</li>
-                                <li><strong>Tanggal dan kode:</strong> tanggal wajib untuk transaksi. <code>Kode Transaksi</code> opsional, gunakan kode baru hanya untuk transaksi baru yang sama persis.</li>
-                                <li><strong>Workbook lama:</strong> jangan unggah seluruh workbook multi-sheet langsung. Petakan gudang dan tanggal, lalu siapkan satu sheet sesuai format impor sebelum mengunggah.</li>
+                                <li><strong>Lembar BARANG MASUK:</strong> Header selaras dengan Ekspor Catatan Material: <code>No</code>, <code>Tanggal</code>, <code>Tipe</code>, <code>Kode Barang</code>, <code>Nama Material</code>, <code>Satuan</code>, <code>Supplier</code>, <code>Jumlah</code>, <code>Harga Satuan</code>, <code>Total Biaya</code>, <code>Pencatat</code>. Otomatis menambah stok material.</li>
+                                <li><strong>Lembar BARANG KELUAR:</strong> Header selaras dengan Ekspor Catatan Material: <code>Tanggal</code>, <code>Bulan</code>, <code>Tahun</code>, <code>Pencatat</code>, <code>Pengambil</code>, <code>Blok Rumah</code>, <code>Keterangan Pekerjaan</code>, <code>Kode Barang</code>, <code>Nama Barang</code>, <code>Volume</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Jumlah</code>, <code>Toko/Supplier</code>. Otomatis mengurangi stok ke unit rumah / fasum (<code>-</code>).</li>
+                                <li><strong>Otomatisasi Multi-Sheet:</strong> Sistem otomatis memproses <code>BARANG MASUK</code> terlebih dahulu agar stok terisi, lalu memproses <code>BARANG KELUAR</code>.</li>
+                                <li><strong>Format inventaris lama:</strong> Format satu sheet dengan <code>Nama Material</code>, <code>Kategori</code>, <code>Satuan</code>, <code>Harga Satuan</code>, <code>Sisa Stok</code>, dan <code>Gudang</code> tetap didukung.</li>
                             </ul>
                         </div>
 

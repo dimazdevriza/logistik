@@ -85,7 +85,7 @@ class HouseExportTest extends TestCase
             $this->assertSame('TEST Export Cluster', $monthlySheet->getCell('D7')->getValue());
 
             foreach ($workbook->getAllSheets() as $sheet) {
-                $this->assertSame('334155', $sheet->getStyle('A6')->getFill()->getStartColor()->getRGB());
+                $this->assertSame('1FA33A', $sheet->getStyle('A6')->getFill()->getStartColor()->getRGB());
                 $this->assertSame('FFFFFF', $sheet->getStyle('A6')->getFont()->getColor()->getRGB());
                 $this->assertEquals(14, $sheet->getStyle('A2')->getFont()->getSize());
                 $this->assertTrue($sheet->getStyle('A3')->getFont()->getItalic());

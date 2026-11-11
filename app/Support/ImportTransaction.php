@@ -22,6 +22,7 @@ final class ImportTransaction
         $value = trim((string) $value);
         foreach ([
             'Y-m-d', 'd/m/Y', 'd-m-Y', 'Y/m/d',
+            'd M Y', 'j M Y',
             'Y-m-d H:i', 'Y-m-d H:i:s',
             'd/m/Y H:i', 'd/m/Y H:i:s',
             'd-m-Y H:i', 'd-m-Y H:i:s',

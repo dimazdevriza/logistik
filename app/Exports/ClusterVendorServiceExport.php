@@ -123,7 +123,7 @@ class ClusterVendorServiceExport implements FromCollection, ShouldAutoSize, With
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '334155'],
+                'startColor' => ['rgb' => '1FA33A'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,

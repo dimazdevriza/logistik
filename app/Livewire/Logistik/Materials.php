@@ -738,7 +738,7 @@ class Materials extends Component
 
         try {
             $import = ImportBatch::run('material', $this->importFile, function (string $path) {
-                $import = new MaterialImport();
+                $import = new MaterialImport($path);
                 Excel::import($import, $path);
 
                 return $import;

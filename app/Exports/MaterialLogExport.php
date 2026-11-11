@@ -339,7 +339,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 ],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '334155'],
+                    'startColor' => ['rgb' => '1FA33A'],
                 ],
                 'alignment' => [
                     'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -397,7 +397,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(10);
 
-        // Header Styling (Dark Slate Grey #334155)
+        // Header Styling (D'Royal Green #1FA33A)
         $headerStyle = [
             'font' => [
                 'bold' => true,
@@ -405,7 +405,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
             ],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '334155'],
+                'startColor' => ['rgb' => '1FA33A'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,

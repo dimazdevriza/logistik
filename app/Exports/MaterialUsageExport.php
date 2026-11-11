@@ -127,7 +127,7 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
         $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
         $sheet->getStyle('A1:K4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        // Header Styling (Rule 2: Dark Slate Grey #334155)
+        // Header Styling (D'Royal Village Green #1FA33A)
         $headerStyle = [
             'font' => [
                 'bold' => true,
@@ -135,7 +135,7 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
             ],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '334155'],
+                'startColor' => ['rgb' => '1FA33A'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,

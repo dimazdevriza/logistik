@@ -131,11 +131,11 @@ class ExcelImportFeatureTest extends TestCase
                 'blok_rumah' => 'F-01',
                 'keterangan_pekerjaan' => 'PEK.PLAFON',
                 'kode_barang' => 'BL509',
-                'nama_barang' => 'Alkali Jotun Jotashield',
+                'nama_barang' => '=IFERROR(VLOOKUP(I3,Data_Sumber,2,0),"")',
                 'volume' => 1,
                 'satuan' => 'Pail',
-                'harga_satuan' => 1091000,
-                'jumlah' => 1091000,
+                'harga_satuan' => 'Rp 1.091.000',
+                'jumlah' => 'Rp 1.091.000',
                 'toko_supplier' => 'DONA TIN TING',
             ],
             [
@@ -143,6 +143,10 @@ class ExcelImportFeatureTest extends TestCase
                 'nama_barang' => '*LINK',
             ],
         ]);
+
+        $this->assertSame(28750.0, MaterialImport::parseNumber('Rp 28.750'));
+        $this->assertSame(14375.0, MaterialImport::parseNumber('Rp 14.375,00'));
+        $this->assertSame(1091000.0, MaterialImport::parseNumber('1.091.000'));
 
         $import = new MaterialImport;
         $import->collection($rows);
@@ -162,8 +166,137 @@ class ExcelImportFeatureTest extends TestCase
             'quantity' => 1,
             'unit_price_at_usage' => 1091000,
             'notes' => 'PEK.PLAFON',
+            'taken_by' => 'AGUS',
             'usage_date' => '2026-01-30 00:00:00',
         ]);
+    }
+
+    public function test_material_import_parses_multi_sheet_with_barang_masuk_and_keluar()
+    {
+        $cluster = \App\Models\Cluster::firstOrCreate(['name' => 'VILLAGIO']);
+        $warehouse = Warehouse::firstOrFail();
+        $warehouse->update(['name' => 'Gudang Villagio']);
+
+        $houseB3 = House::factory()->create(['name' => 'Blok B3', 'cluster_id' => $cluster->id]);
+        $houseA1 = House::factory()->create(['name' => 'Blok A1', 'cluster_id' => $cluster->id]);
+        $houseInfra = House::factory()->create([
+            'name' => 'Infrastruktur & Fasilitas Umum',
+            'house_code' => 'VIL-INFRA',
+            'category' => 'public_work',
+            'cluster_id' => $cluster->id,
+        ]);
+
+        $matPaku = Material::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'name' => 'PAKU BALOK 3"',
+            'code' => 'BL42',
+            'unit' => 'KG',
+            'unit_price' => 14375,
+            'stock' => 10,
+        ]);
+        $matSemen = Material::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'name' => 'SEMEN GRESIK 50KG',
+            'code' => 'BL01',
+            'unit' => 'SAK',
+            'unit_price' => 68000,
+            'stock' => 50,
+        ]);
+        $matPipa = Material::factory()->create([
+            'warehouse_id' => $warehouse->id,
+            'name' => 'PIPA PVC 3 INCH D',
+            'code' => 'BL12',
+            'unit' => 'BTG',
+            'unit_price' => 85000,
+            'stock' => 20,
+        ]);
+
+        $filePath = public_path('sample_material_import.xlsx');
+        $this->assertFileExists($filePath);
+
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+        $this->assertSame(['BARANG MASUK', 'BARANG KELUAR'], $spreadsheet->getSheetNames());
+
+        $sheetMasuk = $spreadsheet->getSheetByName('BARANG MASUK');
+        $sheetKeluar = $spreadsheet->getSheetByName('BARANG KELUAR');
+
+        $this->assertSame('1FA33A', $sheetMasuk->getStyle('A4')->getFill()->getStartColor()->getRGB());
+        $this->assertSame('1FA33A', $sheetKeluar->getStyle('A4')->getFill()->getStartColor()->getRGB());
+        $this->assertCount(1, $sheetMasuk->getDrawingCollection());
+        $this->assertCount(1, $sheetKeluar->getDrawingCollection());
+        $this->assertNull($sheetMasuk->getCell('A5')->getValue());
+        $this->assertNull($sheetKeluar->getCell('A5')->getValue());
+
+        $sheetMasuk->fromArray([
+            [1, '01 Jan 2024', 'Barang Masuk', 'BL42', 'PAKU BALOK 3"', 'KG', 'UD. MUARA', 50, 14375, 718750, 'OKI'],
+            [2, '01 Jan 2024', 'Barang Masuk', 'BL01', 'SEMEN GRESIK 50KG', 'SAK', 'TB. MAJU JAYA', 100, 68000, 6800000, 'OKI'],
+            [3, '02 Jan 2024', 'Barang Masuk', 'BL12', 'PIPA PVC 3 INCH D', 'BTG', 'TB. MAJU JAYA', 30, 85000, 2550000, 'OKI'],
+        ], null, 'A5');
+
+        $sheetKeluar->fromArray([
+            ['02 Jan 2024', 'Januari', 2024, 'OKI', 'PAK UJANG', 'Blok B3', 'MAL PLAT LANTAI B3', 'BL42', 'PAKU BALOK 3"', 2, 'KG', 14375, 28750, 'UD. MUARA'],
+            ['03 Jan 2024', 'Januari', 2024, 'OKI', 'PAK DEDI', 'Blok A1', 'PASANGAN BATA A1', 'BL01', 'SEMEN GRESIK 50KG', 10, 'SAK', 68000, 680000, 'TB. MAJU JAYA'],
+            ['04 Jan 2024', 'Januari', 2024, 'OKI', 'TIM INFRA', 'Infrastruktur & Fasilitas Umum', 'SALURAN DRAINASE UTAMA', 'BL12', 'PIPA PVC 3 INCH D', 5, 'BTG', 85000, 425000, 'TB. MAJU JAYA'],
+        ], null, 'A5');
+
+        $tempFile = storage_path('app/temp_sample_material_import_test.xlsx');
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($tempFile);
+
+        try {
+            $import = new MaterialImport($tempFile);
+            Excel::import($import, $tempFile);
+        } finally {
+            @unlink($tempFile);
+        }
+
+        $this->assertEquals(6, $import->successfulRows);
+        $this->assertEquals(0, $import->skippedRows);
+        $this->assertEquals(6, $import->transactionsImported);
+
+        // Assert BARANG MASUK imported
+        $this->assertDatabaseHas('stock_ins', [
+            'material_id' => $matPaku->id,
+            'quantity' => 50,
+            'notes' => 'Stok Masuk dari Excel',
+        ]);
+        $this->assertDatabaseHas('stock_ins', [
+            'material_id' => $matSemen->id,
+            'quantity' => 100,
+            'notes' => 'Stok Masuk dari Excel',
+        ]);
+        $this->assertDatabaseHas('stock_ins', [
+            'material_id' => $matPipa->id,
+            'quantity' => 30,
+            'notes' => 'Stok Masuk dari Excel',
+        ]);
+
+        // Assert BARANG KELUAR imported
+        $this->assertDatabaseHas('material_usages', [
+            'house_id' => $houseB3->id,
+            'quantity' => 2,
+            'taken_by' => 'PAK UJANG',
+            'notes' => 'MAL PLAT LANTAI B3',
+        ]);
+        $this->assertDatabaseHas('material_usages', [
+            'house_id' => $houseA1->id,
+            'quantity' => 10,
+            'taken_by' => 'PAK DEDI',
+            'notes' => 'PASANGAN BATA A1',
+        ]);
+        $this->assertDatabaseHas('material_usages', [
+            'house_id' => $houseInfra->id,
+            'quantity' => 5,
+            'taken_by' => 'TIM INFRA',
+            'notes' => 'SALURAN DRAINASE UTAMA',
+        ]);
+
+        // Final stock check: initial + restock - usage
+        // Paku: 10 + 50 - 2 = 58
+        $this->assertEquals(58, (float) $matPaku->fresh()->stock);
+        // Semen: 50 + 100 - 10 = 140
+        $this->assertEquals(140, (float) $matSemen->fresh()->stock);
+        // Pipa: 20 + 30 - 5 = 45
+        $this->assertEquals(45, (float) $matPipa->fresh()->stock);
     }
 
     public function test_tool_import_parses_a_keluar_format()

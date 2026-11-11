@@ -33,22 +33,21 @@ class MaterialImportStockTest extends TestCase
             'blok_rumah' => $houseName, 'tanggal' => '2026-09-13', 'harga_satuan' => 100];
     }
 
-    public function test_excess_stock_rejects_file_and_rolls_back_earlier_rows(): void
+    public function test_excess_stock_auto_creates_incoming_stock_before_outgoing_usage(): void
     {
         $material = Material::factory()->create(['stock' => 8, 'unit' => 'sak']);
-        $before = $material->fresh()->getRawOriginal();
         $rows = collect([$this->row($material, 3), $this->row($material, 6)]);
-        $houseCount = House::count();
-        try {
-            (new MaterialImport)->collection($rows);
-            $this->fail('Insufficient stock must reject the import.');
-        } catch (\RuntimeException $error) {
-            $this->assertStringContainsString('Baris 3', $error->getMessage());
-            $this->assertStringContainsString('Tersedia: 5 sak, diminta: 6 sak', $error->getMessage());
-        }
-        $this->assertSame($before, $material->fresh()->getRawOriginal());
-        $this->assertSame(0, MaterialUsage::where('material_id', $material->id)->count());
-        $this->assertSame($houseCount, House::count());
+
+        $import = new MaterialImport;
+        $import->collection($rows);
+
+        $this->assertEquals(0, $material->fresh()->stock);
+        $autoStockIn = StockIn::where('material_id', $material->id)->sole();
+        $this->assertEquals(1, $autoStockIn->quantity);
+        $this->assertEquals(0, $autoStockIn->remaining_quantity);
+        $this->assertEquals(9, MaterialUsage::where('material_id', $material->id)->sum('quantity'));
+        $this->assertSame(2, $import->successfulRows);
+        $this->assertSame(3, $import->transactionsImported);
     }
 
     public function test_exact_and_fractional_stock_are_deducted_in_full(): void
@@ -61,32 +60,72 @@ class MaterialImportStockTest extends TestCase
         $this->assertSame(2, $import->successfulRows);
     }
 
-    public function test_out_alias_does_not_create_stock_from_requested_quantity(): void
+    public function test_out_alias_auto_records_incoming_and_outgoing_when_stock_is_zero(): void
     {
         $material = Material::factory()->create(['stock' => 0]);
         House::factory()->create(['name' => 'AUD-ALIAS']);
-        try {
-            (new MaterialImport)->collection(collect([['nama_material' => $material->name,
-                'jenis' => 'out', 'jumlah' => 20, 'unit_rumah' => 'AUD-ALIAS', 'tanggal' => '2026-09-13']]));
-            $this->fail('A stock-out row must not initialize inventory.');
-        } catch (\RuntimeException $error) {
-            $this->assertStringContainsString('Stok tidak mencukupi', $error->getMessage());
-        }
+
+        (new MaterialImport)->collection(collect([['nama_material' => $material->name,
+            'jenis' => 'out', 'jumlah' => 20, 'unit_rumah' => 'AUD-ALIAS', 'tanggal' => '2026-09-13', 'harga_satuan' => 50000]]));
+
         $this->assertEquals(0, $material->fresh()->stock);
-        $this->assertSame(0, MaterialUsage::where('material_id', $material->id)->count());
+        $stockIn = StockIn::where('material_id', $material->id)->sole();
+        $this->assertEquals(20, $stockIn->quantity);
+        $this->assertEquals(0, $stockIn->remaining_quantity);
+        $usage = MaterialUsage::where('material_id', $material->id)->sole();
+        $this->assertEquals(20, $usage->quantity);
+        $this->assertSame($stockIn->id, $usage->stock_in_id);
+    }
+
+    public function test_brand_new_material_in_barang_keluar_creates_material_stock_in_and_usage(): void
+    {
+        $house = House::factory()->create(['name' => 'Blok B3']);
+        $import = new MaterialImport;
+        $import->processCollection(collect([[
+            'tanggal' => '12/11/2026',
+            'bulan' => 'NOVEMBER',
+            'tahun' => 2026,
+            'pencatat' => 'ADMIN',
+            'pengambil' => 'PAK UJANG',
+            'blok_rumah' => 'Blok B3',
+            'keterangan_pekerjaan' => 'PENGECATAN FASAD B3',
+            'kode_barang' => 'BL999',
+            'nama_barang' => 'CAT EKSTERIOR JOTUN 20L',
+            'volume' => 5,
+            'satuan' => 'PAIL',
+            'harga_satuan' => 'Rp 850.000',
+            'jumlah' => 'Rp 4.250.000',
+            'toko_supplier' => 'TOKO CAT JAYA',
+        ]]), 'keluar');
+
+        $material = Material::where('code', 'BL999')->sole();
+        $this->assertSame('CAT EKSTERIOR JOTUN 20L', $material->name);
+        $this->assertSame('PAIL', $material->unit);
+        $this->assertEquals(850000, $material->unit_price);
+        $this->assertEquals(0, $material->stock);
+
+        $stockIn = StockIn::where('material_id', $material->id)->sole();
+        $this->assertEquals(5, $stockIn->quantity);
+        $this->assertEquals(0, $stockIn->remaining_quantity);
+        $this->assertEquals(4250000, $stockIn->total_cost);
+
+        $usage = MaterialUsage::where('material_id', $material->id)->sole();
+        $this->assertSame($house->id, $usage->house_id);
+        $this->assertSame($stockIn->id, $usage->stock_in_id);
+        $this->assertEquals(5, $usage->quantity);
+        $this->assertEquals(4250000, $usage->total_cost);
     }
 
     public function test_ui_reports_row_error_and_records_failed_batch(): void
     {
         $material = Material::factory()->create(['name' => 'AUD-'.bin2hex(random_bytes(5)), 'stock' => 8, 'unit' => 'sak']);
-        House::factory()->create(['name' => 'AUD-UI']);
-        $csv = "nama_barang,jenis,volume,blok_rumah,tanggal\n{$material->name},keluar,20,AUD-UI,2026-09-13\n";
+        $csv = "nama_barang,jenis,volume,blok_rumah,tanggal\n{$material->name},keluar,20,,2026-09-13\n";
         Livewire::test(\App\Livewire\Logistik\Materials::class)
             ->call('openImportModal')
             ->set('importFile', UploadedFile::fake()->createWithContent('stock-check.csv', $csv))
             ->call('importExcel')
             ->assertHasErrors('importFile')
-            ->assertSee('Tersedia: 8 sak, diminta: 20 sak');
+            ->assertSee('Blok rumah wajib diisi untuk transaksi keluar');
         $this->assertEquals(8, $material->fresh()->stock);
         $this->assertDatabaseHas('import_batches', ['file_hash' => hash('sha256', $csv), 'status' => 'failed']);
     }

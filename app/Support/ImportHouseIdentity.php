@@ -32,8 +32,36 @@ final class ImportHouseIdentity
             $clusterId ??= $user->soleClusterId();
         }
 
+        $isInfra = in_array(strtolower($reference), ['-', '', '—', 'infra', 'infrastruktur', 'fasum', 'fasilitas umum'], true);
+        if ($isInfra) {
+            $infra = House::query()
+                ->when($clusterId, fn ($q) => $q->where('cluster_id', $clusterId))
+                ->where(function ($q) {
+                    $q->where('category', 'public_work')
+                      ->orWhere('house_code', 'LIKE', '%INFRA%')
+                      ->orWhere('name', 'LIKE', '%Infrastruktur%');
+                })
+                ->first();
+
+            if ($infra) {
+                return $infra;
+            }
+        }
+
+        $candidates = array_values(array_unique(array_filter([
+            $reference,
+            'Blok ' . $reference,
+            'Blok ' . strtoupper($reference),
+            'VIL-' . strtoupper($reference),
+            'VIL-' . $reference,
+            strtoupper($reference),
+        ])));
+
         $matches = House::query()
-            ->where(fn ($query) => $query->where('house_code', $reference)->orWhere('name', $reference))
+            ->where(function ($query) use ($candidates) {
+                $query->whereIn('house_code', $candidates)
+                      ->orWhereIn('name', $candidates);
+            })
             ->when($clusterId, fn ($query) => $query->where('cluster_id', $clusterId))
             ->when(! $clusterId && $user && ! $user->canAccessAllClusters(), fn ($query) => $query->whereIn('cluster_id', $user->scopedClusterIds()))
             ->limit(2)
