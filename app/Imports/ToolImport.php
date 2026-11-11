@@ -283,7 +283,15 @@ class ToolImport implements SkipsUnknownSheets, ToCollection, WithHeadingRow, Wi
 
                 $hasProvidedCode = (bool) $code;
 
-                if (! $hasProvidedCode && ($isCheckout || $isReturn)) {
+                if (! $hasProvidedCode && $name && ! $isIncoming) {
+                    $existingByName = Tool::where('name', $name)->first();
+                    if ($existingByName) {
+                        $code = $existingByName->code;
+                        $hasProvidedCode = true;
+                    }
+                }
+
+                if (! $hasProvidedCode && ($isCheckout || $isReturn) && ! $isKeluarFormat) {
                     throw new \RuntimeException("Baris {$rowNum} ({$name}): Kode alat wajib diisi untuk memilih batch alat yang benar.");
                 }
 
@@ -368,7 +376,15 @@ class ToolImport implements SkipsUnknownSheets, ToCollection, WithHeadingRow, Wi
 
                     $sourceBalance = ToolInventory::lockBalance($tool, (int) $warehouseId);
                     if ($sourceBalance->available_qty < $qty) {
-                        throw new \RuntimeException("Baris {$rowNum} ({$tool->name}): Stok alat tidak mencukupi di gudang asal. Tersedia: {$sourceBalance->available_qty} unit, diminta: {$qty} unit. Seluruh impor dibatalkan.");
+                        if ($isKeluarFormat) {
+                            $shortfall = $qty - (int) $sourceBalance->available_qty;
+                            $tool->increment('total_qty', $shortfall);
+                            ToolInventory::receive($tool, (int) $warehouseId, $shortfall, 0);
+                            $sourceBalance = ToolInventory::lockBalance($tool, (int) $warehouseId);
+                            $logDetail .= " + Stok alat masuk otomatis ({$shortfall} unit)";
+                        } else {
+                            throw new \RuntimeException("Baris {$rowNum} ({$tool->name}): Stok alat tidak mencukupi di gudang asal. Tersedia: {$sourceBalance->available_qty} unit, diminta: {$qty} unit. Seluruh impor dibatalkan.");
+                        }
                     }
 
                     if (ToolUsage::where('tool_id', $tool->id)

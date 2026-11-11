@@ -357,6 +357,11 @@ class ExcelImportFeatureTest extends TestCase
 
     public function test_tool_livewire_import_modal()
     {
+        $cluster = \App\Models\Cluster::firstOrCreate(['name' => 'VILLAGIO']);
+        $warehouse = Warehouse::firstOrFail();
+        $warehouse->update(['name' => 'Gudang Villagio']);
+        $houseB3 = House::factory()->create(['name' => 'Blok B3', 'cluster_id' => $cluster->id]);
+
         $filePath = public_path('sample_tool_import.xlsx');
         $this->assertFileExists($filePath);
 
@@ -372,6 +377,39 @@ class ExcelImportFeatureTest extends TestCase
         $this->assertCount(1, $sheetKeluar->getDrawingCollection());
         $this->assertNull($sheetMasuk->getCell('A5')->getValue());
         $this->assertNull($sheetKeluar->getCell('A5')->getValue());
+
+        $sheetMasuk->fromArray([
+            [1, '01 Jan 2024', 'Alat Masuk', 'ALT-TPL-01', 'Mesin Potong Keramik', 'Alat Listrik', 'Baik', 'Gudang Villagio', 3, 2750000, 8250000, 'OKI'],
+        ], null, 'A5');
+
+        $sheetKeluar->fromArray([
+            ['02 Jan 2024', 'Januari', 2024, 'PAK UJANG', 'Blok B3', 'PEMASANGAN KERAMIK B3', 'ALT-TPL-01', 'Mesin Potong Keramik', 1, 'unit', 2750000, 2750000, 'CV. Teknik Jaya', 'ALT-TX-001'],
+        ], null, 'A5');
+
+        $tempFile = storage_path('app/temp_sample_tool_import_test.xlsx');
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($tempFile);
+
+        try {
+            $import = new ToolImport($tempFile);
+            Excel::import($import, $tempFile);
+        } finally {
+            @unlink($tempFile);
+        }
+
+        $this->assertEquals(2, $import->successfulRows);
+        $this->assertEquals(0, $import->skippedRows);
+        $this->assertEquals(1, $import->toolsImported);
+        $this->assertEquals(1, $import->transactionsImported);
+
+        $tool = Tool::where('code', 'ALT-TPL-01')->firstOrFail();
+        $this->assertEquals(3, $tool->total_qty);
+        $this->assertEquals(2, $tool->available_qty);
+        $this->assertDatabaseHas('tool_usages', [
+            'tool_id' => $tool->id,
+            'house_id' => $houseB3->id,
+            'quantity' => 1,
+            'notes' => 'PEMASANGAN KERAMIK B3',
+        ]);
 
         Livewire::test(Tools::class)
             ->call('openImportModal')
