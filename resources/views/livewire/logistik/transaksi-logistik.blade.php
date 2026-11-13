@@ -2308,15 +2308,8 @@
                             @endif
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Pilih Berkas Excel / CSV</label>
-                            <input type="file" wire:model="importFile" class="form-control" accept=".xlsx,.xls,.csv" />
-                            @error('importFile') <span class="text-danger small fw-semibold d-block mt-1">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div wire:loading wire:target="importFile" class="text-primary small fw-semibold">
-                            <div class="spinner-border spinner-border-sm me-1" role="status"></div> Mengunggah berkas...
-                        </div>
+                        @include('livewire.logistik.partials.import-validation-guide')
+                        @include('livewire.logistik.partials.import-file-field')
                     @else
                         <div class="alert alert-success d-flex align-items-center gap-3 mb-3">
                             <div class="fs-3 text-success" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m3.97-9.03-4.5 4.5a.75.75 0 0 1-1.06 0l-2-2a.75.75 0 0 1 1.06-1.06L6.94 9.88l3.97-3.97a.75.75 0 0 1 1.06 1.06"/></svg></div>

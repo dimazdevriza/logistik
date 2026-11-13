@@ -733,15 +733,8 @@
                             </ul>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Pilih Berkas Excel / CSV</label>
-                            <input type="file" wire:model="importFile" class="form-control" accept=".xlsx,.xls,.csv" />
-                            @error('importFile') <span class="text-danger small fw-semibold d-block mt-1">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div wire:loading wire:target="importFile" class="text-primary small fw-semibold">
-                            <div class="spinner-border spinner-border-sm me-1" role="status"></div> Mengunggah berkas...
-                        </div>
+                        @include('livewire.logistik.partials.import-validation-guide')
+                        @include('livewire.logistik.partials.import-file-field')
                     @else
                         <!-- Validation Report Results -->
                         <div class="alert alert-success d-flex align-items-center gap-3 mb-3">

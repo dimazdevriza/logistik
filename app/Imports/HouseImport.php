@@ -10,6 +10,7 @@ use App\Models\MaterialUsage;
 use App\Models\Tool;
 use App\Models\ToolReturnLog;
 use App\Models\ToolUsage;
+use App\Support\ImportHouseIdentity;
 use App\Support\ToolInventory;
 use App\Support\ImportTransaction;
 use App\Support\ImportWarehouse;
@@ -307,22 +308,16 @@ class HouseMaterialsSheetImport implements ToCollection, WithHeadingRow
                 $this->parent->totalRows++;
                 $warehouseId = ImportWarehouse::resolve($rowData, $rowNum, (string) $matName);
 
-                // Resolve house
-                $house = $this->parent->findHouse((string) $houseRef);
-                if (! $house) {
-                    if ($this->parent->houseExistsOutsideCluster((string) $houseRef)) {
-                        throw new \RuntimeException("Baris {$rowNum}: Rumah {$houseRef} berada di luar cluster tugas Anda.");
-                    }
-                    // Create house on the fly if needed
-                    $house = House::create([
-                        'house_code' => House::generateCode($houseRef),
-                        'name' => $houseRef,
-                        'type' => 'Standar',
-                        'status' => 'pembangunan',
-                        'cluster_id' => $this->parent->clusterId,
-                    ]);
-                    $this->parent->housesImported++;
-                }
+                // Resolve house (never auto-create unregistered houses on allocation sheets)
+                $clusterName = $this->parent->clusterId !== null
+                    ? Cluster::whereKey($this->parent->clusterId)->value('name')
+                    : ($rowData['cluster'] ?? $rowData['namacluster'] ?? null);
+                $house = ImportHouseIdentity::resolve(
+                    (string) $houseRef,
+                    $rowNum,
+                    (string) ($matName ?: 'material'),
+                    $clusterName ? (string) $clusterName : null
+                );
                 if ($house->status === 'selesai') {
                     throw new \RuntimeException("Baris {$rowNum} ({$matName}): Rumah {$house->name} sudah selesai dan tidak menerima alokasi baru.");
                 }
@@ -467,21 +462,16 @@ class HouseToolsSheetImport implements ToCollection, WithHeadingRow
                 $this->parent->totalRows++;
                 $warehouseId = ImportWarehouse::resolve($rowData, $rowNum, (string) ($toolName ?: $toolCode ?: 'alat'));
 
-                // Resolve house
-                $house = $this->parent->findHouse((string) $houseRef);
-                if (! $house) {
-                    if ($this->parent->houseExistsOutsideCluster((string) $houseRef)) {
-                        throw new \RuntimeException("Baris {$rowNum}: Rumah {$houseRef} berada di luar cluster tugas Anda.");
-                    }
-                    $house = House::create([
-                        'house_code' => House::generateCode($houseRef),
-                        'name' => $houseRef,
-                        'type' => 'Standar',
-                        'status' => 'pembangunan',
-                        'cluster_id' => $this->parent->clusterId,
-                    ]);
-                    $this->parent->housesImported++;
-                }
+                // Resolve house (never auto-create unregistered houses on allocation sheets)
+                $clusterName = $this->parent->clusterId !== null
+                    ? Cluster::whereKey($this->parent->clusterId)->value('name')
+                    : ($rowData['cluster'] ?? $rowData['namacluster'] ?? null);
+                $house = ImportHouseIdentity::resolve(
+                    (string) $houseRef,
+                    $rowNum,
+                    (string) ($toolName ?: $toolCode ?: 'alat'),
+                    $clusterName ? (string) $clusterName : null
+                );
                 if ($house->status === 'selesai') {
                     throw new \RuntimeException("Baris {$rowNum} ({$toolName}): Rumah {$house->name} sudah selesai dan tidak menerima peminjaman baru.");
                 }

@@ -621,6 +621,9 @@ class Houses extends Component
                 }
                 $import = new HouseImport($user->canAccessAllClusters() ? null : $user->soleClusterId());
                 Excel::import($import, $path);
+                if ($import->totalRows === 0) {
+                    throw new \RuntimeException('Tidak ada baris data yang valid untuk diproses. Pastikan nama sheet dan header kolom sesuai dengan format contoh, serta minimal satu baris data telah diisi.');
+                }
 
                 return $import;
             });

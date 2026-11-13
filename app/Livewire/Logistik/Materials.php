@@ -740,6 +740,9 @@ class Materials extends Component
             $import = ImportBatch::run('material', $this->importFile, function (string $path) {
                 $import = new MaterialImport($path);
                 Excel::import($import, $path);
+                if ($import->totalRows === 0) {
+                    throw new \RuntimeException('Tidak ada baris data yang valid untuk diproses. Pastikan nama sheet dan header kolom sesuai dengan format contoh, serta minimal satu baris data telah diisi.');
+                }
 
                 return $import;
             });

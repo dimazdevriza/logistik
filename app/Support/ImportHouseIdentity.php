@@ -55,17 +55,44 @@ final class ImportHouseIdentity
             'VIL-' . strtoupper($reference),
             'VIL-' . $reference,
             strtoupper($reference),
+            House::generateCode($reference),
         ])));
 
-        $matches = House::query()
-            ->where(function ($query) use ($candidates) {
-                $query->whereIn('house_code', $candidates)
-                      ->orWhereIn('name', $candidates);
+        $queryForCandidates = fn (array $lookupCandidates) => House::query()
+            ->where(function ($query) use ($lookupCandidates) {
+                $query->whereIn('house_code', $lookupCandidates)
+                      ->orWhereIn('name', $lookupCandidates);
             })
             ->when($clusterId, fn ($query) => $query->where('cluster_id', $clusterId))
             ->when(! $clusterId && $user && ! $user->canAccessAllClusters(), fn ($query) => $query->whereIn('cluster_id', $user->scopedClusterIds()))
             ->limit(2)
             ->get();
+
+        $matches = $queryForCandidates($candidates);
+
+        $normalizedCandidates = [];
+        if ($matches->isEmpty() && preg_match('/^(?:blok\s*|vil[\s\-]*|\d{4}[\s\-]*)?([a-zA-Z]+)[\s\-]*0*(\d+)$/i', $reference, $m)) {
+            $block = strtoupper($m[1]);
+            $numUnpadded = (string) ((int) $m[2]);
+            $numPadded = str_pad($numUnpadded, 2, '0', STR_PAD_LEFT);
+
+            $normalizedCandidates = array_values(array_unique([
+                "Blok {$block}{$numUnpadded}",
+                "Blok {$block}-{$numPadded}",
+                "Blok {$block}-{$numUnpadded}",
+                "Blok {$block}{$numPadded}",
+                "{$block}{$numUnpadded}",
+                "{$block}-{$numPadded}",
+                "{$block}-{$numUnpadded}",
+                "{$block}{$numPadded}",
+                "VIL-{$block}{$numUnpadded}",
+                "VIL-{$block}{$numPadded}",
+                House::generateCode("Blok {$block}-{$numPadded}"),
+                House::generateCode("Blok {$block}{$numUnpadded}"),
+            ]));
+
+            $matches = $queryForCandidates($normalizedCandidates);
+        }
 
         if ($matches->count() === 1) {
             return $matches->first();
@@ -75,14 +102,15 @@ final class ImportHouseIdentity
             throw new RuntimeException("Baris {$rowNumber} ({$item}): Referensi rumah '{$reference}' tidak unik. Tambahkan cluster atau kode rumah yang tepat.");
         }
 
+        $allCandidates = array_values(array_unique(array_merge($candidates, $normalizedCandidates)));
         if ($user && ! $user->canAccessAllClusters() && House::query()
-            ->where(fn ($query) => $query->where('house_code', $reference)->orWhere('name', $reference))
+            ->where(fn ($query) => $query->whereIn('house_code', $allCandidates)->orWhereIn('name', $allCandidates))
             ->exists()) {
             throw new RuntimeException("Baris {$rowNumber} ({$item}): Rumah berada di luar cluster tugas Anda.");
         }
 
         $location = $clusterName ? " di cluster '{$clusterName}'" : '';
 
-        throw new RuntimeException("Baris {$rowNumber} ({$item}): Rumah '{$reference}'{$location} belum terdaftar. Cocokkan kode rumah dan cluster sebelum impor.");
+        throw new RuntimeException("Baris {$rowNumber} ({$item}): Blok rumah '{$reference}'{$location} belum terdaftar di sistem. Harap masukkan blok rumah yang valid (contoh: A1 atau Blok A-01) yang sudah terdaftar sebelum impor.");
     }
 }

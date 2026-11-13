@@ -611,4 +611,146 @@ class ImportIntegrityTest extends TestCase
         $this->assertSame(2550, $delta['house_costs'][$house->id]['material_cost_minor']);
         $this->assertSame(45678, $delta['cluster_expenses'][$cluster->id]['amount_minor']);
     }
+
+    public function test_outgoing_imports_recognize_letter_number_house_formats_like_a1_and_reject_unregistered_blocks(): void
+    {
+        $houseA1 = House::factory()->create([
+            'house_code' => '2026-A01',
+            'name' => 'Blok A-01',
+            'status' => 'pembangunan',
+        ]);
+        $houseB2 = House::factory()->create([
+            'house_code' => 'VIL-B2',
+            'name' => 'Blok B2',
+            'status' => 'pembangunan',
+        ]);
+        $material = Material::factory()->create([
+            'name' => 'Audit Semen A1',
+            'unit' => 'sak',
+            'stock' => 10,
+        ]);
+        $tool = Tool::factory()->create([
+            'code' => 'ALT-AUD-A1',
+            'name' => 'Bor Beton A1',
+            'total_qty' => 2,
+            'available_qty' => 2,
+        ]);
+        $initialHouseCount = House::count();
+
+        // "A1" should resolve to "Blok A-01" (2026-A01) for both MaterialImport and ToolImport
+        (new MaterialImport)->collection(collect([[
+            'nama_barang' => $material->name,
+            'jenis' => 'keluar',
+            'volume' => 2,
+            'blok_rumah' => 'A1',
+            'tanggal' => '2026-09-17',
+            'gudang' => 'Gudang Utama',
+        ]]));
+
+        (new ToolImport)->collection(collect([[
+            'kode' => $tool->code,
+            'nama_alat' => $tool->name,
+            'jenis' => 'pinjam',
+            'volume' => 1,
+            'blok_rumah' => 'A1',
+            'tanggal' => '2026-09-17',
+            'gudang' => 'Gudang Utama',
+        ]]));
+
+        // "B-02" should resolve to "Blok B2" (VIL-B2)
+        (new MaterialImport)->collection(collect([[
+            'nama_barang' => $material->name,
+            'jenis' => 'keluar',
+            'volume' => 1,
+            'blok_rumah' => 'B-02',
+            'tanggal' => '2026-09-18',
+            'gudang' => 'Gudang Utama',
+        ]]));
+
+        $this->assertSame($initialHouseCount, House::count());
+        $this->assertDatabaseHas('material_usages', [
+            'material_id' => $material->id,
+            'house_id' => $houseA1->id,
+            'quantity' => 2,
+        ]);
+        $this->assertDatabaseHas('material_usages', [
+            'material_id' => $material->id,
+            'house_id' => $houseB2->id,
+            'quantity' => 1,
+        ]);
+        $this->assertDatabaseHas('tool_usages', [
+            'tool_id' => $tool->id,
+            'house_id' => $houseA1->id,
+            'quantity' => 1,
+        ]);
+
+        // Unregistered house block "Z99" must fail with clear warning and must not auto-create any house
+        foreach ([
+            fn () => (new MaterialImport)->collection(collect([[
+                'nama_barang' => $material->name,
+                'jenis' => 'keluar',
+                'volume' => 1,
+                'blok_rumah' => 'Z99',
+                'tanggal' => '2026-09-19',
+                'gudang' => 'Gudang Utama',
+            ]])),
+            fn () => (new ToolImport)->collection(collect([[
+                'kode' => $tool->code,
+                'nama_alat' => $tool->name,
+                'jenis' => 'pinjam',
+                'volume' => 1,
+                'blok_rumah' => 'Z99',
+                'tanggal' => '2026-09-19',
+                'gudang' => 'Gudang Utama',
+            ]])),
+            fn () => (new \App\Imports\HouseMaterialsSheetImport(new \App\Imports\HouseImport))->collection(collect([[
+                'unit_rumah' => 'Z99',
+                'nama_material' => $material->name,
+                'qty' => 1,
+                'tanggal' => '2026-09-19',
+                'gudang' => 'Gudang Utama',
+            ]])),
+        ] as $import) {
+            try {
+                $import();
+                $this->fail('Unregistered house block Z99 must be rejected without auto-creation.');
+            } catch (\RuntimeException $exception) {
+                $this->assertStringContainsString('belum terdaftar', $exception->getMessage());
+                $this->assertStringContainsString('blok rumah yang valid', $exception->getMessage());
+            }
+        }
+
+        $this->assertSame($initialHouseCount, House::count());
+    }
+
+    public function test_import_modal_shows_validation_guide_upload_hint_and_clear_failure_reason(): void
+    {
+        $material = Material::factory()->create([
+            'name' => 'Audit Semen UI Error',
+            'unit' => 'sak',
+            'stock' => 10,
+        ]);
+
+        $badCsv = "Nama Barang,Jenis,Volume,Blok Rumah,Tanggal,Gudang\nAudit Semen UI Error,keluar,1,Z99,2026-09-19,Gudang Utama\n";
+
+        Livewire::test(Materials::class)
+            ->call('openImportModal')
+            ->assertSee('Aturan Validasi Impor')
+            ->assertSee('10 MB')
+            ->set('importFile', UploadedFile::fake()->createWithContent('bad-house.csv', $badCsv))
+            ->call('importExcel')
+            ->assertHasErrors('importFile')
+            ->assertSee('Validasi Berkas Excel Gagal')
+            ->assertSee("Blok rumah 'Z99' belum terdaftar");
+
+        $emptyCsv = "Nama Barang,Jenis,Volume,Blok Rumah,Tanggal\n";
+
+        Livewire::test(Materials::class)
+            ->call('openImportModal')
+            ->set('importFile', UploadedFile::fake()->createWithContent('empty.csv', $emptyCsv))
+            ->call('importExcel')
+            ->assertHasErrors('importFile')
+            ->assertSee('Validasi Berkas Excel Gagal')
+            ->assertSee('Tidak ada baris data yang valid');
+    }
 }
