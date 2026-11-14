@@ -6,6 +6,8 @@ use App\Exports\HouseExport;
 use App\Models\Cluster;
 use App\Models\ClusterExpense;
 use App\Models\House;
+use App\Models\Material;
+use App\Models\MaterialUsage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Maatwebsite\Excel\Facades\Excel;
@@ -22,6 +24,14 @@ class HouseExportTest extends TestCase
         $cluster = Cluster::create(['name' => 'TEST Export Cluster']);
         $house = House::factory()->create(['cluster_id' => $cluster->id, 'name' => 'TEST Export House']);
         $otherHouse = House::factory()->create(['cluster_id' => $cluster->id, 'name' => 'TEST Other Export House']);
+        $material = Material::factory()->create(['name' => 'TEST Export Semen']);
+
+        MaterialUsage::factory()->create([
+            'house_id' => $house->id,
+            'material_id' => $material->id,
+            'user_id' => $user->id,
+            'taken_by' => 'Pak Mandor Rumah',
+        ]);
 
         ClusterExpense::create([
             'cluster_id' => $cluster->id,
@@ -69,6 +79,9 @@ class HouseExportTest extends TestCase
             $workbook = IOFactory::load(stream_get_meta_data($file)['uri']);
 
             $this->assertSame(['Material', 'Alat', 'Jasa Vendor', 'Sewa Alat', 'Laporan Perbulan'], $workbook->getSheetNames());
+            $materialSheet = $workbook->getSheetByName('Material');
+            $this->assertSame('Pengambil', $materialSheet->getCell('J6')->getValue());
+            $this->assertSame('Pak Mandor Rumah', $materialSheet->getCell('J7')->getValue());
             $serviceSheet = $workbook->getSheetByName('Jasa Vendor');
             $this->assertSame('Laporan Jasa Vendor - TEST Export House', $serviceSheet->getCell('A2')->getValue());
             $this->assertSame('TEST Export Plumbing', $serviceSheet->getCell('B7')->getValue());

@@ -118,6 +118,7 @@ class ClusterCostsExportTest extends TestCase
             'unit_price_at_usage' => 70000,
             'total_cost' => 700000,
             'usage_date' => now()->toDateString(),
+            'taken_by' => 'Pak Mandor A',
         ]);
 
         MaterialUsage::create([
@@ -193,9 +194,11 @@ class ClusterCostsExportTest extends TestCase
         $matCollection = $matExport->collection();
         $this->assertCount(1, $matCollection);
         $mappedMat = $matExport->map($matCollection->first());
+        $this->assertSame('Pengambil', $matExport->headings()[5][9]);
         $this->assertEquals('Blok A-01', $mappedMat[2]);
         $this->assertEquals('Semen Portland', $mappedMat[4]);
         $this->assertEquals(700000.0, $mappedMat[8]);
+        $this->assertSame('Pak Mandor A', $mappedMat[9]);
 
         // Test Tool Export
         $toolExport = new ClusterToolExport($cluster);

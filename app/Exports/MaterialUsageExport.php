@@ -68,6 +68,7 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
                 'Satuan',
                 'Harga Satuan',
                 'Total Biaya',
+                'Pengambil',
                 'Pencatat',
                 'Dicatat pada',
             ],
@@ -102,6 +103,7 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
             $usage->material->unit,
             (float) ($usage->unit_price_at_usage ?? 0),
             (float) ($usage->total_cost ?? 0),
+            $usage->taken_by ?: '-',
             $usage->user->name,
             $usage->created_at?->format('d/m/Y H:i') ?? '-',
         ];
@@ -118,14 +120,14 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->mergeCells('A1:K1');
-        $sheet->mergeCells('A2:K2');
-        $sheet->mergeCells('A3:K3');
-        $sheet->mergeCells('A4:K4');
+        $sheet->mergeCells('A1:L1');
+        $sheet->mergeCells('A2:L2');
+        $sheet->mergeCells('A3:L3');
+        $sheet->mergeCells('A4:L4');
         $sheet->getRowDimension(1)->setRowHeight(52);
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
-        $sheet->getStyle('A1:K4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1:L4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Header Styling (D'Royal Village Green #1FA33A)
         $headerStyle = [
@@ -147,13 +149,13 @@ class MaterialUsageExport implements FromQuery, ShouldAutoSize, WithColumnFormat
             ],
         ];
 
-        $sheet->getStyle('A6:K6')->applyFromArray($headerStyle);
+        $sheet->getStyle('A6:L6')->applyFromArray($headerStyle);
 
         $sheet->calculateColumnWidths();
         $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
         $columnWidths = [];
         $totalWidth = 0;
-        for ($column = 1; $column <= 11; $column++) {
+        for ($column = 1; $column <= 12; $column++) {
             $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
             $columnWidths[] = $width;
             $totalWidth += $width;

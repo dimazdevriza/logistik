@@ -113,5 +113,21 @@ class LogResponsibilityTest extends TestCase
         } finally {
             fclose($file);
         }
+
+        $combinedExport = new MaterialLogExport('');
+        $this->assertCount(14, $combinedExport->headings()[3]);
+
+        $combinedFile = tmpfile();
+        try {
+            fwrite($combinedFile, Excel::raw($combinedExport, \Maatwebsite\Excel\Excel::XLSX));
+            $combinedSheet = IOFactory::load(stream_get_meta_data($combinedFile)['uri'])->getActiveSheet();
+
+            $this->assertSame('Pencatat', $combinedSheet->getCell('K4')->getValue());
+            $this->assertSame('Pengambil', $combinedSheet->getCell('L4')->getValue());
+            $this->assertSame('Recorder Example', $combinedSheet->getCell('K5')->getValue());
+            $this->assertSame('Receiver Example', $combinedSheet->getCell('L5')->getValue());
+        } finally {
+            fclose($combinedFile);
+        }
     }
 }

@@ -55,6 +55,7 @@ class ClusterMaterialExport implements FromCollection, ShouldAutoSize, WithColum
                 'Satuan',
                 'Harga Satuan',
                 'Total Biaya',
+                'Pengambil',
                 'Catatan',
             ],
         ];
@@ -97,6 +98,7 @@ class ClusterMaterialExport implements FromCollection, ShouldAutoSize, WithColum
             $usage->material?->unit ?? '-',
             (float) $usage->unit_price_at_usage,
             (float) $usage->total_cost,
+            $usage->taken_by ?: '-',
             $usage->notes ?? '',
         ];
     }
@@ -112,16 +114,16 @@ class ClusterMaterialExport implements FromCollection, ShouldAutoSize, WithColum
 
     public function styles(Worksheet $sheet): array
     {
-        $sheet->mergeCells('A1:J1');
-        $sheet->mergeCells('A2:J2');
-        $sheet->mergeCells('A3:J3');
-        $sheet->mergeCells('A4:J4');
+        $sheet->mergeCells('A1:K1');
+        $sheet->mergeCells('A2:K2');
+        $sheet->mergeCells('A3:K3');
+        $sheet->mergeCells('A4:K4');
         $sheet->getRowDimension(1)->setRowHeight(52);
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A3:A4')->getFont()->setItalic(true)->setSize(10);
-        $sheet->getStyle('A1:J4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1:K4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        $sheet->getStyle('A6:J6')->applyFromArray([
+        $sheet->getStyle('A6:K6')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
@@ -148,7 +150,7 @@ class ClusterMaterialExport implements FromCollection, ShouldAutoSize, WithColum
                 $sheet = $event->sheet->getDelegate();
                 $highestRow = max(6, $sheet->getHighestRow());
 
-                $sheet->getStyle("A6:J{$highestRow}")->applyFromArray([
+                $sheet->getStyle("A6:K{$highestRow}")->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -156,7 +158,7 @@ class ClusterMaterialExport implements FromCollection, ShouldAutoSize, WithColum
                         ],
                     ],
                 ]);
-                $sheet->getStyle('A6:J6')->getBorders()->getAllBorders()->getColor()->setRGB('000000');
+                $sheet->getStyle('A6:K6')->getBorders()->getAllBorders()->getColor()->setRGB('000000');
 
                 if ($highestRow >= 7) {
                     $sheet->getStyle("A7:B{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -181,7 +183,7 @@ class ClusterMaterialExport implements FromCollection, ShouldAutoSize, WithColum
                 $font = $sheet->getParentOrThrow()->getDefaultStyle()->getFont();
                 $columnWidths = [];
                 $totalWidth = 0;
-                for ($column = 1; $column <= 10; $column++) {
+                for ($column = 1; $column <= 11; $column++) {
                     $width = ColumnDrawing::cellDimensionToPixels($sheet->getColumnDimensionByColumn($column)->getWidth(), $font);
                     $columnWidths[] = $width;
                     $totalWidth += $width;

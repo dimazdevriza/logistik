@@ -215,6 +215,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 'Harga Satuan',
                 'Total Biaya',
                 'Pencatat',
+                'Pengambil',
                 'Kode Penerimaan / Transaksi',
                 'Dicatat pada',
             ],
@@ -254,7 +255,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
                 $monthNames[$dt->month] ?? strtoupper($dt->format('F')),
                 $dt->year,
                 $record->user_name,
-                $record->pengambil ?? '-',
+                $record->pengambil ?: '-',
                 $record->blok_rumah ?? '-',
                 $record->keterangan_pekerjaan ?? '-',
                 $record->material_code ?? '-',
@@ -294,6 +295,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
 
         return [
             ...$row,
+            $record->pengambil ?: '-',
             $record->event_code ?? '-',
             $record->created_at ? Carbon::parse($record->created_at)->format('d/m/Y H:i') : '-',
         ];
@@ -417,7 +419,7 @@ class MaterialLogExport implements FromCollection, ShouldAutoSize, WithColumnFor
             ],
         ];
 
-        $sheet->getStyle('A4:M4')->applyFromArray($headerStyle);
+        $sheet->getStyle('A4:N4')->applyFromArray($headerStyle);
 
         // Alignment
         $sheet->getStyle('A:C')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
