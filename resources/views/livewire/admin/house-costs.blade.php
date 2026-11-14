@@ -73,26 +73,27 @@
             <div wire:loading.delay class="data-table-status" role="status">Memuat biaya rumah...</div>
             <div wire:offline class="data-table-status is-error" role="alert">Koneksi terputus. Data mungkin tidak terbaru.</div>
             <div class="table-responsive data-table-scroll house-cost-table-scroll standard-table-frame" tabindex="0" role="region" aria-label="Rincian biaya rumah">
-                <table class="table table-hover align-middle mb-0 text-nowrap data-table data-table--sticky-identity house-cost-table standard-data-table">
-                    <thead class="text-uppercase small font-geist border-bottom">
-                        <tr class="bg-body-tertiary">
-                            <th class="text-center text-secondary py-3" style="width: 45px;">No.</th>
-                            <x-sortable-th field="code" :sort="$sort" class="text-secondary py-3 data-key-code">Kode</x-sortable-th>
-                            <x-sortable-th field="name" :sort="$sort" class="text-secondary py-3 data-key-name">Rumah</x-sortable-th>
-                            <th class="text-secondary py-3">Cluster</th>
-                            <x-sortable-th field="type" :sort="$sort" class="text-secondary py-3">Tipe</x-sortable-th>
-                            <x-sortable-th field="mandor" :sort="$sort" class="text-secondary py-3">Mandor</x-sortable-th>
-                            <x-sortable-th field="status" :sort="$sort" class="text-secondary py-3 text-center">Status</x-sortable-th>
-                            <x-sortable-th field="progress" :sort="$sort" class="text-secondary py-3 text-start" style="min-width: 140px;">Bobot (Fisik / Bahan)</x-sortable-th>
-                            @php
-                                $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                            @endphp
+                <table class="table table-bordered table-hover table-sm align-middle mb-0 text-nowrap data-table data-table--sticky-identity house-cost-table matrix-report-table">
+                    @php
+                        $monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                    @endphp
+                    <thead class="text-uppercase small font-geist">
+                        <tr class="text-center">
+                            <th class="text-center text-secondary" style="width: 45px;">No</th>
+                            <x-sortable-th field="code" :sort="$sort" class="text-secondary data-key-code">Kode</x-sortable-th>
+                            <x-sortable-th field="name" :sort="$sort" class="text-secondary text-start data-key-name">Rumah</x-sortable-th>
+                            <th class="text-secondary text-start">Cluster</th>
+                            <x-sortable-th field="type" :sort="$sort" class="text-secondary text-start">Tipe</x-sortable-th>
+                            <x-sortable-th field="mandor" :sort="$sort" class="text-secondary text-start">Mandor</x-sortable-th>
+                            <x-sortable-th field="status" :sort="$sort" class="text-secondary text-center">Status</x-sortable-th>
+                            <x-sortable-th field="progress" :sort="$sort" class="text-success text-center matrix-head-progress" style="min-width: 105px;">Bobot Fisik</x-sortable-th>
+                            <x-sortable-th field="material_progress" :sort="$sort" class="text-success text-center matrix-head-progress" style="min-width: 105px;">Bobot Bahan</x-sortable-th>
                             @foreach ($monthNames as $mIdx => $mName)
-                                <x-sortable-th :field="'month_' . ($mIdx + 1)" :sort="$sort" class="text-end text-secondary font-mono py-3 data-number" style="min-width: 90px;">{{ $mName }}</x-sortable-th>
+                                <x-sortable-th :field="'month_' . ($mIdx + 1)" :sort="$sort" class="text-end text-warning font-mono data-number matrix-head-period" style="min-width: 95px;">{{ $mName }}</x-sortable-th>
                             @endforeach
-                            <x-sortable-th field="year_total" :sort="$sort" class="text-end text-success font-mono fw-bold py-3 data-number" style="min-width: 125px;">Total {{ $selectedYear }}</x-sortable-th>
-                            <x-sortable-th field="all_time" :sort="$sort" class="text-end text-warning font-mono fw-bold py-3 data-number" style="min-width: 130px;">Total Keseluruhan</x-sortable-th>
-                            <th class="text-end text-secondary py-3" style="width: 80px;">Aksi</th>
+                            <x-sortable-th field="year_total" :sort="$sort" class="text-end text-success matrix-head-total" style="min-width: 130px;">Total {{ $selectedYear }}</x-sortable-th>
+                            <x-sortable-th field="all_time" :sort="$sort" class="text-end text-warning" style="min-width: 130px;">Total keseluruhan</x-sortable-th>
+                            <th class="text-end text-secondary" style="width: 80px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -116,41 +117,32 @@
                             <td data-label="Status" class="text-center">
                                 <span class="badge {{ $statusClasses[$house->status] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($house->status) }}</span>
                             </td>
-                            <td data-label="Bobot">
-                                @php
-                                    $bobotRumah = $house->bobot_rumah;
-                                    $bobotBahan = $house->bobot_bahan;
-                                    $isOverBudget = $bobotBahan !== null && $bobotBahan > 100;
-                                @endphp
-                                <div class="d-inline-flex flex-column gap-1" style="min-width: 120px;">
-                                    <div class="d-flex align-items-center justify-content-between gap-2 font-mono extra-small">
-                                        <span class="badge bg-body-secondary text-body px-1.5 py-0.5" title="Bobot Progres Fisik">F: {{ number_format($bobotRumah, 1, ',', '.') }}%</span>
-                                        @if ($bobotBahan !== null)
-                                            <span class="badge {{ $isOverBudget ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success' }} px-1.5 py-0.5" title="Bobot Serapan Bahan">B: {{ number_format($bobotBahan, 1, ',', '.') }}%</span>
-                                        @else
-                                            <span class="text-secondary small" title="Bobot Serapan Bahan">-</span>
-                                        @endif
-                                    </div>
-                                    <div class="progress bg-body-tertiary" style="height: 3px;" title="Progres Fisik: {{ number_format($bobotRumah, 1, ',', '.') }}%">
-                                        <div class="progress-bar bg-success" style="width: {{ min(100, $bobotRumah) }}%;"></div>
-                                    </div>
-                                </div>
+                            @php
+                                $bobotRumah = $house->bobot_rumah;
+                                $bobotBahan = $house->bobot_bahan;
+                                $isOverBudget = $bobotBahan !== null && $bobotBahan > 100;
+                            @endphp
+                            <td data-label="Bobot Fisik" class="text-center font-mono fw-bold {{ $bobotRumah >= 100 ? 'text-success' : ($bobotRumah > 0 ? 'text-info' : 'text-secondary') }}">
+                                {{ number_format($bobotRumah, 1, ',', '.') }}%
+                            </td>
+                            <td data-label="Bobot Bahan" class="text-center font-mono fw-bold {{ $bobotBahan === null ? 'text-secondary opacity-50' : ($isOverBudget ? 'text-danger' : 'text-success') }}">
+                                {{ $bobotBahan !== null ? number_format($bobotBahan, 1, ',', '.').'%' : '-' }}
                             </td>
                             
                             @for ($m = 1; $m <= 12; $m++)
                                 @php
                                     $mCost = (float) ($house->{'month_' . $m . '_cost'} ?? 0);
                                 @endphp
-                                <td data-label="{{ $monthNames[$m - 1] }}" class="house-cost-month text-end font-mono data-number {{ $mCost > 0 ? 'text-body font-semibold' : 'text-secondary text-opacity-50' }} {{ $mCost > 0 ? '' : 'is-zero-month' }}">
-                                    {{ $mCost > 0 ? number_format($mCost, 0, ',', '.') : '-' }}
+                                <td data-label="{{ $monthNames[$m - 1] }}" class="house-cost-month text-end font-mono data-number {{ $mCost > 0 ? 'text-body fw-semibold' : 'text-secondary opacity-50 is-zero-month' }}">
+                                    {{ $mCost > 0 ? 'Rp '.number_format($mCost, 0, ',', '.') : '-' }}
                                 </td>
                             @endfor
 
-                            <td data-label="Total {{ $selectedYear }}" class="text-end font-mono fw-bold text-success bg-success-subtle bg-opacity-10 data-number">
-                                Rp {{ number_format($yearSum, 0, ',', '.') }}
+                            <td data-label="Total {{ $selectedYear }}" class="text-end font-mono fw-bold text-success matrix-cell-total data-number">
+                                {{ $yearSum > 0 ? 'Rp '.number_format($yearSum, 0, ',', '.') : '-' }}
                             </td>
-                            <td data-label="Total keseluruhan" class="text-end font-mono fw-bold text-warning bg-warning-subtle bg-opacity-10 data-number">
-                                Rp {{ number_format($totalAllTime, 0, ',', '.') }}
+                            <td data-label="Total keseluruhan" class="text-end font-mono fw-bold text-warning data-number">
+                                {{ $totalAllTime > 0 ? 'Rp '.number_format($totalAllTime, 0, ',', '.') : '-' }}
                             </td>
                             <td data-label="Aksi" class="text-end">
                                 <a href="{{ route(auth()->user()->canAccessAllClusters() ? 'admin.house-costs.detail' : 'logistik.house-costs.detail', $house) }}" wire:navigate class="btn log-row-action log-row-action--edit">Detail</a>
@@ -158,10 +150,28 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="23" class="house-cost-empty text-center py-5 text-secondary">Belum ada data rumah.</td>
+                            <td colspan="24" class="house-cost-empty text-center py-5 text-secondary">Belum ada data rumah.</td>
                         </tr>
                         @endforelse
                     </tbody>
+                    @if ($houses->isNotEmpty())
+                        <tfoot class="border-top border-2 matrix-report-foot">
+                            <tr class="fw-black">
+                                <td></td>
+                                <td class="data-key-code"></td>
+                                <td class="data-key-name text-uppercase font-outfit text-success">Total Biaya Rumah ({{ $selectedYear }}):</td>
+                                <td colspan="6"></td>
+                                @php $yearGrandTotal = 0; @endphp
+                                @for ($m = 1; $m <= 12; $m++)
+                                    @php $mTotal = (float) ($monthlyTotals[$m] ?? 0); $yearGrandTotal += $mTotal; @endphp
+                                    <td class="text-end font-mono {{ $mTotal > 0 ? 'text-success' : 'text-secondary opacity-50' }}">{{ $mTotal > 0 ? 'Rp '.number_format($mTotal, 0, ',', '.') : '-' }}</td>
+                                @endfor
+                                <td class="text-end font-mono text-success matrix-cell-grand">Rp {{ number_format($yearGrandTotal, 0, ',', '.') }}</td>
+                                <td class="text-end font-mono text-warning">Rp {{ number_format($filteredAllTimeTotal, 0, ',', '.') }}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    @endif
                 </table>
             </div>
             </div>

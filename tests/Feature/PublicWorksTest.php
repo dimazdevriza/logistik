@@ -333,7 +333,8 @@ class PublicWorksTest extends TestCase
 
         // Listing on /pekerjaan-umum does not show Bobot column
         Livewire::test(Houses::class, ['category' => House::CATEGORY_PUBLIC_WORK])
-            ->assertDontSee('Bobot (Fisik / Bahan)');
+            ->assertDontSee('Bobot Fisik')
+            ->assertDontSee('Bobot Bahan');
 
         // Detail page does not render Bobot & Progres Pembangunan card or stage checklist
         Livewire::test(\App\Livewire\Logistik\HouseDetail::class, ['house' => $publicWork])

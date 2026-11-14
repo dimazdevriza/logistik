@@ -98,6 +98,9 @@ class ClusterExpenses extends Component
             'mandor' => 'houses.mandor_name',
             'status' => 'houses.status',
             'progress' => 'houses.physical_progress',
+            'material_progress' => fn ($query, $direction) => $query->orderByRaw(
+                'CASE WHEN houses.material_budget > 0 THEN COALESCE((SELECT SUM(mu.total_cost) FROM material_usages mu WHERE mu.house_id = houses.id AND mu.voided_at IS NULL), 0) / houses.material_budget ELSE -1 END '.$direction
+            ),
             'year_total' => fn ($query, $direction) => $query->orderBy(
                 MaterialUsage::selectRaw('COALESCE(SUM(total_cost), 0)')
                     ->whereColumn('material_usages.house_id', 'houses.id')

@@ -96,7 +96,8 @@
                             @endunless
                             <x-sortable-th field="status" :sort="$sort">Status</x-sortable-th>
                             @unless ($isPublicWork)
-                                <x-sortable-th field="progress" :sort="$sort">Bobot (Fisik / Bahan)</x-sortable-th>
+                                <x-sortable-th field="progress" :sort="$sort" class="text-center">Bobot Fisik</x-sortable-th>
+                                <x-sortable-th field="material_progress" :sort="$sort" class="text-center">Bobot Bahan</x-sortable-th>
                             @endunless
                             <x-sortable-th field="cost" :sort="$sort" class="text-end">Total Biaya</x-sortable-th>
                             <x-sortable-th field="start_date" :sort="$sort">Mulai</x-sortable-th>
@@ -128,26 +129,17 @@
                                 <span class="badge {{ $statusClasses[$house->status] ?? 'bg-secondary-subtle text-secondary' }}">{{ ucfirst($house->status) }}</span>
                             </td>
                             @unless ($isPublicWork)
-                            <td>
                                 @php
                                     $bobotRumah = $house->bobot_rumah;
                                     $bobotBahan = $house->bobot_bahan;
                                     $isOverBudget = $bobotBahan !== null && $bobotBahan > 100;
                                 @endphp
-                                <div class="d-inline-flex flex-column gap-1" style="min-width: 120px;">
-                                    <div class="d-flex align-items-center justify-content-between gap-2 font-mono extra-small">
-                                        <span class="badge bg-body-secondary text-body px-1.5 py-0.5" title="Bobot Progres Fisik">F: {{ number_format($bobotRumah, 1, ',', '.') }}%</span>
-                                        @if ($bobotBahan !== null)
-                                            <span class="badge {{ $isOverBudget ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success' }} px-1.5 py-0.5" title="Bobot Serapan Bahan">B: {{ number_format($bobotBahan, 1, ',', '.') }}%</span>
-                                        @else
-                                            <span class="text-secondary small" title="Bobot Serapan Bahan">-</span>
-                                        @endif
-                                    </div>
-                                    <div class="progress bg-body-tertiary" style="height: 3px;" title="Progres Fisik: {{ number_format($bobotRumah, 1, ',', '.') }}%">
-                                        <div class="progress-bar bg-success" style="width: {{ min(100, $bobotRumah) }}%;"></div>
-                                    </div>
-                                </div>
-                            </td>
+                                <td class="text-center font-mono fw-bold {{ $bobotRumah >= 100 ? 'text-success' : ($bobotRumah > 0 ? 'text-info' : 'text-secondary') }}">
+                                    {{ number_format($bobotRumah, 1, ',', '.') }}%
+                                </td>
+                                <td class="text-center font-mono fw-bold {{ $bobotBahan === null ? 'text-secondary opacity-50' : ($isOverBudget ? 'text-danger' : 'text-success') }}">
+                                    {{ $bobotBahan !== null ? number_format($bobotBahan, 1, ',', '.').'%' : '-' }}
+                                </td>
                             @endunless
                             <td class="text-end font-mono fw-bold text-body data-number">Rp {{ number_format($house->total_material_cost, 0, ',', '.') }}</td>
                             <td class="text-secondary small data-date">{{ $house->start_date?->format('d/m/Y') ?? '-' }}</td>
@@ -164,7 +156,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="{{ $isPublicWork ? 8 : 12 }}" class="text-center py-4 text-secondary">{{ $isPublicWork ? 'Belum ada data pekerjaan umum.' : 'Belum ada data rumah.' }}</td>
+                            <td colspan="{{ $isPublicWork ? 8 : 13 }}" class="text-center py-4 text-secondary">{{ $isPublicWork ? 'Belum ada data pekerjaan umum.' : 'Belum ada data rumah.' }}</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -474,7 +466,7 @@
                                 <p class="small text-secondary mb-0">Daftar pratinjau kosong. Tampilkan pratinjau lagi untuk mengisi daftar.</p>
                             @elseif ($bulkPreviewReady)
                                 <div class="table-responsive house-bulk-preview-scroll" role="region" aria-label="Daftar rumah yang akan disimpan" tabindex="0">
-                                    <table class="table table-sm mb-0 house-bulk-preview-table">
+                                    <table class="table table-sm mb-0 house-bulk-preview-table table-allow-wrap">
                                         <caption class="visually-hidden">Edit nama dan tipe setiap rumah. Kode rumah dibuat dari nama.</caption>
                                         <thead class="table-light">
                                             <tr>
@@ -485,13 +477,14 @@
                                         </thead>
                                         <tbody>
                                             @foreach ($bulkRows as $index => $row)
-                                                <tr wire:key="bulk-house-{{ $index }}" class="{{ in_array($index, $bulkConflicts, true) ? 'table-warning' : '' }}">
+                                                @php $isConflict = in_array($index, $bulkConflicts, true); @endphp
+                                                <tr wire:key="bulk-house-{{ $index }}" class="{{ $isConflict ? 'table-warning border-start border-3 border-warning' : '' }}">
                                                     <td data-label="Nama rumah / kode">
-                                                        <input type="text" wire:model.blur="bulkRows.{{ $index }}.name" class="form-control" aria-label="Nama rumah nomor {{ $index + 1 }}" />
+                                                        <input type="text" wire:model.blur="bulkRows.{{ $index }}.name" class="form-control {{ $isConflict ? 'border-warning' : '' }}" aria-label="Nama rumah nomor {{ $index + 1 }}" />
                                                         @if (trim((string) ($row['name'] ?? '')) !== '')
                                                             <div class="small text-secondary mt-1">Kode: <span class="font-mono">{{ \App\Models\House::generateCode($row['name']) }}</span></div>
                                                         @endif
-                                                        @if (in_array($index, $bulkConflicts, true))
+                                                        @if ($isConflict)
                                                             <div class="small text-warning-emphasis mt-1" role="status">Kode sudah digunakan. Ubah nama atau hapus rumah ini.</div>
                                                         @endif
                                                         @error("bulkRows.{$index}.name") <div class="small text-danger mt-1" role="alert">{{ $message }}</div> @enderror
@@ -641,7 +634,7 @@
                         <!-- Detailed Row Logs -->
                         <h6 class="fw-bold extra-small text-uppercase text-secondary mb-2">Rincian Status per Baris</h6>
                         <div class="table-responsive border rounded" style="max-height: 250px; overflow-y: auto;">
-                            <table class="table table-sm table-striped align-middle mb-0 extra-small">
+                            <table class="table table-sm table-striped align-middle mb-0 extra-small table-allow-wrap">
                                 <thead class="table-light sticky-top">
                                     <tr>
                                 <th style="width: 50px;">Baris Data</th>

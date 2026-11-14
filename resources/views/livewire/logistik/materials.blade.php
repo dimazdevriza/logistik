@@ -103,54 +103,64 @@
                 <h2 class="h5 fw-bold mb-0 font-outfit">Stok material per batch</h2>
                 <div class="standard-table-toolbar-controls">
                     <input type="search" wire:model.live.debounce.300ms="search" placeholder="Cari material, kode, atau kode masuk..." aria-label="Cari material, kode, atau kode masuk" class="form-control standard-table-toolbar-search" />
-                    <x-filter-modal :activeFiltersCount="$this->getActiveFiltersCount()">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-uppercase text-secondary">Kategori</label>
-                        <select wire:model.live="filterCategory" class="form-select">
-                            <option value="">Semua Kategori</option>
-                            @foreach($categories as $cat)
-                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-uppercase text-secondary">Mitra Supplier</label>
-                        <select wire:model.live="filterSupplier" class="form-select">
-                            <option value="">Semua Supplier</option>
-                            @foreach($suppliers as $sup)
-                                <option value="{{ $sup->id }}">{{ $sup->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @if (auth()->user()->hasWarehouseChoice())
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-uppercase text-secondary">Gudang</label>
-                        <select wire:model.live="filterWarehouse" class="form-select">
-                            <option value="">Semua Gudang</option>
-                            @foreach($warehouses as $warehouse)
-                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @endif
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-uppercase text-secondary">Status Stok</label>
-                        <select wire:model.live="filterStock" class="form-select">
-                            <option value="">Semua Stok</option>
-                            <option value="safe">Aman (&gt; 10)</option>
-                            <option value="low">Menipis (&le; 10)</option>
-                            <option value="empty">Habis (0)</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-uppercase text-secondary">Foto Material</label>
-                        <select wire:model.live="filterPhoto" class="form-select">
-                            <option value="">Semua Material</option>
-                            <option value="has_photo">Memiliki Foto</option>
-                            <option value="no_photo">Belum Ada Foto</option>
-                        </select>
-                    </div>
-                </x-filter-modal>
+                    <x-filter-modal 
+                        :activeFiltersCount="$this->getActiveFiltersCount()"
+                        title="Filter Material"
+                        maxWidth="500px"
+                    >
+                        <div class="row g-3">
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label small fw-medium text-secondary mb-1">Kategori</label>
+                                <select wire:model.live="filterCategory" class="form-select font-outfit">
+                                    <option value="">Semua Kategori</option>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label small fw-medium text-secondary mb-1">Mitra Supplier</label>
+                                <select wire:model.live="filterSupplier" class="form-select font-outfit">
+                                    <option value="">Semua Supplier</option>
+                                    @foreach($suppliers as $sup)
+                                        <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label small fw-medium text-secondary mb-1">Status Stok</label>
+                                <select wire:model.live="filterStock" class="form-select font-outfit">
+                                    <option value="">Semua Status Stok</option>
+                                    <option value="safe">Aman (&gt; 10)</option>
+                                    <option value="low">Menipis (&le; 10)</option>
+                                    <option value="empty">Habis (0)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label small fw-medium text-secondary mb-1">Foto Material</label>
+                                <select wire:model.live="filterPhoto" class="form-select font-outfit">
+                                    <option value="">Semua Material</option>
+                                    <option value="has_photo">Memiliki Foto</option>
+                                    <option value="no_photo">Belum Ada Foto</option>
+                                </select>
+                            </div>
+
+                            @if (auth()->user()->hasWarehouseChoice())
+                            <div class="col-12">
+                                <label class="form-label small fw-medium text-secondary mb-1">Gudang</label>
+                                <select wire:model.live="filterWarehouse" class="form-select font-outfit">
+                                    <option value="">Semua Gudang</option>
+                                    @foreach($warehouses as $warehouse)
+                                        <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endif
+                        </div>
+                    </x-filter-modal>
                 </div>
             </div>
 
@@ -180,7 +190,7 @@
                         @forelse ($materialBatches as $batch)
                         @php($material = $batch->material)
                         <tr wire:key="mat-stock-in-{{ $batch->id }}" style="cursor: pointer;" x-on:click="if (window.innerWidth >= 768 && !$event.target.closest('button') && !$event.target.closest('a') && !$event.target.closest('input')) { $wire.edit({{ $material->id }}) }">
-                            <td class="text-center text-secondary small data-mobile-secondary">{{ $loop->iteration }}</td>
+                            <td class="text-center text-secondary small data-mobile-secondary">{{ $materialBatches->firstItem() ? ($materialBatches->firstItem() + $loop->index) : $loop->iteration }}</td>
                             <td class="text-center data-mobile-secondary">
                                 @if($material->image)
                                     <button type="button" wire:click.stop="showMaterialImage({{ $material->id }})" class="btn btn-link p-0 border-0" title="Klik untuk memperbesar foto">
@@ -245,6 +255,7 @@
             </div>
         </div>
 
+        <div class="mt-3">{{ $materialBatches->links('vendor.livewire.bootstrap') }}</div>
     </div>
 
     <!-- Modal: Create / Edit Material -->
@@ -776,7 +787,7 @@
                         <!-- Detailed Row Logs -->
                         <h6 class="fw-bold extra-small text-uppercase text-secondary mb-2">Rincian Status per Baris</h6>
                         <div class="table-responsive border rounded" style="max-height: 250px; overflow-y: auto;">
-                            <table class="table table-sm table-striped align-middle mb-0 extra-small">
+                            <table class="table table-sm table-striped align-middle mb-0 extra-small table-allow-wrap">
                                 <thead class="table-light sticky-top">
                                     <tr>
                                         <th style="width: 60px;">Baris Data</th>

@@ -571,7 +571,7 @@
                         @enderror
 
                         <div class="table-responsive border rounded-3 mb-3">
-                            <table class="table table-hover align-middle mb-0">
+                            <table class="table table-hover align-middle mb-0 table-allow-wrap">
                                 <thead class="table-light small font-geist text-uppercase">
                                     <tr>
                                         <th style="width: 45px;">No.</th>

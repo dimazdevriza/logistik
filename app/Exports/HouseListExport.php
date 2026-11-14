@@ -72,12 +72,14 @@ class HouseListExport implements FromQuery, ShouldAutoSize, WithColumnFormatting
             ->when($this->search, fn ($q) => $q->where(function ($sub) {
                 $sub->where('name', 'like', "%{$this->search}%")
                     ->orWhere('type', 'like', "%{$this->search}%")
+                    ->orWhere('mandor_name', 'like', "%{$this->search}%")
                     ->orWhere('house_code', 'like', "%{$this->search}%")
                     ->orWhereHas('cluster', fn ($cluster) => $cluster->where('name', 'like', "%{$this->search}%"));
             }))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterCluster, fn ($q) => $q->where('cluster_id', $this->filterCluster))
             ->when($this->clusterScope !== null, fn ($q) => is_array($this->clusterScope) ? $q->whereIn('cluster_id', $this->clusterScope) : $q->where('cluster_id', $this->clusterScope))
+            ->orderByRaw('CASE WHEN category = ? THEN 0 ELSE 1 END', [House::CATEGORY_HOUSE])
             ->orderBy('name');
     }
 

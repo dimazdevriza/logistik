@@ -828,7 +828,7 @@ class Materials extends Component
             ->tap(fn ($query) => $this->applyTableSort($query))
             ->orderBy('materials.id')
             ->orderBy('stock_ins.id')
-            ->get();
+            ->paginate(10);
 
         $suppliers = Supplier::select('id', 'name')->orderBy('name')->get()->unique('name');
         $categories = Category::where('type', 'material')->orderBy('name')->get()->unique('name');

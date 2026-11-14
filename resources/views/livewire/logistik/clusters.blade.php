@@ -178,7 +178,7 @@
                 <div wire:loading.delay class="data-table-status" role="status">Memuat biaya cluster...</div>
                 <div wire:offline class="data-table-status is-error" role="alert">Koneksi terputus. Data mungkin tidak terbaru.</div>
                 <div class="table-responsive data-table-scroll house-cost-table-scroll standard-table-frame" tabindex="0" role="region" aria-label="Rincian biaya cluster">
-                    <table class="table table-hover align-middle mb-0 text-nowrap data-table data-table--sticky-identity house-cost-table cluster-cost-table standard-data-table">
+                    <table class="table table-bordered table-hover table-sm align-middle mb-0 text-nowrap data-table data-table--sticky-identity house-cost-table cluster-cost-table matrix-report-table">
                         <thead class="text-uppercase small font-geist border-bottom">
                             <tr class="bg-body-tertiary">
                                 <th class="text-center text-secondary py-3" style="width: 45px;">No.</th>
@@ -186,9 +186,9 @@
                                 <x-sortable-th field="houses" :sort="$sort" class="text-secondary py-3 cluster-cost-house-column" style="width: 9.5rem; min-width: 9.5rem; max-width: 9.5rem;">Rumah</x-sortable-th>
                                 <x-sortable-th field="description" :sort="$sort" class="text-secondary py-3" style="min-width: 16rem;">Catatan</x-sortable-th>
                                 @foreach ($monthNames as $monthIndex => $monthName)
-                                    <x-sortable-th :field="'month_' . ($monthIndex + 1)" :sort="$sort" class="text-end text-secondary font-mono py-3 data-number" style="min-width: 90px;">{{ $monthName }}</x-sortable-th>
+                                    <x-sortable-th :field="'month_' . ($monthIndex + 1)" :sort="$sort" class="text-end text-warning font-mono py-3 data-number matrix-head-period" style="min-width: 95px;">{{ $monthName }}</x-sortable-th>
                                 @endforeach
-                                <x-sortable-th field="year_total" :sort="$sort" class="text-end text-success font-mono fw-bold py-3 data-number" style="min-width: 125px;">Total {{ $selectedYear }}</x-sortable-th>
+                                <x-sortable-th field="year_total" :sort="$sort" class="text-end text-success font-mono fw-bold py-3 data-number matrix-head-total" style="min-width: 125px;">Total {{ $selectedYear }}</x-sortable-th>
                                 <x-sortable-th field="all_time" :sort="$sort" class="text-end text-warning font-mono fw-bold py-3 data-number" style="min-width: 130px;">Total Keseluruhan</x-sortable-th>
                                 <th class="text-end text-secondary py-3" style="width: 80px;">Aksi</th>
                             </tr>
@@ -214,10 +214,10 @@
                                     <td data-label="Catatan" class="text-secondary small" style="min-width: 16rem;">{{ $cluster->description ?: '-' }}</td>
                                     @for ($month = 1; $month <= 12; $month++)
                                         @php $monthCost = (float) ($cluster->{'month_'.$month.'_cost'} ?? 0); @endphp
-                                        <td data-label="{{ $monthNames[$month - 1] }}" class="house-cost-month text-end font-mono data-number {{ $monthCost > 0 ? 'text-body font-semibold' : 'text-secondary text-opacity-50 is-zero-month' }}">{{ $monthCost > 0 ? number_format($monthCost, 0, ',', '.') : '-' }}</td>
+                                        <td data-label="{{ $monthNames[$month - 1] }}" class="house-cost-month text-end font-mono data-number {{ $monthCost > 0 ? 'text-body fw-semibold' : 'text-secondary opacity-50 is-zero-month' }}">{{ $monthCost > 0 ? 'Rp '.number_format($monthCost, 0, ',', '.') : '-' }}</td>
                                     @endfor
-                                    <td data-label="Total {{ $selectedYear }}" class="text-end font-mono fw-bold text-success bg-success-subtle bg-opacity-10 data-number">Rp {{ number_format($cluster->year_total, 0, ',', '.') }}</td>
-                                    <td data-label="Total keseluruhan" class="text-end font-mono fw-bold text-warning bg-warning-subtle bg-opacity-10 data-number">Rp {{ number_format($cluster->all_time_total, 0, ',', '.') }}</td>
+                                    <td data-label="Total {{ $selectedYear }}" class="text-end font-mono fw-bold text-success matrix-cell-total data-number">Rp {{ number_format($cluster->year_total, 0, ',', '.') }}</td>
+                                    <td data-label="Total keseluruhan" class="text-end font-mono fw-bold text-warning data-number">Rp {{ number_format($cluster->all_time_total, 0, ',', '.') }}</td>
                                     <td data-label="Aksi" class="text-end"><a href="{{ route('clusters.expenses', ['cluster' => $cluster, 'from' => 'costs']) }}" wire:navigate class="btn log-row-action log-row-action--edit">Detail</a></td>
                                 </tr>
                             @empty
@@ -225,17 +225,17 @@
                             @endforelse
                         </tbody>
                         @if ($clusters->isNotEmpty())
-                            <tfoot class="border-top fw-bold font-geist bg-body-tertiary">
-                                <tr class="align-middle">
-                                    <td colspan="3" class="text-end text-uppercase text-secondary small py-3 cluster-cost-total-label">Total Biaya Cluster ({{ $selectedYear }}):</td>
+                            <tfoot class="border-top border-2 matrix-report-foot">
+                                <tr class="align-middle fw-black">
+                                    <td colspan="3" class="text-end text-uppercase font-outfit text-success py-3 cluster-cost-total-label">Total Biaya Cluster ({{ $selectedYear }}):</td>
                                     <td class="cluster-cost-total-spacer"></td>
                                     @php $yearTotal = 0; @endphp
                                     @foreach ($monthNames as $monthIndex => $monthName)
                                         @php $monthTotal = $monthlyTotals[$monthIndex + 1] ?? 0; $yearTotal += $monthTotal; @endphp
-                                        <td class="text-end font-mono py-3 data-number {{ $monthTotal > 0 ? 'text-body' : 'text-secondary text-opacity-50' }}">{{ $monthTotal > 0 ? number_format($monthTotal, 0, ',', '.') : '-' }}</td>
+                                        <td class="text-end font-mono py-3 data-number {{ $monthTotal > 0 ? 'text-success' : 'text-secondary opacity-50' }}">{{ $monthTotal > 0 ? 'Rp '.number_format($monthTotal, 0, ',', '.') : '-' }}</td>
                                     @endforeach
-                                    <td class="text-end font-mono text-success fw-black py-3 bg-success-subtle bg-opacity-25 data-number">Rp {{ number_format($yearTotal, 0, ',', '.') }}</td>
-                                    <td class="text-end font-mono text-warning fw-black py-3 bg-warning-subtle bg-opacity-25 data-number">Rp {{ number_format($totalSpent, 0, ',', '.') }}</td>
+                                    <td class="text-end font-mono text-success fw-black py-3 matrix-cell-grand data-number">Rp {{ number_format($yearTotal, 0, ',', '.') }}</td>
+                                    <td class="text-end font-mono text-warning fw-black py-3 data-number">Rp {{ number_format($totalSpent, 0, ',', '.') }}</td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -251,7 +251,11 @@
                 </div>
             </div>
             </div>
-            <div class="d-flex justify-content-end">{{ $clusters->links('vendor.livewire.bootstrap') }}</div>
+            <div class="d-flex justify-content-end mb-4">{{ $clusters->links('vendor.livewire.bootstrap') }}</div>
+
+            @if ($clusters->isNotEmpty())
+                <livewire:logistik.cluster-recap :allowedClusterIds="$clusters->pluck('id')->all()" :wire:key="'recap-'.implode('-', $clusters->pluck('id')->all())" />
+            @endif
         @else
         <div class="card border shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary standard-table-panel">
             <div class="standard-table-toolbar">

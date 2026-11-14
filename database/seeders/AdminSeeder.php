@@ -32,5 +32,15 @@ class AdminSeeder extends Seeder
         );
         $logistik->syncRoles('logistik');
 
+        $keuangan = \App\Models\User::updateOrCreate(
+            ['email' => 'keuangan@logistik.com'],
+            [
+                'name' => 'Staff Keuangan',
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                'role' => 'keuangan',
+            ]
+        );
+        $keuangan->syncRoles('keuangan');
+
     }
 }

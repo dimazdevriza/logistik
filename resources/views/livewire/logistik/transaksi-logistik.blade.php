@@ -2348,7 +2348,7 @@
 
                         <h6 class="fw-bold extra-small text-uppercase text-secondary mb-2">Rincian Status per Baris</h6>
                         <div class="table-responsive border rounded" style="max-height: 250px; overflow-y: auto;">
-                            <table class="table table-sm table-striped align-middle mb-0 extra-small">
+                            <table class="table table-sm table-striped align-middle mb-0 extra-small table-allow-wrap">
                                 <thead class="table-light sticky-top">
                                     <tr>
                                         <th style="width: 60px;">Baris Data</th>

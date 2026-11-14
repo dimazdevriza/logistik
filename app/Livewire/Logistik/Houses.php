@@ -112,6 +112,9 @@ class Houses extends Component
                 $direction
             ),
             'progress' => 'houses.physical_progress',
+            'material_progress' => fn ($query, $direction) => $query->orderByRaw(
+                'CASE WHEN houses.material_budget > 0 THEN COALESCE((SELECT SUM(mu.total_cost) FROM material_usages mu WHERE mu.house_id = houses.id AND mu.voided_at IS NULL), 0) / houses.material_budget ELSE -1 END '.$direction
+            ),
             'start_date' => 'houses.start_date',
             'target_end_date' => 'houses.target_end_date',
         ];

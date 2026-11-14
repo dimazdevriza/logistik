@@ -67,6 +67,9 @@ class HouseCosts extends Component
             'mandor' => 'houses.mandor_name',
             'status' => 'houses.status',
             'progress' => 'houses.physical_progress',
+            'material_progress' => fn ($query, $direction) => $query->orderByRaw(
+                'CASE WHEN houses.material_budget > 0 THEN COALESCE((SELECT SUM(mu.total_cost) FROM material_usages mu WHERE mu.house_id = houses.id AND mu.voided_at IS NULL), 0) / houses.material_budget ELSE -1 END '.$direction
+            ),
             'year_total' => fn ($query, $direction) => $query->orderBy(
                 MaterialUsage::selectRaw('COALESCE(SUM(total_cost), 0)')
                     ->whereColumn('material_usages.house_id', 'houses.id')
@@ -166,7 +169,28 @@ class HouseCosts extends Component
             ->values()
             ->all();
 
-        return view('livewire.admin.house-costs', compact('houses', 'clusters', 'totalSpent', 'years', 'selectedYear', 'scopeLabel'))
+        $filteredUsages = $this->materialUsagesQuery()
+            ->when($this->search, fn ($q) => $q->whereHas('house', fn ($h) => $h->where(function ($sub) {
+                $sub->where('name', 'like', "%{$this->search}%")
+                    ->orWhere('type', 'like', "%{$this->search}%")
+                    ->orWhere('mandor_name', 'like', "%{$this->search}%")
+                    ->orWhere('house_code', 'like', "%{$this->search}%")
+                    ->orWhereHas('cluster', fn ($cluster) => $cluster->where('name', 'like', "%{$this->search}%"));
+            })))
+            ->when($this->filterStatus, fn ($q) => $q->whereHas('house', fn ($h) => $h->where('status', $this->filterStatus)));
+
+        $monthlyTotals = (clone $filteredUsages)
+            ->whereYear('usage_date', $selectedYear)
+            ->selectRaw('MONTH(usage_date) as m, SUM(total_cost) as total')
+            ->groupByRaw('MONTH(usage_date)')
+            ->pluck('total', 'm')
+            ->all();
+
+        $filteredAllTimeTotal = ($this->search || $this->filterStatus)
+            ? (float) (clone $filteredUsages)->sum('total_cost')
+            : (float) $totalSpent;
+
+        return view('livewire.admin.house-costs', compact('houses', 'clusters', 'totalSpent', 'years', 'selectedYear', 'scopeLabel', 'monthlyTotals', 'filteredAllTimeTotal'))
             ->layout('layouts.app', ['title' => 'Biaya Rumah']);
     }
 
