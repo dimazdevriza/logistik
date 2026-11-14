@@ -325,8 +325,6 @@
                 </div>
             </div>
         </fieldset>
-
-        <livewire:logistik.cluster-recap :clusterId="(string) $cluster->id" :allowedClusterIds="[$cluster->id]" />
     </div>
 
     @if($showModal)

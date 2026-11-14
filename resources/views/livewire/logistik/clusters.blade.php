@@ -252,10 +252,6 @@
             </div>
             </div>
             <div class="d-flex justify-content-end mb-4">{{ $clusters->links('vendor.livewire.bootstrap') }}</div>
-
-            @if ($clusters->isNotEmpty())
-                <livewire:logistik.cluster-recap :allowedClusterIds="$clusters->pluck('id')->all()" :wire:key="'recap-'.implode('-', $clusters->pluck('id')->all())" />
-            @endif
         @else
         <div class="card border shadow-sm rounded-4 mb-4 p-3 p-md-4 bg-body-tertiary standard-table-panel">
             <div class="standard-table-toolbar">

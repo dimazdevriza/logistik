@@ -138,4 +138,24 @@ class HouseCostsTest extends TestCase
         $this->assertEquals('center', $sheet->getStyle('I7')->getAlignment()->getHorizontal());
         $this->assertEquals('right', $sheet->getStyle('J7')->getAlignment()->getHorizontal());
     }
+
+    public function test_pelaporan_route_is_removed_and_cost_pages_render_single_table(): void
+    {
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('keuangan.reports'));
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $cluster = Cluster::create(['name' => 'Cluster A']);
+
+        $this->actingAs($admin)
+            ->get(route('logistik.cluster-costs'))
+            ->assertOk()
+            ->assertSee('matrix-report-table')
+            ->assertDontSee('Rekap pengeluaran per rumah');
+
+        $this->actingAs($admin)
+            ->get(route('clusters.expenses', $cluster))
+            ->assertOk()
+            ->assertSee('matrix-report-table')
+            ->assertDontSee('Rekap pengeluaran per rumah');
+    }
 }
